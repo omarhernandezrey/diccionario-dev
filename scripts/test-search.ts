@@ -8,7 +8,7 @@ async function main() {
         ? {
             OR: [
               { term: { contains: q } },
-              { aliases: { has: q } },
+              // omit aliases JSON search here for compatibility with SQLite/Prisma client
               { meaning: { contains: q } },
               { what: { contains: q } },
               { how: { contains: q } },

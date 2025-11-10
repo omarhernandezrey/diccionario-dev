@@ -21,7 +21,7 @@ export async function GET(req: NextRequest) {
           ? {
             OR: [
               { term: { contains: q } },
-              { aliases: { has: q } },
+              // Nota: omitimos búsqueda directa en `aliases` (JSON) por compatibilidad SQLite/Prisma.
               { meaning: { contains: q } },
               { what: { contains: q } },
               { how: { contains: q } },
