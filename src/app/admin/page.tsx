@@ -15,14 +15,23 @@ type Term = {
 const CATS = ["frontend", "backend", "database", "devops", "general"] as const;
 
 export default function AdminPage() {
-  const [token, setToken] = useState<string>("");
+  const [password, setPassword] = useState("");
+  const [loggedIn, setLoggedIn] = useState(false);
   const [q, setQ] = useState("");
   const [items, setItems] = useState<Term[]>([]);
   const [editing, setEditing] = useState<Term | null>(null);
 
   useEffect(() => {
-    const saved = localStorage.getItem("ADMIN_TOKEN") || "";
-    setToken(saved);
+    // Could check session by calling a protected endpoint in the future.
+    // Check if we already have a valid session cookie
+    (async () => {
+      try {
+        const r = await fetch("/api/auth", { method: "GET", credentials: "include" });
+        setLoggedIn(r.ok);
+      } catch (e) {
+        setLoggedIn(false);
+      }
+    })();
   }, []);
 
   useEffect(() => {
@@ -52,10 +61,8 @@ export default function AdminPage() {
     const method = isNew ? "POST" : "PATCH";
     const res = await fetch(url, {
       method,
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${token}`,
-      },
+      credentials: "include",
+      headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         term: term.term,
         aliases: term.aliases,
@@ -81,7 +88,7 @@ export default function AdminPage() {
     if (!confirm("Eliminar término?")) return;
     const res = await fetch(`/api/terms/${id}`, {
       method: "DELETE",
-      headers: { Authorization: `Bearer ${token}` },
+      credentials: "include",
     });
     if (!res.ok) {
       alert("Error eliminando");
@@ -97,18 +104,48 @@ export default function AdminPage() {
         <div className="row row-2">
           <div>
             <label>
-              <small>Token admin</small>
+              <small>Administrador (contraseña)</small>
             </label>
-            <input
-              className="input"
-              type="password"
-              value={token}
-              placeholder="Pega tu ADMIN_TOKEN"
-              onChange={(e) => {
-                setToken(e.target.value);
-                localStorage.setItem("ADMIN_TOKEN", e.target.value);
-              }}
-            />
+            <div style={{ display: "flex", gap: 8 }}>
+              <input
+                className="input"
+                type="password"
+                value={password}
+                placeholder="Ingresa la contraseña"
+                onChange={(e) => setPassword(e.target.value)}
+              />
+              {loggedIn ? (
+                <button
+                  className="btn"
+                  onClick={async () => {
+                    await fetch("/api/auth", { method: "DELETE", credentials: "include" });
+                    setLoggedIn(false);
+                  }}
+                >
+                  Logout
+                </button>
+              ) : (
+                <button
+                  className="btn"
+                  onClick={async () => {
+                    const res = await fetch("/api/auth", {
+                      method: "POST",
+                      headers: { "Content-Type": "application/json" },
+                      body: JSON.stringify({ password }),
+                      credentials: "include",
+                    });
+                    if (!res.ok) {
+                      alert("Credenciales incorrectas");
+                      return;
+                    }
+                    setPassword("");
+                    setLoggedIn(true);
+                  }}
+                >
+                  Login
+                </button>
+              )}
+            </div>
           </div>
           <div>
             <label>
