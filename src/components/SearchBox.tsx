@@ -16,6 +16,7 @@ export default function SearchBox() {
   const [items, setItems] = useState<Term[]>([]);
   const [selected, setSelected] = useState<Term | null>(null);
   const [debugRaw, setDebugRaw] = useState<string | null>(null);
+  const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const debounced = useDebounce(q, 180);
 
   useEffect(() => {
@@ -26,16 +27,21 @@ export default function SearchBox() {
     }
     const url = `/api/terms?q=${encodeURIComponent(debounced)}`;
     fetch(url)
-      .then((r) => r.json())
+      .then((r) => {
+        if (!r.ok) throw new Error(`HTTP ${r.status}`);
+        return r.json();
+      })
       .then((d) => {
         setItems(d.items || []);
         setSelected(d.items?.[0] || null);
-        setDebugRaw(JSON.stringify(d, null, 2));
+        setDebugRaw(null); // limpiar debug al funcionar
+        setErrorMsg(null);
       })
-      .catch(() => {
+      .catch((err) => {
         setItems([]);
         setSelected(null);
         setDebugRaw(null);
+        setErrorMsg(err?.message || "Error cargando resultados");
       });
   }, [debounced]);
 
@@ -76,10 +82,9 @@ export default function SearchBox() {
       ) : debounced ? (
         <div style={{ marginTop: 12 }}>
           <small>Sin resultados.</small>
-          {debugRaw ? (
+          {errorMsg ? (
             <div style={{ marginTop: 12 }}>
-              <small>Debug API response:</small>
-              <pre style={{ maxHeight: 200, overflow: "auto" }} className="code">{debugRaw}</pre>
+              <small style={{ color: "#ff9b9b" }}>Error: {errorMsg}</small>
             </div>
           ) : null}
         </div>
