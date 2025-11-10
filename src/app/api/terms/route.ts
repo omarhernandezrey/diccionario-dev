@@ -5,7 +5,8 @@ import { requireAdminToken } from "@/lib/auth";
 
 export async function GET(req: NextRequest) {
   const { searchParams } = new URL(req.url);
-  const q = (searchParams.get("q") || "").trim().toLowerCase();
+  // No forzar a minúsculas para mantener coincidencias en SQLite, donde `mode: "insensitive"` no aplica.
+  const q = (searchParams.get("q") || "").trim();
   const category = searchParams.get("category") as
     | "frontend"
     | "backend"
