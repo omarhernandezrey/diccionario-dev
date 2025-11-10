@@ -15,6 +15,7 @@ export default function SearchBox() {
   const [q, setQ] = useState("");
   const [items, setItems] = useState<Term[]>([]);
   const [selected, setSelected] = useState<Term | null>(null);
+  const [debugRaw, setDebugRaw] = useState<string | null>(null);
   const debounced = useDebounce(q, 180);
 
   useEffect(() => {
@@ -29,10 +30,12 @@ export default function SearchBox() {
       .then((d) => {
         setItems(d.items || []);
         setSelected(d.items?.[0] || null);
+        setDebugRaw(JSON.stringify(d, null, 2));
       })
       .catch(() => {
         setItems([]);
         setSelected(null);
+        setDebugRaw(null);
       });
   }, [debounced]);
 
@@ -73,6 +76,12 @@ export default function SearchBox() {
       ) : debounced ? (
         <div style={{ marginTop: 12 }}>
           <small>Sin resultados.</small>
+          {debugRaw ? (
+            <div style={{ marginTop: 12 }}>
+              <small>Debug API response:</small>
+              <pre style={{ maxHeight: 200, overflow: "auto" }} className="code">{debugRaw}</pre>
+            </div>
+          ) : null}
         </div>
       ) : null}
     </div>
