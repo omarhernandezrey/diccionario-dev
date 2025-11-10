@@ -1,39 +1,41 @@
-import { createHmac } from "crypto";
+import jwt from "jsonwebtoken";
 
-const COOKIE_NAME = "admin_session";
-const COOKIE_MAX_AGE = 60 * 60 * 24; // 1 day in seconds
+const COOKIE_NAME = "admin_token";
+const JWT_EXPIRES_IN = "1d";
 
-function makeHmac(secret: string, value: string) {
-  return createHmac("sha256", secret).update(value).digest("hex");
-}
-
-export function requireAdminToken(headers: Headers) {
-  const expected = process.env.ADMIN_TOKEN || "";
-  // 1) Check Authorization header first (Bearer token)
-  const got = headers.get("authorization")?.replace("Bearer ", "") || "";
-  if (expected && got && got === expected) return true;
-
-  // 2) Check cookie header for signed session
-  const cookie = headers.get("cookie") || "";
-  const match = cookie.split(";").map((s) => s.trim()).find((c) => c.startsWith(`${COOKIE_NAME}=`));
-  if (!expected || !match) return false;
-  const val = match.split("=")[1] || "";
-  const parts = val.split(":");
-  if (parts.length !== 2) return false;
-  const exp = Number(parts[0]);
-  const sig = parts[1];
-  if (Number.isNaN(exp) || Date.now() / 1000 > exp) return false;
-  const expectedSig = makeHmac(expected, String(exp));
-  return sig === expectedSig;
-}
-
-export function createSessionValue() {
-  const secret = process.env.ADMIN_TOKEN || "";
-  const exp = Math.floor(Date.now() / 1000) + COOKIE_MAX_AGE;
-  const sig = makeHmac(secret, String(exp));
-  return `${exp}:${sig}`;
-}
+const JWT_SECRET = process.env.ADMIN_JWT_SECRET || process.env.ADMIN_TOKEN || "";
 
 export function cookieName() {
   return COOKIE_NAME;
+}
+
+export function signJwt(payload: object) {
+  return jwt.sign(payload, JWT_SECRET, { expiresIn: JWT_EXPIRES_IN });
+}
+
+export function verifyJwt(token: string) {
+  try {
+    return jwt.verify(token, JWT_SECRET) as any;
+  } catch (e) {
+    return null;
+  }
+}
+
+export function requireAdmin(headers: Headers) {
+  // Check Authorization header
+  const auth = headers.get("authorization") || "";
+  const bearer = auth.replace("Bearer ", "").trim();
+  if (bearer) {
+    const payload = verifyJwt(bearer);
+    if (payload) return true;
+  }
+
+  // Check cookie
+  const cookie = headers.get("cookie") || "";
+  const match = cookie.split(";").map((s) => s.trim()).find((c) => c.startsWith(`${COOKIE_NAME}=`));
+  if (!match) return false;
+  const token = match.split("=")[1] || "";
+  if (!token) return false;
+  const payload = verifyJwt(token);
+  return !!payload;
 }

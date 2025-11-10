@@ -1,4 +1,5 @@
 import { PrismaClient, Category } from "@prisma/client";
+import bcrypt from "bcryptjs";
 
 const prisma = new PrismaClient();
 
@@ -137,6 +138,16 @@ async function main() {
       },
     });
   }
+  // Create or update admin user if env variables provided
+  const adminUser = process.env.ADMIN_USERNAME || "admin";
+  const adminPass = process.env.ADMIN_PASSWORD || process.env.ADMIN_TOKEN || "admin";
+  const hashed = await bcrypt.hash(adminPass, 10);
+  await prisma.user.upsert({
+    where: { username: adminUser },
+    update: { password: hashed },
+    create: { username: adminUser, password: hashed, role: "admin" },
+  });
+
   console.log("Seed OK");
 }
 

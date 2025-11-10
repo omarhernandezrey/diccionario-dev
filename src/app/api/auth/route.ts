@@ -1,27 +1,22 @@
 import { NextRequest, NextResponse } from "next/server";
-import { createSessionValue, cookieName } from "@/lib/auth";
-import { requireAdminToken } from "@/lib/auth";
+import { signJwt, cookieName, requireAdmin } from "@/lib/auth";
+import { prisma } from "@/lib/prisma";
+import bcrypt from "bcryptjs";
 
 export async function POST(req: NextRequest) {
   const body = await req.json().catch(() => ({}));
+  const username = (body && body.username) || "admin";
   const password = (body && body.password) || "";
-  const expected = process.env.ADMIN_TOKEN || "";
-  if (!expected || password !== expected) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
 
-  const value = createSessionValue();
+  const user = await prisma.user.findUnique({ where: { username } });
+  if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+
+  const ok = await bcrypt.compare(password, user.password);
+  if (!ok) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+
+  const token = signJwt({ sub: user.id, username: user.username, role: user.role });
   const res = NextResponse.json({ ok: true });
-  // Set HttpOnly cookie
-  res.cookies.set({
-    name: cookieName(),
-    value,
-    httpOnly: true,
-    path: "/",
-    maxAge: 60 * 60 * 24,
-    sameSite: "lax",
-    secure: process.env.NODE_ENV === "production",
-  });
+  res.cookies.set({ name: cookieName(), value: token, httpOnly: true, path: "/", maxAge: 60 * 60 * 24, sameSite: "lax", secure: process.env.NODE_ENV === "production" });
   return res;
 }
 
@@ -32,8 +27,7 @@ export async function DELETE() {
 }
 
 export async function GET(req: NextRequest) {
-  // Check if the session cookie is valid
-  const ok = requireAdminToken(req.headers as any);
+  const ok = requireAdmin(req.headers as any);
   if (!ok) return NextResponse.json({ ok: false }, { status: 401 });
   return NextResponse.json({ ok: true });
 }

@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { termSchema } from "@/lib/validation";
-import { requireAdminToken } from "@/lib/auth";
+import { requireAdmin } from "@/lib/auth";
 
 export async function GET(_: NextRequest, { params }: { params: { id: string } }) {
   const id = Number(params.id);
@@ -11,7 +11,7 @@ export async function GET(_: NextRequest, { params }: { params: { id: string } }
 }
 
 export async function PATCH(req: NextRequest, { params }: { params: { id: string } }) {
-  if (!requireAdminToken(req.headers)) {
+  if (!requireAdmin(req.headers)) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
   const id = Number(params.id);
@@ -31,7 +31,7 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
 }
 
 export async function DELETE(req: NextRequest, { params }: { params: { id: string } }) {
-  if (!requireAdminToken(req.headers)) {
+  if (!requireAdmin(req.headers)) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
   const id = Number(params.id);
