@@ -15,28 +15,40 @@ export async function GET(req: NextRequest) {
     | "general"
     | null;
 
-  const where = {
-    AND: [
-      q
-          ? {
-            OR: [
-              { term: { contains: q } },
-              // Nota: omitimos búsqueda directa en `aliases` (JSON) por compatibilidad SQLite/Prisma.
-              { meaning: { contains: q } },
-              { what: { contains: q } },
-              { how: { contains: q } },
-            ],
-          }
-        : {},
-      category ? { category } : {},
-    ],
-  };
+  // Si no hay query, devolvemos lista simple (posible filtro por categoría)
+  if (!q) {
+    const items = await prisma.term.findMany({
+      where: category ? { category } : undefined,
+      orderBy: [{ term: "asc" }],
+      take: 50,
+    });
+    return NextResponse.json({ items });
+  }
 
-  const items = await prisma.term.findMany({
-    where,
-    orderBy: [{ term: "asc" }],
-    take: 50,
-  });
+  // Búsqueda case-insensitive usando SQL raw para SQLite: usamos LOWER(...) LIKE '%q%'
+  const like = `%${q.toLowerCase()}%`;
+  let sql = `SELECT * FROM "Term" WHERE `;
+  const params: any[] = [];
+  if (category) {
+    sql += `"category" = ? AND `;
+    params.push(category);
+  }
+  // Buscamos en term, meaning, what, how y en aliases convertido a texto
+  sql += `(
+    lower("term") LIKE ? OR
+    lower("meaning") LIKE ? OR
+    lower("what") LIKE ? OR
+    lower("how") LIKE ? OR
+    lower(CAST(aliases AS TEXT)) LIKE ?
+  ) ORDER BY "term" ASC LIMIT 50;`;
+  params.push(like, like, like, like, like);
+
+  // Ejecutamos la consulta raw de forma parametrizada
+  // Nota: usamos $queryRawUnsafe con parámetros para compatibilidad; los valores vienen de usuario
+  // pero se pasan como parámetros (no concatenados) para evitar inyección.
+  // Prisma $queryRawUnsafe acepta placeholders '?' en SQLite.
+  // @ts-ignore
+  const items = await prisma.$queryRawUnsafe(sql, ...params);
 
   return NextResponse.json({ items });
 }
