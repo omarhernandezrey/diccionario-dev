@@ -1,37 +1,111 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+## Diccionario Técnico Web (ES)
 
-## Getting Started
+Aplicación web para consultar y administrar términos técnicos de desarrollo web en español. Cada término incluye:
 
-First, run the development server:
+- Significado
+- Qué hace
+- Cómo se usa (snippet / explicación)
+- Ejemplos de código con título y nota opcional
+
+Construido con:
+
+- Next.js (App Router)
+- Prisma + SQLite
+- TypeScript + React 18
+- Zod para validación
+
+### Demo local
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+npm install
+npm run prisma:migrate   # genera/actualiza la base de datos
+npm run prisma:seed      # inserta términos iniciales
+npm run dev              # arranca en http://localhost:3000
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+### Variables de entorno
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+Crear un archivo `.env` (o usar `.env.local` si prefieres) basado en `.env.example`:
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+```
+DATABASE_URL="file:./dev.db"
+ADMIN_TOKEN="pon-un-token-fuerte"
+```
 
-## Learn More
+- `DATABASE_URL`: apunta al archivo SQLite local.
+- `ADMIN_TOKEN`: token tipo Bearer para proteger las rutas de administración (crear/editar/eliminar términos).
 
-To learn more about Next.js, take a look at the following resources:
+### Modelo de datos (Prisma)
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+```prisma
+model Term {
+	id        Int      @id @default(autoincrement())
+	term      String   @unique
+	aliases   Json     @default("[]")
+	category  Category
+	meaning   String
+	what      String
+	how       String
+	examples  Json     @default("[]")
+	createdAt DateTime @default(now())
+	updatedAt DateTime @updatedAt
+}
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+enum Category {
+	frontend
+	backend
+	database
+	devops
+	general
+}
+```
 
-## Deploy on Vercel
+### Rutas principales
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+Frontend:
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+- `GET /` Página de búsqueda de términos.
+- `GET /admin` Panel de administración (requiere pegar token en el campo "Token admin").
+
+API (JSON):
+
+- `GET /api/terms?q=texto&category=frontend|backend|database|devops|general`
+	- Busca hasta 50 términos por coincidencia parcial en `term`, `meaning`, `what`, `how` o por alias exacto.
+	- Respuesta: `{ items: Term[] }`.
+- `POST /api/terms` (Auth Bearer) Crea un término. Body validado por Zod.
+- `GET /api/terms/:id` Obtiene un término.
+- `PATCH /api/terms/:id` (Auth Bearer) Actualización parcial.
+- `DELETE /api/terms/:id` (Auth Bearer) Elimina.
+
+### Validación
+
+`src/lib/validation.ts` define `termSchema` (Zod) con los campos requeridos y ejemplos como arreglo.
+
+### Scripts útiles
+
+```bash
+npm run dev             # Desarrollo
+npm run build           # Genera prisma client y build Next
+npm run start           # Producción
+npm run prisma:migrate  # Migración (dev)
+npm run prisma:seed     # Insertar datos iniciales
+npm run db:reset        # Borrar base y reset migraciones
+```
+
+### Autenticación admin simple
+
+`Authorization: Bearer <ADMIN_TOKEN>` en las operaciones de escritura/borrado. Se compara con la variable de entorno; no hay sesiones.
+
+### Mejoras futuras sugeridas
+
+- Filtro por categoría en el buscador principal.
+- Normalizar búsqueda por alias (case-insensitive).
+- Paginación para más de 50 resultados.
+- Autenticación más robusta (JWT u OAuth) para admin.
+- Tests automatizados de API y validación.
+
+### Licencia
+
+Sin licencia explícita (privado). Añade una licencia si planeas publicar.
+
 # iccionario-dev

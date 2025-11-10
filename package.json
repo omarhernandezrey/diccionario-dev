@@ -1,0 +1,32 @@
+{
+  "name": "diccionario-dev",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev",
+    "build": "prisma generate && next build",
+    "start": "next start",
+    "prisma:generate": "prisma generate",
+    "prisma:migrate": "prisma migrate dev --name init",
+    "prisma:seed": "tsx prisma/seed.ts",
+    "db:reset": "rimraf ./prisma/dev.db && prisma migrate reset --force"
+  },
+  "dependencies": {
+    "@prisma/client": "^6.0.0",
+    "next": "^14.2.33",
+    "react": "18.3.1",
+    "react-dom": "18.3.1",
+    "zod": "^3.23.8"
+  },
+  "devDependencies": {
+    "@types/node": "20.11.30",
+    "@types/react": "18.2.79",
+    "@types/react-dom": "18.2.25",
+    "eslint": "8.57.0",
+    "eslint-config-next": "14.2.15",
+    "prisma": "^6.0.0",
+    "rimraf": "^5.0.10",
+    "tsx": "^4.19.1",
+    "typescript": "5.4.5"
+  }
+}

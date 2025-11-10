@@ -1,0 +1,32 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model Term {
+  id        Int      @id @default(autoincrement())
+  term      String   @unique
+  aliases   Json     @default("[]")
+  category  Category
+  meaning   String
+  what      String
+  how       String
+  examples  Json     @default("[]")
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([term])
+  @@index([category])
+}
+
+enum Category {
+  frontend
+  backend
+  database
+  devops
+  general
+}
