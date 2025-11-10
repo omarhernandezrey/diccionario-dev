@@ -18,13 +18,13 @@ export async function GET(req: NextRequest) {
   const where = {
     AND: [
       q
-        ? {
+          ? {
             OR: [
-              { term: { contains: q, mode: "insensitive" } },
+              { term: { contains: q } },
               { aliases: { has: q } },
-              { meaning: { contains: q, mode: "insensitive" } },
-              { what: { contains: q, mode: "insensitive" } },
-              { how: { contains: q, mode: "insensitive" } },
+              { meaning: { contains: q } },
+              { what: { contains: q } },
+              { how: { contains: q } },
             ],
           }
         : {},
