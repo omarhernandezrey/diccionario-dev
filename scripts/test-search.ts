@@ -1,4 +1,3 @@
-import "./../src/app/globals.css";
 import { prisma } from "../src/lib/prisma";
 
 async function main() {
