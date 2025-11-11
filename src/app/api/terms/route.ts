@@ -1,7 +1,20 @@
+import { Prisma } from "@prisma/client";
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { termSchema } from "@/lib/validation";
 import { requireAdmin } from "@/lib/auth";
+
+function guardAdmin(headers: Headers) {
+  try {
+    requireAdmin(headers);
+    return null;
+  } catch (error) {
+    if (error instanceof Response) {
+      return error;
+    }
+    throw error;
+  }
+}
 
 export async function GET(req: NextRequest) {
   const { searchParams } = new URL(req.url);
@@ -36,12 +49,13 @@ export async function GET(req: NextRequest) {
   // Buscamos en term, meaning, what, how y en aliases convertido a texto
   sql += `(
     lower("term") LIKE ? OR
+    lower("translation") LIKE ? OR
     lower("meaning") LIKE ? OR
     lower("what") LIKE ? OR
     lower("how") LIKE ? OR
     lower(CAST(aliases AS TEXT)) LIKE ?
   ) ORDER BY "term" ASC LIMIT 50;`;
-  params.push(like, like, like, like, like);
+  params.push(like, like, like, like, like, like);
 
   // Ejecutamos la consulta raw de forma parametrizada
   // Nota: usamos $queryRawUnsafe con parámetros para compatibilidad; los valores vienen de usuario
@@ -54,25 +68,44 @@ export async function GET(req: NextRequest) {
 }
 
 export async function POST(req: NextRequest) {
-  if (!requireAdmin(req.headers)) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
+  const authError = guardAdmin(req.headers);
+  if (authError) return authError;
   const body = await req.json();
   const parsed = termSchema.safeParse(body);
   if (!parsed.success) {
+    console.warn("[POST /api/terms] Validación fallida", parsed.error.flatten());
     return NextResponse.json({ error: parsed.error.flatten() }, { status: 400 });
   }
   const t = parsed.data;
-  const created = await prisma.term.create({
-    data: {
-      term: t.term,
-      aliases: t.aliases ?? [],
-      category: t.category,
-      meaning: t.meaning,
-      what: t.what,
-      how: t.how,
-      examples: t.examples as any,
-    },
-  });
-  return NextResponse.json({ item: created }, { status: 201 });
+  try {
+    const created = await prisma.term.create({
+      data: {
+        term: t.term,
+        translation: t.translation,
+        aliases: t.aliases ?? [],
+        category: t.category,
+        meaning: t.meaning,
+        what: t.what,
+        how: t.how,
+        examples: t.examples as any,
+      },
+    });
+    return NextResponse.json({ item: created }, { status: 201 });
+  } catch (error) {
+    if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2002") {
+      return NextResponse.json(
+        { error: "Ya existe un término con ese nombre" },
+        { status: 409 },
+      );
+    }
+    if (error instanceof Prisma.PrismaClientValidationError) {
+      return NextResponse.json(
+        { error: error.message },
+        { status: 400 },
+      );
+    }
+    console.error("Error creando término", error);
+    const message = error instanceof Error ? error.message : "No se pudo guardar el término";
+    return NextResponse.json({ error: message }, { status: 500 });
+  }
 }

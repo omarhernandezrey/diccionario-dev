@@ -1,21 +1,12 @@
 "use client";
 import { useEffect, useState } from "react";
 
-type Term = {
-  id: number;
-  term: string;
-  category: string;
-  meaning: string;
-  what: string;
-  how: string;
-  examples: { title: string; code: string; note?: string }[];
-};
+import type { TermDTO } from "@/types/term";
 
 export default function SearchBox() {
   const [q, setQ] = useState("");
-  const [items, setItems] = useState<Term[]>([]);
-  const [selected, setSelected] = useState<Term | null>(null);
-  const [debugRaw, setDebugRaw] = useState<string | null>(null);
+  const [items, setItems] = useState<TermDTO[]>([]);
+  const [selected, setSelected] = useState<TermDTO | null>(null);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const debounced = useDebounce(q, 180);
 
@@ -34,13 +25,11 @@ export default function SearchBox() {
       .then((d) => {
         setItems(d.items || []);
         setSelected(d.items?.[0] || null);
-        setDebugRaw(null); // limpiar debug al funcionar
         setErrorMsg(null);
       })
       .catch((err) => {
         setItems([]);
         setSelected(null);
-        setDebugRaw(null);
         setErrorMsg(err?.message || "Error cargando resultados");
       });
   }, [debounced]);
@@ -93,12 +82,17 @@ export default function SearchBox() {
   );
 }
 
-function Result({ result }: { result: Term }) {
+function Result({ result }: { result: TermDTO }) {
   return (
     <div className="card">
       <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
         <h2 style={{ margin: 0 }}>{result.term}</h2>
         <span className="badge">{result.category}</span>
+      </div>
+      <div style={{ marginTop: 6 }}>
+        <span className="badge" style={{ background: "rgba(61,107,255,.15)", borderColor: "rgba(61,107,255,.4)" }}>
+          Traducción: {result.translation}
+        </span>
       </div>
       <hr />
       <div style={{ display: "grid", gridTemplateColumns: "110px 1fr", gap: "8px 12px" }}>
@@ -113,26 +107,93 @@ function Result({ result }: { result: Term }) {
         <div>
           <small>Cómo se usa</small>
         </div>
-        <div className="code">
-          <pre>{result.how}</pre>
-        </div>
+        <CodeCard code={result.how} label="Cómo se usa" />
       </div>
       {result.examples?.length ? (
         <>
           <hr />
           <small>Ejemplos:</small>
           {result.examples.map((ex, i) => (
-            <div key={i} className="card" style={{ marginTop: 8 }}>
-              <div style={{ marginBottom: 6 }}>
-                <b>{ex.title}</b>
-              </div>
-              <pre className="code">{ex.code}</pre>
-              {ex.note ? <small>{ex.note}</small> : null}
-            </div>
+            <ExampleCard key={`${ex.title}-${i}`} example={ex} index={i + 1} />
           ))}
         </>
       ) : null}
     </div>
+  );
+}
+
+function CodeCard({ code, note, label }: { code: string; note?: string; label?: string }) {
+  return (
+    <div className="code-card">
+      <div className="code-toolbar">
+        <div className="code-title">{label || "Snippet"}</div>
+        <CopyButton code={code} />
+      </div>
+      <CodeBlock code={code} />
+      {note ? <small className="code-note">{note}</small> : null}
+    </div>
+  );
+}
+
+type Example = TermDTO["examples"][number];
+
+function ExampleCard({ example, index }: { example: Example; index: number }) {
+  return (
+    <div className="code-card">
+      <div className="code-toolbar">
+        <div>
+          <div className="code-title">{example.title || `Ejemplo ${index}`}</div>
+          <small className="code-note">Bloque #{index}</small>
+        </div>
+        <CopyButton code={example.code} />
+      </div>
+      <CodeBlock code={example.code} />
+      {example.note ? <small className="code-note">{example.note}</small> : null}
+    </div>
+  );
+}
+
+function CodeBlock({ code }: { code: string }) {
+  const normalized = code.replace(/\r\n/g, "\n");
+  const lines = normalized.split("\n");
+  return (
+    <pre className="code-block">
+      {lines.map((line, idx) => (
+        <div className="code-line" key={`${idx}-${line.slice(0, 12)}`}>
+          <span className="code-line-number">{String(idx + 1).padStart(2, "0")}</span>
+          <span className="code-line-content">{line || "\u00A0"}</span>
+        </div>
+      ))}
+    </pre>
+  );
+}
+
+function CopyButton({ code }: { code: string }) {
+  const [copied, setCopied] = useState(false);
+
+  async function handleCopy() {
+    try {
+      if (navigator?.clipboard?.writeText) {
+        await navigator.clipboard.writeText(code);
+      } else {
+        const textarea = document.createElement("textarea");
+        textarea.value = code;
+        document.body.appendChild(textarea);
+        textarea.select();
+        document.execCommand("copy");
+        document.body.removeChild(textarea);
+      }
+      setCopied(true);
+      setTimeout(() => setCopied(false), 1500);
+    } catch {
+      setCopied(false);
+    }
+  }
+
+  return (
+    <button className={`copy-btn ${copied ? "copied" : ""}`} onClick={handleCopy} type="button">
+      {copied ? "Copiado" : "Copiar"}
+    </button>
   );
 }
 

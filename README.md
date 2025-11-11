@@ -1,111 +1,212 @@
 ## Diccionario Técnico Web (ES)
 
-Aplicación web para consultar y administrar términos técnicos de desarrollo web en español. Cada término incluye:
+Buscador y panel de administración para términos técnicos de desarrollo web en español. Cada entrada describe significado, qué hace, cómo implementarlo y ejemplos de código.
 
-- Significado
-- Qué hace
-- Cómo se usa (snippet / explicación)
-- Ejemplos de código con título y nota opcional
+Stack principal:
 
-Construido con:
-
-- Next.js (App Router)
-- Prisma + SQLite
-- TypeScript + React 18
+- Next.js (App Router) + React 18 + TypeScript
+- Prisma ORM con SQLite
 - Zod para validación
+- JWT + cookies HttpOnly para autenticación
 
-### Demo local
+---
+
+### 1. Requisitos de entorno
+
+- Node.js >= 18
+- NPM (incluido con Node)
+- SQLite viene embebido vía Prisma
+
+Clona el repo y copia `.env.example` a `.env`, luego ajusta los valores (ver sección _Variables de entorno_).
+
+---
+
+### 2. Instalación y comandos clave
 
 ```bash
 npm install
-npm run prisma:migrate   # genera/actualiza la base de datos
-npm run prisma:seed      # inserta términos iniciales
-npm run dev              # arranca en http://localhost:3000
+
+# Genera/actualiza esquema y cliente Prisma
+npx prisma migrate dev --name add_user_model
+npx prisma generate
+
+# Inserta datos de demostración + admin inicial
+npm run prisma:seed
+
+# Levanta la app en http://localhost:3000
+npm run dev
+
+# Script de humo para auth (opcional, ver sección Tests)
+node scripts/test-auth.js
 ```
 
-### Variables de entorno
+Atajos disponibles en `package.json`:
 
-Crear un archivo `.env` (o usar `.env.local` si prefieres) basado en `.env.example`:
+| Comando | Descripción |
+| --- | --- |
+| `npm run dev` | Next.js en modo desarrollo |
+| `npm run build` | `prisma generate` + `next build` |
+| `npm run start` | Ejecuta el build en modo producción |
+| `npm run prisma:migrate` | Alias de `prisma migrate dev` |
+| `npm run prisma:seed` | Rellena términos + admin |
+| `npm run db:reset` | Limpia el `dev.db` y reaplica migraciones |
+| `npm run test:auth` | Ejecuta `node scripts/test-auth.js` |
+
+---
+
+### 3. Variables de entorno
+
+Referencia rápida (`.env.example` tiene valores sugeridos):
 
 ```
 DATABASE_URL="file:./dev.db"
-ADMIN_TOKEN="pon-un-token-fuerte"
+JWT_SECRET="cambia-este-secreto-muy-seguro"
+JWT_EXPIRES_IN="1d"
+ADMIN_USERNAME="admin"
+ADMIN_PASSWORD="cambia-esta-contraseña"
+ADMIN_EMAIL="admin@example.com"
+# ADMIN_TOKEN="token-anterior"            # opcional, usado como fallback de contraseña
 ```
 
-- `DATABASE_URL`: apunta al archivo SQLite local.
-- `ADMIN_TOKEN`: token tipo Bearer para proteger las rutas de administración (crear/editar/eliminar términos).
+- `DATABASE_URL`: ruta SQLite.
+- `JWT_SECRET`: secreto para firmar/verificar JWT (obligatorio).
+- `JWT_EXPIRES_IN`: duración del token (ej. `1d`, `12h`, `3600`).
+- `ADMIN_USERNAME`, `ADMIN_PASSWORD`, `ADMIN_EMAIL`: credenciales para el usuario sembrado (rol admin).
+- `ADMIN_TOKEN` (opcional): si ya tenías un token previo lo puedes reutilizar como fallback de contraseña para el seed.
 
-### Modelo de datos (Prisma)
+---
+
+### 4. Modelo Prisma (resumen)
 
 ```prisma
 model Term {
-	id        Int      @id @default(autoincrement())
-	term      String   @unique
-	aliases   Json     @default("[]")
-	category  Category
-	meaning   String
-	what      String
-	how       String
-	examples  Json     @default("[]")
-	createdAt DateTime @default(now())
-	updatedAt DateTime @updatedAt
+  id        Int      @id @default(autoincrement())
+  term      String   @unique
+  aliases   Json     @default("[]")
+  category  Category
+  meaning   String
+  what      String
+  how       String
+  examples  Json     @default("[]")
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }
 
-enum Category {
-	frontend
-	backend
-	database
-	devops
-	general
+model User {
+  id        Int      @id @default(autoincrement())
+  username  String   @unique
+  email     String?  @unique
+  password  String
+  role      String   @default("user")
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }
 ```
 
-### Rutas principales
+---
 
-Frontend:
+### 5. Autenticación
 
-- `GET /` Página de búsqueda de términos.
-- `GET /admin` Panel de administración (requiere pegar token en el campo "Token admin").
+- **Registro** (`POST /api/auth/register`)
+  - Si no existen admins, cualquiera puede crear el primer admin y queda logueado automáticamente.
+  - Si ya existe un admin, solo otro admin autenticado puede crear usuarios adicionales (admin o user).
+- **Login** (`POST /api/auth/login`)
+  - Valida credenciales, emite JWT y lo guarda en la cookie HttpOnly `admin_token` (`SameSite=Lax`, `Secure` en producción).
+- **Sesión** (`GET /api/auth`)
+  - Devuelve `{ ok: true, user }` si la cookie/JWT es válido. También expone `allowBootstrap` para que el frontend sepa si falta crear un admin.
+- **Logout** (`DELETE /api/auth`)
+  - Expira la cookie `admin_token`.
 
-API (JSON):
+Helpers (ver `src/lib/auth.ts`):
 
-- `GET /api/terms?q=texto&category=frontend|backend|database|devops|general`
-	- Busca hasta 50 términos por coincidencia parcial en `term`, `meaning`, `what`, `how` o por alias exacto.
-	- Respuesta: `{ items: Term[] }`.
-- `POST /api/terms` (Auth Bearer) Crea un término. Body validado por Zod.
-- `GET /api/terms/:id` Obtiene un término.
-- `PATCH /api/terms/:id` (Auth Bearer) Actualización parcial.
-- `DELETE /api/terms/:id` (Auth Bearer) Elimina.
+- `hashPassword` / `comparePassword` (bcryptjs).
+- `signJwt` / `verifyJwt` (jsonwebtoken).
+- `requireAuth` / `requireAdmin` lanzan `Response` 401/403 si el token no es válido.
+- `buildAuthCookie` / `buildLogoutCookie` generan el header `Set-Cookie`.
 
-### Validación
+La cookie se lee automáticamente usando `credentials: "include"` en el frontend. También se acepta `Authorization: Bearer <token>` para integraciones externas.
 
-`src/lib/validation.ts` define `termSchema` (Zod) con los campos requeridos y ejemplos como arreglo.
+---
 
-### Scripts útiles
+### 6. API principal
+
+| Método | Ruta | Descripción |
+| --- | --- | --- |
+| `GET /api/terms` | Búsqueda pública (`q`, `category`). |
+| `POST /api/terms` | **Admin**: crea término (valida con `termSchema`). |
+| `GET /api/terms/:id` | Consulta pública de un término. |
+| `PATCH /api/terms/:id` | **Admin**: actualiza parcialmente. |
+| `DELETE /api/terms/:id` | **Admin**: elimina. |
+| `POST /api/auth/register` | Registro descrito arriba. |
+| `POST /api/auth/login` | Inicia sesión y emite cookie. |
+| `GET /api/auth` | Verifica sesión (`allowBootstrap` incluido). |
+| `DELETE /api/auth` | Logout y eliminación de cookie. |
+
+Respuestas de ejemplo:
+
+```json
+// POST /api/auth/login
+{
+  "ok": true,
+  "user": { "id": 1, "username": "admin", "role": "admin" }
+}
+
+// Error auth
+{ "ok": false, "error": "Invalid credentials" }
+
+// Conflicto registro
+{ "ok": false, "error": "username already exists" }
+```
+
+---
+
+### 7. Panel `/admin`
+
+- Maneja sesión via cookies (sin LocalStorage).
+- Muestra estado de sesión y permite refrescarla.
+- Form de login y (si aplica) form de registro para bootstrap o para administradores autenticados.
+- CRUD de términos protegido: los botones se deshabilitan si no hay sesión admin.
+- Editor visual para aliases y ejemplos.
+
+---
+
+### 8. Seed
+
+`npm run prisma:seed`:
+
+1. Inserta un set básico de términos (fetch, useState, REST, etc.).
+2. Upsert del usuario admin usando `ADMIN_USERNAME` / `ADMIN_PASSWORD` (`ADMIN_TOKEN` como fallback) y guarda la contraseña con bcrypt.
+
+---
+
+### 9. Script de humo `scripts/test-auth.js`
+
+Ejecución:
 
 ```bash
-npm run dev             # Desarrollo
-npm run build           # Genera prisma client y build Next
-npm run start           # Producción
-npm run prisma:migrate  # Migración (dev)
-npm run prisma:seed     # Insertar datos iniciales
-npm run db:reset        # Borrar base y reset migraciones
+npm run dev &                # en otra terminal
+node scripts/test-auth.js    # usa TEST_BASE_URL o http://localhost:3000
 ```
 
-### Autenticación admin simple
+Qué verifica:
 
-`Authorization: Bearer <ADMIN_TOKEN>` en las operaciones de escritura/borrado. Se compara con la variable de entorno; no hay sesiones.
+1. Registro (si el endpoint aún permite crear admin público) o detecta el 409.
+2. Login y captura de la cookie `admin_token`.
+3. `GET /api/auth` con la cookie → espera 200.
+4. `POST /api/terms` creando un término efímero → espera 201.
+5. Logout (`DELETE /api/auth`) y verificación de que la sesión queda en 401.
 
-### Mejoras futuras sugeridas
+Sale con código distinto de cero si alguna etapa falla.
 
-- Filtro por categoría en el buscador principal.
-- Normalizar búsqueda por alias (case-insensitive).
-- Paginación para más de 50 resultados.
-- Autenticación más robusta (JWT u OAuth) para admin.
-- Tests automatizados de API y validación.
+---
 
-### Licencia
+### 10. Próximos pasos sugeridos
 
-Sin licencia explícita (privado). Añade una licencia si planeas publicar.
+- Rotación y refresco de tokens JWT para sesiones prolongadas.
+- UI para gestión de usuarios/roles más allá del bootstrap.
+- Tests e2e (Playwright) cubriendo flujos de búsqueda/admin.
+- Despliegue en Vercel con `DATABASE_URL` apuntando a SQLite/file o Prisma Data Proxy.
 
-# iccionario-dev
+---
+
+¡Listo! Con los pasos anteriores deberías poder migrar, sembrar y levantar el diccionario con autenticación basada en JWT + cookies HttpOnly. Si necesitas ampliar la arquitectura (por ejemplo, OAuth o roles adicionales), los helpers en `src/lib/auth.ts` son el punto de partida.

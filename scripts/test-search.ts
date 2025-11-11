@@ -4,8 +4,8 @@ async function main() {
   const q = process.argv[2] || "";
     if (!q) {
       const items = await prisma.term.findMany({ orderBy: [{ term: "asc" }], take: 50 });
-      console.log(`Query=${q} → found ${items.length} item(s)`);
-      for (const it of items) console.log(`- [#${it.id}] ${it.term} (${it.category})`);
+      console.log(`Query=${q} → found ${ (items as any).length } item(s)`);
+      for (const it of items as any) console.log(`- [#${it.id}] ${it.term} (${it.category})`);
       return;
     }
 
@@ -17,10 +17,9 @@ async function main() {
       lower("how") LIKE ? OR
       lower(CAST(aliases AS TEXT)) LIKE ?
     ) ORDER BY "term" ASC LIMIT 50;`;
-    // @ts-ignore
-    const items = await prisma.$queryRawUnsafe(sql, like, like, like, like, like);
-  console.log(`Query=${q} → found ${items.length} item(s)`);
-  for (const it of items) {
+    const items = await prisma.$queryRawUnsafe<any[]>(sql, like, like, like, like, like);
+  console.log(`Query=${q} → found ${(items as any).length} item(s)`);
+  for (const it of items as any) {
     console.log(`- [#${it.id}] ${it.term} (${it.category})`);
   }
 }

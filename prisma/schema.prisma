@@ -10,6 +10,7 @@ datasource db {
 model Term {
   id        Int      @id @default(autoincrement())
   term      String   @unique
+  translation String @default("")
   aliases   Json     @default("[]")
   category  Category
   meaning   String
@@ -34,8 +35,9 @@ enum Category {
 model User {
   id        Int      @id @default(autoincrement())
   username  String   @unique
+  email     String?  @unique
   password  String
-  role      String   @default("admin")
+  role      String   @default("user")
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 }

@@ -7,6 +7,7 @@ async function main() {
   const data = [
     {
       term: "fetch",
+      translation: "obtener",
       aliases: ["window.fetch", "http fetch"],
       category: Category.frontend,
       meaning: "Función para hacer solicitudes HTTP desde el navegador.",
@@ -25,6 +26,7 @@ async function main() {
     },
     {
       term: "useState",
+      translation: "usar estado",
       aliases: [],
       category: Category.frontend,
       meaning: "Hook de React para manejar estado en componentes.",
@@ -39,6 +41,7 @@ async function main() {
     },
     {
       term: "REST",
+      translation: "transferencia de estado representacional",
       aliases: ["rest api"],
       category: Category.backend,
       meaning: "Estilo para diseñar APIs basadas en recursos con HTTP.",
@@ -53,6 +56,7 @@ async function main() {
     },
     {
       term: "JOIN",
+      translation: "unión",
       aliases: [],
       category: Category.database,
       meaning: "Operación SQL para combinar filas de tablas relacionadas.",
@@ -67,6 +71,7 @@ async function main() {
     },
     {
       term: "Docker",
+      translation: "contenedor",
       aliases: [],
       category: Category.devops,
       meaning: "Contenedores para empaquetar apps con sus dependencias.",
@@ -81,6 +86,7 @@ async function main() {
     },
     {
       term: "JWT",
+      translation: "token web JSON",
       aliases: ["json web token", "token"],
       category: Category.backend,
       meaning: "Token firmado para autenticación sin estado.",
@@ -95,6 +101,7 @@ async function main() {
     },
     {
       term: "CORS",
+      translation: "uso compartido de recursos de origen cruzado",
       aliases: [],
       category: Category.backend,
       meaning: "Política que controla quién puede consumir tu API (navegadores).",
@@ -109,6 +116,7 @@ async function main() {
     },
     {
       term: "Promise",
+      translation: "promesa",
       aliases: [],
       category: Category.general,
       meaning: "Objeto que representa una operación asíncrona.",
@@ -126,9 +134,10 @@ async function main() {
   for (const t of data) {
     await prisma.term.upsert({
       where: { term: t.term },
-      update: {},
+      update: { translation: t.translation } as any,
       create: {
         term: t.term,
+        translation: t.translation,
         aliases: t.aliases ?? [],
         category: t.category,
         meaning: t.meaning,
@@ -138,14 +147,14 @@ async function main() {
       },
     });
   }
-  // Create or update admin user if env variables provided
   const adminUser = process.env.ADMIN_USERNAME || "admin";
-  const adminPass = process.env.ADMIN_PASSWORD || process.env.ADMIN_TOKEN || "admin";
+  const adminPass = process.env.ADMIN_PASSWORD || process.env.ADMIN_TOKEN || "admin12345";
+  const adminEmail = process.env.ADMIN_EMAIL || `${adminUser}@seed.local`;
   const hashed = await bcrypt.hash(adminPass, 10);
   await prisma.user.upsert({
     where: { username: adminUser },
-    update: { password: hashed },
-    create: { username: adminUser, password: hashed, role: "admin" },
+    update: { password: hashed, email: adminEmail, role: "admin" },
+    create: { username: adminUser, email: adminEmail, password: hashed, role: "admin" },
   });
 
   console.log("Seed OK");
