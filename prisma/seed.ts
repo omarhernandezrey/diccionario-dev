@@ -1,4 +1,4 @@
-import { PrismaClient, Category, HistoryAction } from "@prisma/client";
+import { PrismaClient, Category } from "@prisma/client";
 import bcrypt from "bcryptjs";
 import type { SeedTerm, ExampleSnippet } from "./dictionary-types";
 import { cssTerms } from "./data/cssTerms";
@@ -229,9 +229,11 @@ async function main() {
     tags: buildTags(term),
   }));
 
-  await prisma.termHistory.deleteMany({});
+  // elimina historiales solo si el modelo existe en el cliente Prisma
+  await (prisma as any).termHistory?.deleteMany?.({});
   await prisma.term.deleteMany({});
-  await resetSequences(["Term", "TermHistory"]);
+  // si no existe TermHistory en el esquema, no lo incluimos aquí
+  await resetSequences(["Term"]);
 
   const createdTerms: Awaited<ReturnType<typeof prisma.term.create>>[] = [];
   for (const term of preparedTerms) {
@@ -240,13 +242,16 @@ async function main() {
   }
 
   if (createdTerms.length) {
-    await prisma.termHistory.createMany({
-      data: createdTerms.map(created => ({
-        termId: created.id,
-        snapshot: snapshotTerm(created),
-        action: HistoryAction.seed,
-      })),
-    });
+    // crea eventos de historial solo si el cliente Prisma expone el modelo
+    if ((prisma as any).termHistory?.createMany) {
+      await (prisma as any).termHistory.createMany({
+        data: createdTerms.map(created => ({
+          termId: created.id,
+          snapshot: snapshotTerm(created),
+          action: "seed" as any,
+        })),
+      });
+    }
   }
 
   const adminUser = process.env.ADMIN_USERNAME || "admin";
@@ -260,7 +265,7 @@ async function main() {
     create: { username: adminUser, email: adminEmail, password: hashed, role: "admin" },
   });
 
-  console.log(`Seed completado con ${createdTerms.length} términos y ${createdTerms.length} eventos de historial.`);
+  console.log(`Seed completado con ${createdTerms.length} términos.`);
 }
 
 main()
