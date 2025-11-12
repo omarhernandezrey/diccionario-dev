@@ -23,6 +23,14 @@ type SessionUser = {
   email?: string | null;
 };
 
+type DeleteDialogState = {
+  ids: number[];
+  context: "single" | "bulk";
+  title: string;
+  description: string;
+  preview: string[];
+};
+
 const CATS = ["frontend", "backend", "database", "devops", "general"] as const;
 
 export default function AdminPage() {
@@ -41,6 +49,10 @@ export default function AdminPage() {
     email: "",
     role: "admin" as "admin" | "user",
   });
+  const [selectedIds, setSelectedIds] = useState<number[]>([]);
+  const [deleteDialog, setDeleteDialog] = useState<DeleteDialogState | null>(null);
+  const [deleteLoading, setDeleteLoading] = useState(false);
+  const [refreshIndex, setRefreshIndex] = useState(0);
 
   const empty: Term = useMemo(
     () => ({
@@ -57,13 +69,62 @@ export default function AdminPage() {
     [],
   );
 
+  const categoriesCount = useMemo(() => {
+    const categories = new Set(items.map(item => item.category));
+    return categories.size;
+  }, [items]);
+
+  const exampleCount = useMemo(
+    () => items.reduce((sum, item) => sum + (item.examples?.length || 0), 0),
+    [items],
+  );
+
+  const canEdit = session?.role === "admin";
+  const selectedCount = selectedIds.length;
+  const allSelected = items.length > 0 && selectedCount === items.length;
+  const bulkDeleteEnabled = canEdit && selectedCount > 0;
+  const selectionDisabled = !items.length || !canEdit;
+
+  const adminHeroStats = [
+    { label: "Términos visibles", value: items.length },
+    { label: "Categorías activas", value: categoriesCount },
+    { label: "Snippets guardados", value: exampleCount },
+  ];
+
+  const today = new Date().toLocaleDateString("es-ES");
+
   useEffect(() => {
-    fetchTerms(q).then(setItems).catch(() => setItems([]));
-  }, [q]);
+    let cancelled = false;
+    fetchTerms(q)
+      .then((fetched) => {
+        if (!cancelled) {
+          setItems(fetched);
+        }
+      })
+      .catch((error) => {
+        console.error("No se pudieron cargar los términos", error);
+        if (!cancelled) {
+          setItems([]);
+        }
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [q, refreshIndex]);
 
   useEffect(() => {
     refreshSession();
   }, []);
+
+  useEffect(() => {
+    if (!canEdit) {
+      setSelectedIds([]);
+    }
+  }, [canEdit]);
+
+  useEffect(() => {
+    setSelectedIds((prev) => prev.filter((id) => items.some((item) => item.id === id)));
+  }, [items]);
 
   async function refreshSession() {
     setAuthLoading(true);
@@ -87,10 +148,40 @@ export default function AdminPage() {
 
   async function fetchTerms(query: string) {
     const url = query ? `/api/terms?q=${encodeURIComponent(query)}` : `/api/terms`;
-    const res = await fetch(url);
-    if (!res.ok) throw new Error("Error cargando términos");
-    const data = await res.json();
-    return data.items || [];
+    const res = await fetch(url, {
+      cache: "no-store",
+      credentials: "include",
+      headers: { "cache-control": "no-store" },
+    });
+    let data: any = null;
+    let textFallback = "";
+    try {
+      data = await res.json();
+    } catch {
+      textFallback = await res.text().catch(() => "");
+    }
+    if (!res.ok) {
+      const message =
+        extractErrorMessage(data) ||
+        (textFallback?.trim() || res.statusText || "Error cargando términos");
+      throw new Error(message);
+    }
+    const items = Array.isArray(data?.items) ? data.items : [];
+    return [...items].sort((a: Term, b: Term) => Number(a.id) - Number(b.id));
+  }
+
+  function toggleItemSelection(id: number) {
+    if (!canEdit) return;
+    setSelectedIds((prev) => (prev.includes(id) ? prev.filter((current) => current !== id) : [...prev, id]));
+  }
+
+  function toggleSelectAll() {
+    if (!items.length || !canEdit) return;
+    setSelectedIds(allSelected ? [] : items.map((item) => item.id));
+  }
+
+  function scheduleRefresh() {
+    setRefreshIndex((prev) => prev + 1);
   }
 
   async function login() {
@@ -175,6 +266,120 @@ export default function AdminPage() {
     return null;
   }
 
+  const requestDeletion = (targetIds: number[], context: "single" | "bulk") => {
+    if (session?.role !== "admin") {
+      setAuthError("Solo un administrador puede eliminar");
+      return;
+    }
+    const uniqueIds = [...new Set(targetIds)].filter((id) => Number.isInteger(id) && id > 0);
+    if (!uniqueIds.length) {
+      setAuthError("Selecciona al menos un término");
+      return;
+    }
+    const preview = items
+      .filter((item) => uniqueIds.includes(item.id))
+      .map((item) => item.term)
+      .filter(Boolean);
+    const title =
+      context === "single"
+        ? preview[0]
+          ? `Eliminar ${preview[0]}`
+          : "Eliminar término"
+        : `Eliminar ${uniqueIds.length} términos`;
+    const description =
+      context === "single"
+        ? "Esta acción eliminará el término del catálogo y no se puede deshacer."
+        : "Eliminarás de forma permanente todos los términos seleccionados. No podrás deshacerlo.";
+    setDeleteDialog({
+      ids: uniqueIds,
+      context,
+      title,
+      description,
+      preview,
+    });
+  };
+
+  const handleDeleteClick = (id: number) => {
+    requestDeletion([id], "single");
+  };
+
+  async function executeDeletion(targetIds: number[]) {
+    if (session?.role !== "admin") {
+      setAuthError("Solo un administrador puede eliminar");
+      return;
+    }
+    const uniqueIds = [...new Set(targetIds)].filter((id) => Number.isInteger(id) && id > 0);
+    if (!uniqueIds.length) {
+      setDeleteDialog(null);
+      return;
+    }
+    setDeleteLoading(true);
+    setAuthError(null);
+    setMessage(null);
+    const snapshot = [...items];
+    setItems((prev) => prev.filter((item) => !uniqueIds.includes(item.id)));
+    setSelectedIds((prev) => prev.filter((id) => !uniqueIds.includes(id)));
+    try {
+      const results = await Promise.all(
+        uniqueIds.map(async (id) => {
+          let data: any = null;
+          let textFallback = "";
+          const res = await fetch(`/api/terms/${id}`, {
+            method: "DELETE",
+            credentials: "include",
+            cache: "no-store",
+            headers: { "cache-control": "no-store" },
+          });
+          try {
+            data = await res.json();
+          } catch {
+            textFallback = await res.text().catch(() => "");
+          }
+          const message =
+            extractErrorMessage(data) ||
+            (textFallback?.trim() || res.statusText || "Error eliminando");
+          return { id, ok: res.ok, status: res.status, message };
+        }),
+      );
+
+      const fatal = results.find((result) => !result.ok && result.status !== 404);
+      if (fatal) {
+        setItems(snapshot);
+        setAuthError(fatal.message);
+        return;
+      }
+
+      const removedCount = results.filter((result) => result.ok).length;
+      const missing = results.filter((result) => result.status === 404);
+
+      if (removedCount) {
+        setMessage(removedCount === 1 ? "Término eliminado" : `${removedCount} términos eliminados`);
+      }
+      if (missing.length) {
+        const missingLabel =
+          missing.length === 1
+            ? missing[0].message
+            : `Algunos términos ya no existían (${missing.map((result) => `#${result.id}`).join(", ")})`;
+        setAuthError(missingLabel);
+      }
+    } catch (error) {
+      console.error("Request falló eliminando término(s)", error);
+      setItems(snapshot);
+      setAuthError("No se pudo contactar la API");
+      return;
+    } finally {
+      setDeleteLoading(false);
+      setDeleteDialog(null);
+    }
+    try {
+      const latestItems = await fetchTerms(q);
+      setItems(latestItems);
+    } catch (error) {
+      console.error("No se pudo sincronizar los términos tras eliminar", error);
+    }
+    scheduleRefresh();
+  }
+
   async function save(term: Term) {
     if (session?.role !== "admin") {
       setAuthError("Solo un administrador puede guardar cambios");
@@ -212,85 +417,86 @@ export default function AdminPage() {
     }
     setMessage(isNew ? "Término creado" : "Término actualizado");
     setEditing(null);
-    setItems(await fetchTerms(q));
+    try {
+      const updatedItems = await fetchTerms(q);
+      setItems(updatedItems);
+    } catch (error) {
+      console.error("No se pudo sincronizar los términos tras guardar", error);
+    }
+    scheduleRefresh();
   }
 
-  async function remove(id: number) {
-    if (session?.role !== "admin") {
-      setAuthError("Solo un administrador puede eliminar");
-      return;
-    }
-    if (!confirm("¿Eliminar término?")) return;
-    const res = await fetch(`/api/terms/${id}`, {
-      method: "DELETE",
-      credentials: "include",
-    });
-    const data = await res.json().catch(() => ({}));
-    if (!res.ok) {
-      setAuthError(data?.error || "Error eliminando");
-      return;
-    }
-    setMessage("Término eliminado");
-    setItems(await fetchTerms(q));
-  }
-
-  const showRegisterCard = allowBootstrap || session?.role === "admin";
-  const canEdit = session?.role === "admin";
+  const showRegisterCard = allowBootstrap || canEdit;
 
   return (
-    <main className="admin-shell">
-      <section className="hero-card">
-        <div className="hero-meta">
-          <div className="hero-brand">
-            <div className="hero-logo">
-              <Image src="/logo.png" alt="Diccionario Técnico Web" width={48} height={48} />
+    <div className="admin-page">
+      <header className="admin-hero">
+        <div className="admin-hero__grid">
+          <div className="admin-hero__brand">
+            <div style={{ display: "flex", alignItems: "center", gap: 16, flexWrap: "wrap" }}>
+              <div className="hero-logo">
+                <Image src="/logo.png" alt="Diccionario Técnico Web" width={48} height={48} />
+              </div>
+              <div>
+                <p className="hero-eyebrow" style={{ marginBottom: 4 }}>
+                  Panel de control
+                </p>
+                <h1 style={{ margin: 0, fontSize: 34, letterSpacing: "-1px" }}>Admin · Diccionario</h1>
+              </div>
             </div>
-            <div>
-              <p className="eyebrow">Diccionario Técnico Web</p>
-              <h1>Admin · Diccionario</h1>
+            <p className="sub" style={{ maxWidth: 520 }}>
+              Controla el glosario técnico, usuarios y sesiones con herramientas listas para producción.
+            </p>
+            <div className="admin-hero__stats">
+              {adminHeroStats.map(stat => (
+                <div key={stat.label} className="admin-hero__stats-card">
+                  <strong>{stat.value}</strong>
+                  <span>{stat.label}</span>
+                </div>
+              ))}
             </div>
           </div>
-          <p className="sub">Control total del glosario técnico con un diseño mobile-first, listo para cualquier pantalla.</p>
-        </div>
-        <div className="hero-actions">
-          <div className="hero-status">
+          <div className="admin-hero__status">
             <span className={`pill ${session ? "online" : "offline"}`}>
               {session ? "Sesión activa" : "Sin sesión"}
             </span>
-            <small>
+            <small style={{ color: "rgba(255,255,255,.75)" }}>
               {authLoading
                 ? "Verificando sesión…"
                 : session
                   ? `Logueado como ${session.username} (${session.role})`
                   : "Inicia sesión para desbloquear todas las herramientas."}
             </small>
-          </div>
-          <div className="button-row">
-            {session ? (
-              <button className="btn-primary" onClick={logout}>
-                Cerrar sesión
+            <small style={{ color: "rgba(255,255,255,.6)" }}>
+              Última sincronización: <b>{today}</b>
+            </small>
+            <div className="admin-hero__actions">
+              {session ? (
+                <button className="btn-primary" onClick={logout}>
+                  Cerrar sesión
+                </button>
+              ) : null}
+              <button className="btn" onClick={refreshSession}>
+                Refrescar
               </button>
-            ) : null}
-            <button className="btn" onClick={refreshSession}>
-              Refrescar
-            </button>
-            <button className="btn" onClick={() => setEditing(empty)} disabled={!canEdit}>
-              Nuevo término
-            </button>
+              <button className="btn" onClick={() => setEditing(empty)} disabled={!canEdit}>
+                Nuevo término
+              </button>
+            </div>
           </div>
         </div>
-      </section>
-
-      {authError && (
-        <div className="alert-card">
-          <small>{authError}</small>
-        </div>
-      )}
-      {message && (
-        <div className="success-card">
-          <small>{message}</small>
-        </div>
-      )}
+      </header>
+      <main className="admin-shell">
+        {authError && (
+          <div className="alert-card">
+            <small>{authError}</small>
+          </div>
+        )}
+        {message && (
+          <div className="success-card">
+            <small>{message}</small>
+          </div>
+        )}
 
       <div className="grid-stack">
         {!session && (
@@ -386,15 +592,15 @@ export default function AdminPage() {
                     value={registerForm.role}
                     onChange={(e) => setRegisterForm({ ...registerForm, role: e.target.value as "admin" | "user" })}
                   >
-                    <option value="user">user</option>
-                    <option value="admin">admin</option>
+                    <option value="admin">Admin</option>
+                    <option value="user">User</option>
                   </select>
                 </div>
               )}
             </div>
             <div className="button-row">
               <button className="btn-primary" onClick={register}>
-                Registrar
+                {allowBootstrap ? "Crear administrador" : "Registrar usuario"}
               </button>
             </div>
           </section>
@@ -403,30 +609,73 @@ export default function AdminPage() {
 
       <section className="panel table-panel">
         <div className="table-header">
-          <div style={{ flex: 1 }}>
-            <p className="panel-sub" style={{ marginBottom: 6 }}>
-              Catálogo
-            </p>
-            <h2 className="panel-title" style={{ margin: 0 }}>
-              Términos técnicos
-            </h2>
+          <div className="table-headline">
+            <p className="panel-sub eyebrow">Catálogo</p>
+            <h2 className="panel-title">Términos técnicos</h2>
+            <p className="panel-sub">Controla y sincroniza el glosario completo en tiempo real.</p>
           </div>
-          <div style={{ width: "100%", maxWidth: 320 }}>
+          <div className="table-search">
             <label>
               <small>Buscar término</small>
             </label>
-            <input
-              className="input"
-              value={q}
-              placeholder='Ej. "fetch", "JOIN", "JWT"...'
-              onChange={(e) => setQ(e.target.value)}
-            />
+            <div className="input-shell">
+              <svg width="16" height="16" viewBox="0 0 24 24" aria-hidden="true">
+                <path
+                  fill="currentColor"
+                  d="M15.5 14h-.79l-.28-.27a6 6 0 1 0-.71.71l.27.28v.79l5 5L20.49 19l-5-5zm-5.5 1a4.5 4.5 0 1 1 0-9a4.5 4.5 0 0 1 0 9"
+                />
+              </svg>
+              <input
+                className="input input-ghost"
+                type="search"
+                value={q}
+                placeholder='Ej. "fetch", "JOIN", "JWT"...'
+                onChange={(e) => setQ(e.target.value)}
+              />
+            </div>
+          </div>
+        </div>
+        <div className="table-toolbar">
+          <div>
+            <p className="toolbar-eyebrow">Selección actual</p>
+            <div className="toolbar-count">
+              <strong>{selectedCount}</strong>
+              <span>seleccionados</span>
+            </div>
+            <p className="toolbar-note">
+              {selectedCount
+                ? allSelected
+                  ? "Todos los términos visibles están marcados."
+                  : "Términos marcados dentro del filtro activo."
+                : "Marca términos para habilitar acciones masivas."}
+            </p>
+          </div>
+          <div className="toolbar-actions">
+            <button className="btn ghost" onClick={toggleSelectAll} disabled={selectionDisabled}>
+              {allSelected ? "Limpiar selección" : "Seleccionar visibles"}
+            </button>
+            <button
+              className={`btn ${bulkDeleteEnabled ? "btn-danger" : "btn-disabled"}`}
+              disabled={!bulkDeleteEnabled}
+              onClick={() => requestDeletion(selectedIds, "bulk")}
+            >
+              Eliminar seleccionados
+            </button>
           </div>
         </div>
         <div className="table-body table-wrapper">
           <table className="table">
             <thead>
               <tr>
+                <th>
+                  <input
+                    type="checkbox"
+                    aria-label="Seleccionar todos los términos visibles"
+                    checked={allSelected && !!items.length}
+                    onChange={() => toggleSelectAll()}
+                    disabled={selectionDisabled}
+                  />
+                </th>
                 <th>#</th>
                 <th>Traducción</th>
                 <th>Término</th>
@@ -435,39 +684,80 @@ export default function AdminPage() {
               </tr>
             </thead>
             <tbody>
-              {items.map((i) => (
-                <tr key={i.id}>
-                  <td>{i.id}</td>
-                  <td>{i.translation}</td>
-                  <td>{i.term}</td>
-                  <td>
-                    <span className="badge">{i.category}</span>
-                  </td>
-                  <td style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-                    <button className="btn" disabled={!canEdit} onClick={() => setEditing(i)}>
-                      Editar
-                    </button>
-                    <button className="btn" disabled={!canEdit} onClick={() => remove(i.id)}>
-                      Eliminar
-                    </button>
+              {items.length ? (
+                items.map((i) => (
+                  <tr key={i.id}>
+                    <td>
+                      <input
+                        type="checkbox"
+                        aria-label={`Seleccionar término ${i.term}`}
+                        checked={selectedIds.includes(i.id)}
+                        onChange={() => toggleItemSelection(i.id)}
+                        disabled={!canEdit}
+                      />
+                    </td>
+                    <td>{i.id}</td>
+                    <td>{i.translation}</td>
+                    <td>{i.term}</td>
+                    <td>
+                      <span className="badge">{i.category}</span>
+                    </td>
+                    <td style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+                      <button className="btn" disabled={!canEdit} onClick={() => setEditing(i)}>
+                        Editar
+                      </button>
+                      <button className="btn" disabled={!canEdit} onClick={() => handleDeleteClick(i.id)}>
+                        Eliminar
+                      </button>
+                    </td>
+                  </tr>
+                ))
+              ) : (
+                <tr>
+                  <td colSpan={6}>
+                    <div className="table-empty">
+                      <div>
+                        <strong>Sin resultados</strong>
+                        <span>Crea un término nuevo o ajusta la búsqueda para ver registros.</span>
+                      </div>
+                      {canEdit && (
+                        <button className="btn-primary" onClick={() => setEditing(empty)}>
+                          Crear término
+                        </button>
+                      )}
+                    </div>
                   </td>
                 </tr>
-              ))}
+              )}
             </tbody>
           </table>
-          {!items.length && <small>Sin resultados.</small>}
         </div>
       </section>
 
-      {editing && canEdit && (
-        <EditorModal term={editing} onCancel={() => setEditing(null)} onSave={save} />
-      )}
       {!canEdit && (
         <div className="alert-card">
           <small>Inicia sesión como administrador para crear o editar términos.</small>
         </div>
       )}
     </main>
+
+      {editing && canEdit && (
+        <EditorModal term={editing} onCancel={() => setEditing(null)} onSave={save} />
+      )}
+      {deleteDialog && (
+        <ConfirmModal
+          title={deleteDialog.title}
+          description={deleteDialog.description}
+          preview={deleteDialog.preview}
+          confirmLabel={deleteDialog.context === "single" ? "Eliminar término" : "Eliminar todo"}
+          loading={deleteLoading}
+          onCancel={() => {
+            if (!deleteLoading) setDeleteDialog(null);
+          }}
+          onConfirm={() => executeDeletion(deleteDialog.ids)}
+        />
+      )}
+    </div>
   );
 }
 
@@ -630,6 +920,69 @@ function EditorModal({
           </button>
           <button className="btn" onClick={onCancel}>
             Cancelar
+          </button>
+        </div>
+      </section>
+    </div>
+  );
+}
+
+type ConfirmModalProps = {
+  title: string;
+  description: string;
+  preview?: string[];
+  confirmLabel?: string;
+  cancelLabel?: string;
+  loading?: boolean;
+  onConfirm: () => void;
+  onCancel: () => void;
+};
+
+function ConfirmModal({
+  title,
+  description,
+  preview,
+  confirmLabel = "Confirmar",
+  cancelLabel = "Cancelar",
+  loading,
+  onConfirm,
+  onCancel,
+}: ConfirmModalProps) {
+  return (
+    <div className="modal-backdrop">
+      <section className="modal-panel" role="dialog" aria-modal="true">
+        <div className="modal-header">
+          <div>
+            <p className="eyebrow">Confirmación requerida</p>
+            <h2 className="panel-title" style={{ marginBottom: 0 }}>
+              {title}
+            </h2>
+          </div>
+          <button className="modal-close" onClick={onCancel} aria-label="Cerrar" disabled={loading}>
+            ✕
+          </button>
+        </div>
+        <p className="panel-sub" style={{ marginTop: 0 }}>{description}</p>
+        {preview?.length ? (
+          <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginTop: 16 }}>
+            {preview.slice(0, 3).map((item) => (
+              <span key={item} className="badge">
+                {item}
+              </span>
+            ))}
+            {preview.length > 3 && (
+              <span className="badge" style={{ background: "rgba(255,255,255,0.1)" }}>
+                +{preview.length - 3} más
+              </span>
+            )}
+          </div>
+        ) : null}
+        <div className="button-row" style={{ marginTop: 32 }}>
+          <button className="btn" onClick={onCancel} disabled={loading}>
+            {cancelLabel}
+          </button>
+          <button className="btn-primary" onClick={onConfirm} disabled={loading}>
+            {loading ? "Eliminando…" : confirmLabel}
           </button>
         </div>
       </section>

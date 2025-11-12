@@ -4,6 +4,10 @@ import { prisma } from "@/lib/prisma";
 import { termSchema } from "@/lib/validation";
 import { requireAdmin } from "@/lib/auth";
 
+export const dynamic = "force-dynamic";
+
+const noStoreHeaders = { "Cache-Control": "no-store" } as const;
+
 function guardAdmin(headers: Headers) {
   try {
     requireAdmin(headers);
@@ -28,14 +32,13 @@ export async function GET(req: NextRequest) {
     | "general"
     | null;
 
-  // Si no hay query, devolvemos lista simple (posible filtro por categoría)
+  // Si no hay query, devolvemos todos los términos (sin límite) para el panel admin
   if (!q) {
     const items = await prisma.term.findMany({
       where: category ? { category } : undefined,
       orderBy: [{ term: "asc" }],
-      take: 50,
     });
-    return NextResponse.json({ items });
+    return NextResponse.json({ items }, { headers: noStoreHeaders });
   }
 
   // Búsqueda case-insensitive usando SQL raw para SQLite: usamos LOWER(...) LIKE '%q%'
@@ -54,7 +57,7 @@ export async function GET(req: NextRequest) {
     lower("what") LIKE ? OR
     lower("how") LIKE ? OR
     lower(CAST(aliases AS TEXT)) LIKE ?
-  ) ORDER BY "term" ASC LIMIT 50;`;
+  ) ORDER BY "term" ASC;`;
   params.push(like, like, like, like, like, like);
 
   // Ejecutamos la consulta raw de forma parametrizada
@@ -64,7 +67,7 @@ export async function GET(req: NextRequest) {
   // @ts-ignore
   const items = await prisma.$queryRawUnsafe(sql, ...params);
 
-  return NextResponse.json({ items });
+  return NextResponse.json({ items }, { headers: noStoreHeaders });
 }
 
 export async function POST(req: NextRequest) {

@@ -4,6 +4,10 @@ import { prisma } from "@/lib/prisma";
 import { termSchema } from "@/lib/validation";
 import { requireAdmin } from "@/lib/auth";
 
+export const dynamic = "force-dynamic";
+
+const noStoreHeaders = { "Cache-Control": "no-store" } as const;
+
 function guardAdmin(headers: Headers) {
   try {
     requireAdmin(headers);
@@ -16,17 +20,31 @@ function guardAdmin(headers: Headers) {
   }
 }
 
+function parseId(idParam: string) {
+  const id = Number(idParam);
+  if (!Number.isInteger(id) || id <= 0) {
+    return null;
+  }
+  return id;
+}
+
 export async function GET(_: NextRequest, { params }: { params: { id: string } }) {
-  const id = Number(params.id);
+  const id = parseId(params.id);
+  if (!id) {
+    return NextResponse.json({ error: "Identificador inválido" }, { status: 400 });
+  }
   const item = await prisma.term.findUnique({ where: { id } });
   if (!item) return NextResponse.json({ error: "Not found" }, { status: 404 });
-  return NextResponse.json({ item });
+  return NextResponse.json({ item }, { headers: noStoreHeaders });
 }
 
 export async function PATCH(req: NextRequest, { params }: { params: { id: string } }) {
   const authError = guardAdmin(req.headers);
   if (authError) return authError;
-  const id = Number(params.id);
+  const id = parseId(params.id);
+  if (!id) {
+    return NextResponse.json({ error: "Identificador inválido" }, { status: 400 });
+  }
   const body = await req.json();
 
   // Permitir updates parciales: combinamos defaults con lo que venga
@@ -41,7 +59,7 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
       where: { id },
       data: body,
     });
-    return NextResponse.json({ item: updated });
+    return NextResponse.json({ item: updated }, { headers: noStoreHeaders });
   } catch (error) {
     if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2002") {
       return NextResponse.json(
@@ -61,7 +79,18 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
 export async function DELETE(req: NextRequest, { params }: { params: { id: string } }) {
   const authError = guardAdmin(req.headers);
   if (authError) return authError;
-  const id = Number(params.id);
-  await prisma.term.delete({ where: { id } });
-  return NextResponse.json({ ok: true });
+  const id = parseId(params.id);
+  if (!id) {
+    return NextResponse.json({ error: "Identificador inválido" }, { status: 400 });
+  }
+  try {
+    await prisma.term.delete({ where: { id } });
+    return NextResponse.json({ ok: true }, { headers: noStoreHeaders });
+  } catch (error) {
+    if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2025") {
+      return NextResponse.json({ error: "No se encontró el término para eliminar" }, { status: 404 });
+    }
+    console.error("Error eliminando término", error);
+    return NextResponse.json({ error: "No se pudo eliminar el término" }, { status: 500 });
+  }
 }

@@ -3,12 +3,16 @@ import { useEffect, useState } from "react";
 
 import type { TermDTO } from "@/types/term";
 
+const quickTerms = ["fetch", "useState", "REST", "JOIN", "JWT", "Docker"];
+
 export default function SearchBox() {
   const [q, setQ] = useState("");
   const [items, setItems] = useState<TermDTO[]>([]);
   const [selected, setSelected] = useState<TermDTO | null>(null);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const debounced = useDebounce(q, 180);
+  const hasQuery = Boolean(debounced);
+  const hasResults = Boolean(items?.length);
 
   useEffect(() => {
     if (!debounced) {
@@ -35,41 +39,70 @@ export default function SearchBox() {
   }, [debounced]);
 
   return (
-    <div className="card">
-      <input
-        className="input code"
-        placeholder='Escribe un término: ej. "fetch", "useState", "JOIN", "JWT"...'
-        autoFocus
-        value={q}
-        onChange={(e) => setQ(e.target.value)}
-      />
+    <section id="search" className="panel search-panel">
+      <div className="search-header">
+        <span className="hero-eyebrow">Buscador inteligente</span>
+        <h2 style={{ margin: 0, fontSize: 32 }}>Encuentra el concepto perfecto</h2>
+        <p className="sub" style={{ margin: 0 }}>Escribe un término técnico y recibe definiciones, ejemplos y snippets listos.</p>
+      </div>
 
-      {items?.length ? (
-        <div className="row row-2" style={{ marginTop: 16 }}>
-          <div>
-            <table className="table">
-              <thead>
-                <tr>
-                  <th>Término</th>
-                  <th>Cat.</th>
-                </tr>
-              </thead>
-              <tbody>
-                {items.map((t) => (
-                  <tr key={t.id} onClick={() => setSelected(t)} style={{ cursor: "pointer" }}>
-                    <td>{t.term}</td>
-                    <td>
-                      <span className="badge">{t.category}</span>
-                    </td>
+      <div className="search-input-shell">
+        <span aria-hidden style={{ fontSize: 20, color: "#8f7dff" }}>🔍</span>
+        <input
+          className="code"
+          placeholder='Escribe un término: ej. "fetch", "useState", "JOIN", "JWT"...'
+          autoFocus
+          value={q}
+          onChange={(e) => setQ(e.target.value)}
+        />
+        <span style={{ fontSize: 12, color: "#9aa6c8", border: "1px solid rgba(255,255,255,.12)", borderRadius: 12, padding: "6px 10px" }}>
+          Enter ↵
+        </span>
+      </div>
+
+      <div className="quick-list">
+        {quickTerms.map(term => (
+          <button key={term} type="button" onClick={() => setQ(term)} className="quick-chip">
+            #{term}
+          </button>
+        ))}
+      </div>
+
+      {hasResults ? (
+        <div
+          className="card"
+          style={{
+            marginTop: 28,
+            background: "rgba(8,16,36,.85)",
+            border: "1px solid rgba(141,125,255,.15)",
+          }}
+        >
+          <div className="row row-2" style={{ marginTop: 0 }}>
+            <div>
+              <table className="table">
+                <thead>
+                  <tr>
+                    <th>Término</th>
+                    <th>Cat.</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
+                </thead>
+                <tbody>
+                  {items.map(t => (
+                    <tr key={t.id} onClick={() => setSelected(t)} style={{ cursor: "pointer" }}>
+                      <td>{t.term}</td>
+                      <td>
+                        <span className="badge">{t.category}</span>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+            <div>{selected ? <Result result={selected} /> : <small>Selecciona un resultado</small>}</div>
           </div>
-          <div>{selected ? <Result result={selected} /> : <small>Selecciona un resultado</small>}</div>
         </div>
-      ) : debounced ? (
-        <div style={{ marginTop: 12 }}>
+      ) : hasQuery ? (
+        <div className="card" style={{ marginTop: 28, textAlign: "center", background: "rgba(8,16,36,.85)" }}>
           <small>Sin resultados.</small>
           {errorMsg ? (
             <div style={{ marginTop: 12 }}>
@@ -77,8 +110,12 @@ export default function SearchBox() {
             </div>
           ) : null}
         </div>
-      ) : null}
-    </div>
+      ) : (
+        <div className="card" style={{ marginTop: 28, textAlign: "center", background: "rgba(8,16,36,.85)" }}>
+          <small>Escribe un término técnico o concepto para comenzar.</small>
+        </div>
+      )}
+    </section>
   );
 }
 
