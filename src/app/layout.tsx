@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import "./globals.css";
+import AppProviders from "@/components/AppProviders";
 
 export const metadata: Metadata = {
   title: "Diccionario Técnico Web",
@@ -14,7 +15,9 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="es">
-      <body>{children}</body>
+      <body className="bg-ink-900 text-white antialiased">
+        <AppProviders>{children}</AppProviders>
+      </body>
     </html>
   );
 }
