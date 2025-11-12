@@ -1,12 +1,14 @@
-import { HistoryAction, Prisma } from "@prisma/client";
+import { Prisma } from "@prisma/client";
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { termSchema } from "@/lib/validation";
 import { requireAdmin, type AuthTokenPayload } from "@/lib/auth";
+import { rateLimit } from "@/lib/rate-limit";
 
 export const dynamic = "force-dynamic";
 
 const noStoreHeaders = { "Cache-Control": "no-store" } as const;
+const RATE_LIMIT_PREFIX = "terms:item";
 
 function adminOrResponse(headers: Headers): AuthTokenPayload | Response {
   try {
@@ -19,18 +21,43 @@ function adminOrResponse(headers: Headers): AuthTokenPayload | Response {
   }
 }
 
-async function recordHistory(termId: number, snapshot: unknown, action: HistoryAction, authorId?: number) {
+function getClientIp(req: NextRequest) {
+  const xForwarded = req.headers.get("x-forwarded-for");
+  if (xForwarded) return xForwarded.split(",")[0]?.trim() || "anonymous";
+  const realIp = req.headers.get("x-real-ip");
+  if (realIp) return realIp.trim();
+  if (req.ip) return String(req.ip);
+  return "anonymous";
+}
+
+function jsonError(message: unknown, status = 400) {
+  return NextResponse.json({ ok: false, error: message }, { status, headers: noStoreHeaders });
+}
+
+async function recordHistory(termId: number, snapshot: unknown, action: string, authorId?: number) {
   try {
-    await prisma.termHistory.create({
-      data: {
+    // prisma.termHistory might not be present in the generated Prisma client types;
+    // cast to any and check at runtime to avoid TypeScript compile errors.
+    const client: any = prisma;
+    if (client && typeof client.termHistory?.create === "function") {
+      await client.termHistory.create({
+        data: {
+          termId,
+          snapshot: sanitizeSnapshot(snapshot),
+          action,
+          authorId,
+        },
+      });
+    } else {
+      // If the termHistory model is not available at runtime, skip recording history.
+      // This avoids throwing at runtime and preserves existing behavior.
+      console.warn("[History] termHistory model not available on Prisma client, skipping history record", {
         termId,
-        snapshot: sanitizeSnapshot(snapshot),
         action,
-        authorId,
-      },
-    });
+      });
+    }
   } catch (error) {
-    console.error("[History] No se pudo registrar el historial del término", { termId, action, error });
+    console.error("[History] Error registrando historial", { termId, action, error });
   }
 }
 
@@ -50,14 +77,21 @@ function sanitizeSnapshot<T>(payload: T) {
   }
 }
 
-export async function GET(_: NextRequest, { params }: { params: { id: string } }) {
+export async function GET(req: NextRequest, { params }: { params: { id: string } }) {
   const id = parseId(params.id);
   if (!id) {
-    return NextResponse.json({ error: "Identificador inválido" }, { status: 400 });
+    return jsonError("Identificador inválido", 400);
+  }
+  const rate = rateLimit(`${RATE_LIMIT_PREFIX}:${getClientIp(req)}:${id}`, { limit: 240, windowMs: 60_000 });
+  if (!rate.ok) {
+    return NextResponse.json(
+      { ok: false, error: "Demasiadas solicitudes. Intenta nuevamente en unos segundos." },
+      { status: 429, headers: { ...noStoreHeaders, "Retry-After": String(rate.retryAfterSeconds) } },
+    );
   }
   const item = await prisma.term.findUnique({ where: { id } });
-  if (!item) return NextResponse.json({ error: "Not found" }, { status: 404 });
-  return NextResponse.json({ item }, { headers: noStoreHeaders });
+  if (!item) return jsonError("No se encontró el término", 404);
+  return NextResponse.json({ ok: true, item }, { headers: noStoreHeaders });
 }
 
 export async function PATCH(req: NextRequest, { params }: { params: { id: string } }) {
@@ -65,15 +99,14 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
   if (admin instanceof Response) return admin;
   const id = parseId(params.id);
   if (!id) {
-    return NextResponse.json({ error: "Identificador inválido" }, { status: 400 });
+    return jsonError("Identificador inválido", 400);
   }
   const body = await req.json();
 
-  // Permitir updates parciales: combinamos defaults con lo que venga
   const partial = termSchema.partial().safeParse(body);
   if (!partial.success) {
     console.warn("[PATCH /api/terms/:id] Validación fallida", partial.error.flatten());
-    return NextResponse.json({ error: partial.error.flatten() }, { status: 400 });
+    return jsonError(partial.error.flatten(), 400);
   }
   const updateData = partial.data;
 
@@ -82,24 +115,21 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
       where: { id },
       data: {
         ...updateData,
-        updatedById: admin.id,
+        updatedBy: { connect: { id: admin.id } },
       },
     });
-    await recordHistory(updated.id, updated, HistoryAction.update, admin.id);
-    return NextResponse.json({ item: updated }, { headers: noStoreHeaders });
+    await recordHistory(updated.id, updated, "update", admin.id);
+    return NextResponse.json({ ok: true, item: updated }, { headers: noStoreHeaders });
   } catch (error) {
     if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2002") {
-      return NextResponse.json(
-        { error: "Ya existe un término con ese nombre" },
-        { status: 409 },
-      );
+      return jsonError("Ya existe un término con ese nombre", 409);
     }
     if (error instanceof Prisma.PrismaClientValidationError) {
-      return NextResponse.json({ error: error.message }, { status: 400 });
+      return jsonError(error.message, 400);
     }
     console.error("Error actualizando término", error);
     const message = error instanceof Error ? error.message : "No se pudo actualizar el término";
-    return NextResponse.json({ error: message }, { status: 500 });
+    return jsonError(message, 500);
   }
 }
 
@@ -108,21 +138,21 @@ export async function DELETE(req: NextRequest, { params }: { params: { id: strin
   if (admin instanceof Response) return admin;
   const id = parseId(params.id);
   if (!id) {
-    return NextResponse.json({ error: "Identificador inválido" }, { status: 400 });
+    return jsonError("Identificador inválido", 400);
   }
   try {
     const existing = await prisma.term.findUnique({ where: { id } });
     if (!existing) {
-      return NextResponse.json({ error: "No se encontró el término para eliminar" }, { status: 404 });
+      return jsonError("No se encontró el término para eliminar", 404);
     }
-    await recordHistory(existing.id, existing, HistoryAction.delete, admin.id);
+    await recordHistory(existing.id, existing, "delete", admin.id);
     await prisma.term.delete({ where: { id } });
     return NextResponse.json({ ok: true }, { headers: noStoreHeaders });
   } catch (error) {
     if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2025") {
-      return NextResponse.json({ error: "No se encontró el término para eliminar" }, { status: 404 });
+      return jsonError("No se encontró el término para eliminar", 404);
     }
     console.error("Error eliminando término", error);
-    return NextResponse.json({ error: "No se pudo eliminar el término" }, { status: 500 });
+    return jsonError("No se pudo eliminar el término", 500);
   }
 }

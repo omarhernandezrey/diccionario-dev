@@ -20,13 +20,19 @@ export default function SearchBox() {
       setSelected(null);
       return;
     }
-    const url = `/api/terms?q=${encodeURIComponent(debounced)}`;
+    const params = new URLSearchParams({ q: debounced, pageSize: "20" });
+    const url = `/api/terms?${params.toString()}`;
     fetch(url)
       .then((r) => {
         if (!r.ok) throw new Error(`HTTP ${r.status}`);
         return r.json();
       })
       .then((d) => {
+        if (d?.ok === false) {
+          throw new Error(
+            typeof d.error === "string" ? d.error : "Error cargando resultados",
+          );
+        }
         setItems(d.items || []);
         setSelected(d.items?.[0] || null);
         setErrorMsg(null);

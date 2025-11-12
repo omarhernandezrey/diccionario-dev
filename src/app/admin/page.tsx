@@ -149,7 +149,10 @@ export default function AdminPage() {
   }
 
   async function fetchTerms(query: string) {
-    const url = query ? `/api/terms?q=${encodeURIComponent(query)}` : `/api/terms`;
+    const params = new URLSearchParams();
+    params.set("pageSize", "500");
+    if (query) params.set("q", query);
+    const url = `/api/terms?${params.toString()}`;
     const res = await fetch(url, {
       cache: "no-store",
       credentials: "include",
@@ -162,14 +165,22 @@ export default function AdminPage() {
     } catch {
       textFallback = await res.text().catch(() => "");
     }
-    if (!res.ok) {
+    if (!res.ok || data?.ok === false) {
       const message =
         extractErrorMessage(data) ||
         (textFallback?.trim() || res.statusText || "Error cargando términos");
       throw new Error(message);
     }
     const items = Array.isArray(data?.items) ? data.items : [];
-    return [...items].sort((a: Term, b: Term) => Number(a.id) - Number(b.id));
+    const normalized = items.map(
+      (item: Term): Term => ({
+        ...item,
+        aliases: item.aliases ?? [],
+        tags: item.tags ?? [],
+        examples: item.examples ?? [],
+      }),
+    );
+    return [...normalized].sort((a, b) => Number(a.id) - Number(b.id));
   }
 
   function toggleItemSelection(id: number) {
@@ -851,6 +862,24 @@ function EditorModal({
                 setVal({
                   ...val,
                   aliases: e.target.value
+                    .split(",")
+                    .map((s) => s.trim())
+                    .filter(Boolean),
+                })
+              }
+            />
+          </div>
+          <div>
+            <label>
+              <small>Etiquetas (coma separada)</small>
+            </label>
+            <input
+              className="input"
+              value={val.tags.join(", ")}
+              onChange={(e) =>
+                setVal({
+                  ...val,
+                  tags: e.target.value
                     .split(",")
                     .map((s) => s.trim())
                     .filter(Boolean),
