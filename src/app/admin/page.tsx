@@ -9,6 +9,7 @@ type Term = {
   term: string;
   translation: string;
   aliases: string[];
+  tags: string[];
   category: "frontend" | "backend" | "database" | "devops" | "general";
   meaning: string;
   what: string;
@@ -60,6 +61,7 @@ export default function AdminPage() {
       term: "",
       translation: "",
       aliases: [],
+      tags: [],
       category: "general",
       meaning: "",
       what: "",

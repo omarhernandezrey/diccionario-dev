@@ -1,4 +1,4 @@
-import { PrismaClient, Category } from "@prisma/client";
+import { PrismaClient, Category, HistoryAction } from "@prisma/client";
 import bcrypt from "bcryptjs";
 import type { SeedTerm, ExampleSnippet } from "./dictionary-types";
 import { cssTerms } from "./data/cssTerms";
@@ -223,14 +223,30 @@ function toPascal(value: string) {
 }
 
 async function main() {
-  // Elimina todos los registros de la tabla Term para reiniciar IDs
+  const preparedTerms = dictionary.map(term => ({
+    ...term,
+    aliases: term.aliases ?? [],
+    tags: buildTags(term),
+  }));
+
+  await prisma.termHistory.deleteMany({});
   await prisma.term.deleteMany({});
+  await resetSequences(["Term", "TermHistory"]);
 
-  // Opcional: reiniciar el contador de autoincremento (SQLite)
-  // await prisma.$executeRawUnsafe('DELETE FROM sqlite_sequence WHERE name="Term"');
+  const createdTerms: Awaited<ReturnType<typeof prisma.term.create>>[] = [];
+  for (const term of preparedTerms) {
+    const created = await prisma.term.create({ data: term });
+    createdTerms.push(created);
+  }
 
-  for (const term of dictionary) {
-    await prisma.term.create({ data: term });
+  if (createdTerms.length) {
+    await prisma.termHistory.createMany({
+      data: createdTerms.map(created => ({
+        termId: created.id,
+        snapshot: snapshotTerm(created),
+        action: HistoryAction.seed,
+      })),
+    });
   }
 
   const adminUser = process.env.ADMIN_USERNAME || "admin";
@@ -244,7 +260,7 @@ async function main() {
     create: { username: adminUser, email: adminEmail, password: hashed, role: "admin" },
   });
 
-  console.log(`Seed completado con ${dictionary.length} términos.`);
+  console.log(`Seed completado con ${createdTerms.length} términos y ${createdTerms.length} eventos de historial.`);
 }
 
 main()
@@ -253,3 +269,39 @@ main()
     process.exit(1);
   })
   .finally(async () => prisma.$disconnect());
+
+function buildTags(term: SeedTerm) {
+  const bucket = new Set<string>();
+  const add = (value?: string) => {
+    if (!value) return;
+    const trimmed = value.trim();
+    if (!trimmed) return;
+    bucket.add(trimmed.toLowerCase());
+    bucket.add(toSlug(trimmed));
+    bucket.add(toPascal(trimmed));
+  };
+  add(term.term);
+  add(term.translation);
+  add(term.category);
+  (term.aliases || []).forEach(alias => add(alias));
+  (term.tags || []).forEach(tag => add(tag));
+  return Array.from(bucket).filter(Boolean);
+}
+
+async function resetSequences(tableNames: string[]) {
+  if (!tableNames.length) return;
+  const names = tableNames.map(name => `'${name}'`).join(", ");
+  try {
+    await prisma.$executeRawUnsafe(`DELETE FROM sqlite_sequence WHERE name IN (${names});`);
+  } catch (error) {
+    console.warn("No se pudo reiniciar sqlite_sequence", error);
+  }
+}
+
+function snapshotTerm<T>(term: T) {
+  try {
+    return JSON.parse(JSON.stringify(term));
+  } catch {
+    return term;
+  }
+}

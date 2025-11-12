@@ -8,20 +8,29 @@ datasource db {
 }
 
 model Term {
-  id        Int      @id @default(autoincrement())
-  term      String   @unique
-  translation String @default("")
-  aliases   Json     @default("[]")
-  category  Category
-  meaning   String
-  what      String
-  how       String
-  examples  Json     @default("[]")
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id           Int       @id @default(autoincrement())
+  term         String    @unique
+  translation  String    @default("")
+  aliases      Json      @default("[]")
+  tags         Json      @default("[]")
+  category     Category
+  meaning      String
+  what         String
+  how          String
+  examples     Json      @default("[]")
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+  createdById  Int?
+  updatedById  Int?
+  createdBy    User?     @relation("TermsCreated", fields: [createdById], references: [id])
+  updatedBy    User?     @relation("TermsUpdated", fields: [updatedById], references: [id])
+  history      TermHistory[]
 
   @@index([term])
   @@index([category])
+  @@index([translation])
+  @@index([createdAt])
+  @@index([updatedAt])
 }
 
 enum Category {
@@ -33,11 +42,37 @@ enum Category {
 }
 
 model User {
-  id        Int      @id @default(autoincrement())
-  username  String   @unique
-  email     String?  @unique
-  password  String
-  role      String   @default("user")
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id            Int            @id @default(autoincrement())
+  username      String         @unique
+  email         String?        @unique
+  password      String
+  role          String         @default("user")
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+  createdTerms  Term[]         @relation("TermsCreated")
+  updatedTerms  Term[]         @relation("TermsUpdated")
+  historyEvents TermHistory[]  @relation("HistoryAuthor")
+}
+
+model TermHistory {
+  id        Int           @id @default(autoincrement())
+  termId    Int
+  snapshot  Json
+  action    HistoryAction
+  note      String?
+  authorId  Int?
+  createdAt DateTime       @default(now())
+
+  term   Term @relation(fields: [termId], references: [id], onDelete: Cascade)
+  author User? @relation("HistoryAuthor", fields: [authorId], references: [id])
+
+  @@index([termId, createdAt])
+  @@index([action])
+}
+
+enum HistoryAction {
+  create
+  update
+  delete
+  seed
 }

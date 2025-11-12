@@ -1,22 +1,44 @@
-import { Prisma } from "@prisma/client";
+import { HistoryAction, Prisma } from "@prisma/client";
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { termSchema } from "@/lib/validation";
-import { requireAdmin } from "@/lib/auth";
+import { requireAdmin, type AuthTokenPayload } from "@/lib/auth";
 
 export const dynamic = "force-dynamic";
 
 const noStoreHeaders = { "Cache-Control": "no-store" } as const;
 
-function guardAdmin(headers: Headers) {
+function adminOrResponse(headers: Headers): AuthTokenPayload | Response {
   try {
-    requireAdmin(headers);
-    return null;
+    return requireAdmin(headers);
   } catch (error) {
     if (error instanceof Response) {
       return error;
     }
     throw error;
+  }
+}
+
+async function recordHistory(termId: number, snapshot: unknown, action: HistoryAction, authorId?: number) {
+  try {
+    await prisma.termHistory.create({
+      data: {
+        termId,
+        snapshot: sanitizeSnapshot(snapshot),
+        action,
+        authorId,
+      },
+    });
+  } catch (error) {
+    console.error("[History] No se pudo registrar el historial del término", { termId, action, error });
+  }
+}
+
+function sanitizeSnapshot<T>(payload: T) {
+  try {
+    return JSON.parse(JSON.stringify(payload));
+  } catch {
+    return payload;
   }
 }
 
@@ -49,16 +71,17 @@ export async function GET(req: NextRequest) {
     sql += `"category" = ? AND `;
     params.push(category);
   }
-  // Buscamos en term, meaning, what, how y en aliases convertido a texto
+  // Buscamos en term, meaning, what, how y en aliases/tags convertidos a texto
   sql += `(
     lower("term") LIKE ? OR
     lower("translation") LIKE ? OR
     lower("meaning") LIKE ? OR
     lower("what") LIKE ? OR
     lower("how") LIKE ? OR
-    lower(CAST(aliases AS TEXT)) LIKE ?
+    lower(CAST(aliases AS TEXT)) LIKE ? OR
+    lower(CAST(tags AS TEXT)) LIKE ?
   ) ORDER BY "term" ASC;`;
-  params.push(like, like, like, like, like, like);
+  params.push(like, like, like, like, like, like, like);
 
   // Ejecutamos la consulta raw de forma parametrizada
   // Nota: usamos $queryRawUnsafe con parámetros para compatibilidad; los valores vienen de usuario
@@ -71,8 +94,8 @@ export async function GET(req: NextRequest) {
 }
 
 export async function POST(req: NextRequest) {
-  const authError = guardAdmin(req.headers);
-  if (authError) return authError;
+  const admin = adminOrResponse(req.headers);
+  if (admin instanceof Response) return admin;
   const body = await req.json();
   const parsed = termSchema.safeParse(body);
   if (!parsed.success) {
@@ -86,13 +109,17 @@ export async function POST(req: NextRequest) {
         term: t.term,
         translation: t.translation,
         aliases: t.aliases ?? [],
+        tags: t.tags ?? [],
         category: t.category,
         meaning: t.meaning,
         what: t.what,
         how: t.how,
         examples: t.examples as any,
+        createdById: admin.id,
+        updatedById: admin.id,
       },
     });
+    await recordHistory(created.id, created, HistoryAction.create, admin.id);
     return NextResponse.json({ item: created }, { status: 201 });
   } catch (error) {
     if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2002") {

@@ -4,6 +4,7 @@ export const termSchema = z.object({
   translation: z.string().min(1),
   term: z.string().min(1),
   aliases: z.array(z.string()).optional().default([]),
+  tags: z.array(z.string()).optional().default([]),
   category: z.enum(["frontend", "backend", "database", "devops", "general"]),
   meaning: z.string().min(1),
   what: z.string().min(1),

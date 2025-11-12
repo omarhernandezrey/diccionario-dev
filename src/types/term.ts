@@ -3,6 +3,7 @@ export type TermDTO = {
   term: string;
   translation: string;
   aliases: string[];
+  tags?: string[];
   category: string;
   meaning: string;
   what: string;

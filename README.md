@@ -27,7 +27,7 @@ Clona el repo y copia `.env.example` a `.env`, luego ajusta los valores (ver sec
 npm install
 
 # Genera/actualiza esquema y cliente Prisma
-npx prisma migrate dev --name add_user_model
+npx prisma migrate dev
 npx prisma generate
 
 # Inserta datos de demostración + admin inicial
@@ -80,28 +80,64 @@ ADMIN_EMAIL="admin@example.com"
 
 ```prisma
 model Term {
-  id        Int      @id @default(autoincrement())
-  term      String   @unique
-  aliases   Json     @default("[]")
-  category  Category
-  meaning   String
-  what      String
-  how       String
-  examples  Json     @default("[]")
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id           Int       @id @default(autoincrement())
+  term         String    @unique
+  translation  String    @default("")
+  aliases      Json      @default("[]")
+  tags         Json      @default("[]")
+  category     Category
+  meaning      String
+  what         String
+  how          String
+  examples     Json      @default("[]")
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+  createdById  Int?
+  updatedById  Int?
+  createdBy    User?     @relation("TermsCreated", fields: [createdById], references: [id])
+  updatedBy    User?     @relation("TermsUpdated", fields: [updatedById], references: [id])
+  history      TermHistory[]
+
+  @@index([term])
+  @@index([translation])
+  @@index([category])
+  @@index([createdAt])
+  @@index([updatedAt])
 }
 
 model User {
-  id        Int      @id @default(autoincrement())
-  username  String   @unique
-  email     String?  @unique
-  password  String
-  role      String   @default("user")
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id            Int            @id @default(autoincrement())
+  username      String         @unique
+  email         String?        @unique
+  password      String
+  role          String         @default("user")
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+  createdTerms  Term[]         @relation("TermsCreated")
+  updatedTerms  Term[]         @relation("TermsUpdated")
+  historyEvents TermHistory[]  @relation("HistoryAuthor")
+}
+
+model TermHistory {
+  id        Int           @id @default(autoincrement())
+  termId    Int
+  snapshot  Json
+  action    HistoryAction
+  note      String?
+  authorId  Int?
+  createdAt DateTime       @default(now())
+
+  term   Term  @relation(fields: [termId], references: [id], onDelete: Cascade)
+  author User? @relation("HistoryAuthor", fields: [authorId], references: [id])
+
+  @@index([termId, createdAt])
+  @@index([action])
 }
 ```
+
+- `tags` permite agrupar/buscar el término por alias/sección.
+- `createdBy`/`updatedBy` enlazan con usuarios para auditoría.
+- `TermHistory` guarda cada snapshot (create/update/delete/seed) y se rellena automáticamente desde la API y el seed.
 
 ---
 
@@ -174,8 +210,10 @@ Respuestas de ejemplo:
 
 `npm run prisma:seed`:
 
-1. Inserta un set básico de términos (fetch, useState, REST, etc.).
-2. Upsert del usuario admin usando `ADMIN_USERNAME` / `ADMIN_PASSWORD` (`ADMIN_TOKEN` como fallback) y guarda la contraseña con bcrypt.
+1. Borra `Term` y `TermHistory`, reinicia los autoincrement (`sqlite_sequence`) y evita IDs “huecos”.
+2. Genera tags automáticos por término / alias / categoría y crea todo el dataset (`generatedTerms` + `cssTerms`).
+3. Registra un evento `HistoryAction.seed` por cada término sembrado (para auditoría).
+4. Upsert del usuario admin usando `ADMIN_USERNAME` / `ADMIN_PASSWORD` (`ADMIN_TOKEN` como fallback) cifrado con bcrypt.
 
 ---
 

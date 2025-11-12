@@ -10,6 +10,7 @@ export type SeedTerm = {
   term: string;
   translation: string;
   aliases: string[];
+  tags?: string[];
   category: Category;
   meaning: string;
   what: string;
