@@ -11,6 +11,23 @@ Stack principal:
 
 ---
 
+### Quickstart (5 minutos)
+
+1. Copia el archivo [`./.env.example`](./.env.example) a `.env` y ajusta los secretos (`JWT_SECRET`, `ADMIN_PASSWORD`, etc.).
+2. Instala dependencias: `npm install`.
+3. Aplica migraciones y genera el cliente: `npx prisma migrate dev`.
+4. Inserta datos + admin inicial: `npm run prisma:seed`.
+5. Levanta el entorno local: `npm run dev` (http://localhost:3000).
+6. Verifica el build con Prisma 6 exportando la base al vuelo:
+
+   ```bash
+   DATABASE_URL="file:./prisma/dev.db" npm run build
+   ```
+
+> Prisma 6 necesita que `DATABASE_URL` esté disponible en el entorno en tiempo de compilación (e.g. CI/Vercel). Si usas otro motor o variable secreta, expórtala antes de `npm run build`.
+
+---
+
 ### 1. Requisitos de entorno
 
 - Node.js >= 18
