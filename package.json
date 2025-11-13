@@ -13,9 +13,11 @@
     "prisma:migrate": "prisma migrate dev",
     "prisma:seed": "tsx prisma/seed.ts",
     "db:reset": "rimraf ./prisma/dev.db && prisma migrate reset --force",
-    "test:auth": "node scripts/test-auth.js"
+    "test:auth": "node scripts/test-auth.js",
+    "docs:openapi": "tsx scripts/generate-openapi.ts"
   },
   "dependencies": {
+    "@asteasolutions/zod-to-openapi": "^7.1.0",
     "@prisma/client": "^6.0.0",
     "bcryptjs": "^2.4.3",
     "jsonwebtoken": "^9.0.0",
@@ -23,6 +25,7 @@
     "react": "18.3.1",
     "react-dom": "18.3.1",
     "react-icons": "^5.5.0",
+    "swagger-ui-dist": "^5.30.2",
     "zod": "^3.23.8"
   },
   "devDependencies": {

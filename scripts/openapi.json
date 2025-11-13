@@ -1,0 +1,928 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "Diccionario Técnico Web API",
+    "version": "1.0.0",
+    "description": "Endpoints públicos y protegidos del diccionario técnico administrado por Omar Hernandez Rey."
+  },
+  "servers": [
+    {
+      "url": "http://localhost:3000",
+      "description": "Desarrollo local"
+    },
+    {
+      "url": "https://diccionario.omar.dev",
+      "description": "Producción (ejemplo)"
+    }
+  ],
+  "components": {
+    "schemas": {
+      "TermExample": {
+        "type": "object",
+        "properties": {
+          "title": {
+            "type": "string",
+            "minLength": 1,
+            "example": "Grid layout"
+          },
+          "code": {
+            "type": "string",
+            "minLength": 1,
+            "example": "display: grid;"
+          },
+          "note": {
+            "type": "string",
+            "example": "Snippet para documentación interna"
+          }
+        },
+        "required": [
+          "title",
+          "code"
+        ]
+      },
+      "TermPayload": {
+        "type": "object",
+        "properties": {
+          "translation": {
+            "type": "string",
+            "minLength": 1,
+            "example": "Layout de cuadrícula"
+          },
+          "term": {
+            "type": "string",
+            "minLength": 1,
+            "example": "CSS Grid"
+          },
+          "aliases": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "minLength": 1
+            },
+            "default": [],
+            "example": [
+              "grid layout"
+            ]
+          },
+          "tags": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "minLength": 1
+            },
+            "default": [],
+            "example": [
+              "css",
+              "layout"
+            ]
+          },
+          "category": {
+            "type": "string",
+            "enum": [
+              "frontend",
+              "backend",
+              "database",
+              "devops",
+              "general"
+            ],
+            "example": "frontend"
+          },
+          "meaning": {
+            "type": "string",
+            "minLength": 1,
+            "example": "Sistema bidimensional para maquetar interfaces."
+          },
+          "what": {
+            "type": "string",
+            "minLength": 1,
+            "example": "Define áreas flexibles sin usar floats."
+          },
+          "how": {
+            "type": "string",
+            "minLength": 1,
+            "example": "Utiliza contenedores `display:grid` y fracciones (fr)."
+          },
+          "examples": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/TermExample"
+            },
+            "default": []
+          }
+        },
+        "required": [
+          "translation",
+          "term",
+          "category",
+          "meaning",
+          "what",
+          "how"
+        ]
+      },
+      "Term": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/TermPayload"
+          },
+          {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "integer",
+                "example": 42
+              },
+              "createdAt": {
+                "type": "string",
+                "format": "date-time",
+                "example": "2024-09-01T12:00:00.000Z"
+              },
+              "updatedAt": {
+                "type": "string",
+                "format": "date-time",
+                "example": "2024-09-10T09:30:00.000Z"
+              },
+              "createdById": {
+                "type": [
+                  "integer",
+                  "null"
+                ]
+              },
+              "updatedById": {
+                "type": [
+                  "integer",
+                  "null"
+                ]
+              }
+            },
+            "required": [
+              "id",
+              "createdAt",
+              "updatedAt"
+            ]
+          }
+        ]
+      },
+      "AuthUser": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "example": 1
+          },
+          "username": {
+            "type": "string",
+            "example": "admin"
+          },
+          "role": {
+            "type": "string",
+            "enum": [
+              "admin",
+              "user"
+            ],
+            "example": "admin"
+          },
+          "email": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "email",
+            "example": "admin@example.com"
+          }
+        },
+        "required": [
+          "id",
+          "username",
+          "role"
+        ]
+      },
+      "PaginationMeta": {
+        "type": "object",
+        "properties": {
+          "page": {
+            "type": "integer",
+            "minimum": 1,
+            "example": 1
+          },
+          "pageSize": {
+            "type": "integer",
+            "minimum": 1,
+            "example": 50
+          },
+          "total": {
+            "type": "integer",
+            "minimum": 0,
+            "example": 200
+          },
+          "totalPages": {
+            "type": "integer",
+            "minimum": 1,
+            "example": 4
+          }
+        },
+        "required": [
+          "page",
+          "pageSize",
+          "total",
+          "totalPages"
+        ]
+      },
+      "OkResponse": {
+        "type": "object",
+        "properties": {
+          "ok": {
+            "type": "boolean",
+            "enum": [
+              true
+            ],
+            "default": true
+          }
+        },
+        "example": {
+          "ok": true
+        }
+      },
+      "ErrorResponse": {
+        "type": "object",
+        "properties": {
+          "ok": {
+            "type": "boolean",
+            "enum": [
+              false
+            ],
+            "default": false
+          },
+          "error": {
+            "type": "string",
+            "default": "Error inesperado"
+          },
+          "allowBootstrap": {
+            "type": "boolean"
+          }
+        },
+        "example": {
+          "ok": false,
+          "error": "Unauthorized"
+        }
+      },
+      "TermsListResponse": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/OkResponse"
+          },
+          {
+            "type": "object",
+            "properties": {
+              "items": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/Term"
+                }
+              },
+              "meta": {
+                "$ref": "#/components/schemas/PaginationMeta"
+              }
+            },
+            "required": [
+              "items",
+              "meta"
+            ]
+          }
+        ],
+        "example": {
+          "ok": true
+        }
+      },
+      "TermItemResponse": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/OkResponse"
+          },
+          {
+            "type": "object",
+            "properties": {
+              "item": {
+                "$ref": "#/components/schemas/Term"
+              }
+            },
+            "required": [
+              "item"
+            ]
+          }
+        ],
+        "example": {
+          "ok": true
+        }
+      },
+      "AuthResponse": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/OkResponse"
+          },
+          {
+            "type": "object",
+            "properties": {
+              "user": {
+                "$ref": "#/components/schemas/AuthUser"
+              }
+            },
+            "required": [
+              "user"
+            ]
+          }
+        ],
+        "example": {
+          "ok": true
+        }
+      },
+      "SessionResponse": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/OkResponse"
+          },
+          {
+            "type": "object",
+            "properties": {
+              "user": {
+                "$ref": "#/components/schemas/AuthUser"
+              },
+              "allowBootstrap": {
+                "type": "boolean",
+                "default": false
+              }
+            },
+            "required": [
+              "user"
+            ]
+          }
+        ],
+        "example": {
+          "ok": true
+        }
+      },
+      "LoginPayload": {
+        "type": "object",
+        "properties": {
+          "username": {
+            "type": "string",
+            "minLength": 3,
+            "example": "admin"
+          },
+          "password": {
+            "type": "string",
+            "minLength": 8,
+            "example": "super-secret"
+          }
+        },
+        "required": [
+          "username",
+          "password"
+        ]
+      },
+      "RegisterPayload": {
+        "type": "object",
+        "properties": {
+          "username": {
+            "type": "string",
+            "minLength": 3,
+            "example": "new-admin"
+          },
+          "password": {
+            "type": "string",
+            "minLength": 8,
+            "example": "StrongP@ss123"
+          },
+          "email": {
+            "type": "string",
+            "format": "email",
+            "example": "new-admin@example.com"
+          },
+          "role": {
+            "type": "string",
+            "enum": [
+              "admin",
+              "user"
+            ],
+            "example": "admin"
+          }
+        },
+        "required": [
+          "username",
+          "password"
+        ]
+      },
+      "TermsQuery": {
+        "type": "object",
+        "properties": {
+          "q": {
+            "type": "string",
+            "description": "Texto libre para buscar"
+          },
+          "category": {
+            "type": "string",
+            "enum": [
+              "frontend",
+              "backend",
+              "database",
+              "devops",
+              "general"
+            ]
+          },
+          "tag": {
+            "type": "string"
+          },
+          "page": {
+            "type": "integer",
+            "minimum": 1,
+            "default": 1,
+            "example": 1
+          },
+          "pageSize": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 100,
+            "default": 50,
+            "example": 50
+          },
+          "sort": {
+            "type": "string",
+            "enum": [
+              "recent",
+              "oldest",
+              "term_asc",
+              "term_desc"
+            ],
+            "default": "term_asc"
+          }
+        }
+      }
+    },
+    "parameters": {}
+  },
+  "paths": {
+    "/api/terms": {
+      "get": {
+        "tags": [
+          "Terms"
+        ],
+        "summary": "Listar términos con filtros y paginación",
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "description": "Texto libre para buscar"
+            },
+            "required": false,
+            "name": "q",
+            "in": "query"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "enum": [
+                "frontend",
+                "backend",
+                "database",
+                "devops",
+                "general"
+              ]
+            },
+            "required": false,
+            "name": "category",
+            "in": "query"
+          },
+          {
+            "schema": {
+              "type": "string"
+            },
+            "required": false,
+            "name": "tag",
+            "in": "query"
+          },
+          {
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "default": 1,
+              "example": 1
+            },
+            "required": false,
+            "name": "page",
+            "in": "query"
+          },
+          {
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 100,
+              "default": 50,
+              "example": 50
+            },
+            "required": false,
+            "name": "pageSize",
+            "in": "query"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "enum": [
+                "recent",
+                "oldest",
+                "term_asc",
+                "term_desc"
+              ],
+              "default": "term_asc"
+            },
+            "required": false,
+            "name": "sort",
+            "in": "query"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Listado paginado",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TermsListResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Consulta inválida",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "Terms"
+        ],
+        "summary": "Crear un término (requiere admin)",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TermPayload"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Término creado",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TermItemResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Datos inválidos",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No autorizado",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/terms/{id}": {
+      "get": {
+        "tags": [
+          "Terms"
+        ],
+        "summary": "Obtener un término por ID",
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "example": "1"
+            },
+            "required": true,
+            "name": "id",
+            "in": "path"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Término encontrado",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TermItemResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No existe",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      },
+      "patch": {
+        "tags": [
+          "Terms"
+        ],
+        "summary": "Actualizar parcialmente un término (admin)",
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "example": "1"
+            },
+            "required": true,
+            "name": "id",
+            "in": "path"
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TermPayload"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Actualizado",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TermItemResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Datos inválidos",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No autorizado",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No existe",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "Terms"
+        ],
+        "summary": "Eliminar un término (admin)",
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "example": "1"
+            },
+            "required": true,
+            "name": "id",
+            "in": "path"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Eliminado",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OkResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No autorizado",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No existe",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/auth/login": {
+      "post": {
+        "tags": [
+          "Auth"
+        ],
+        "summary": "Iniciar sesión",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/LoginPayload"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Sesión iniciada",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AuthResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Datos inválidos",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Credenciales incorrectas",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/auth/register": {
+      "post": {
+        "tags": [
+          "Auth"
+        ],
+        "summary": "Registrar usuario",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RegisterPayload"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Usuario creado",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AuthResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Datos inválidos",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No autorizado",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflicto",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/auth": {
+      "get": {
+        "tags": [
+          "Auth"
+        ],
+        "summary": "Obtener sesión actual",
+        "responses": {
+          "200": {
+            "description": "Sesión válida",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SessionResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No autenticado",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "Auth"
+        ],
+        "summary": "Cerrar sesión",
+        "responses": {
+          "200": {
+            "description": "Sesión cerrada",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OkResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "webhooks": {}
+}
