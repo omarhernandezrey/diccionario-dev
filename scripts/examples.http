@@ -1,0 +1,206 @@
+### Diccionario · Ejemplos REST (VS Code REST Client)
+### Requiere extensión: REST Client (by Huachao Mao)
+
+@baseUrl = http://localhost:3000
+@username = {{ADMIN_USERNAME}}
+@password = {{ADMIN_PASSWORD}}
+@email = {{ADMIN_EMAIL}}
+
+### 0) Salud: Versión del spec OpenAPI (opcional)
+GET {{baseUrl}}/api/openapi
+
+### 1) Estado de sesión (y bootstrap flag)
+GET {{baseUrl}}/api/auth
+
+> {%
+// Guarda bandera de bootstrap si viene en la respuesta
+try {
+  const data = JSON.parse(response.body);
+  if (data && typeof data.allowBootstrap === 'boolean') {
+    client.global.set('allowBootstrap', String(data.allowBootstrap));
+  }
+} catch {}
+%}
+
+### 2) Registro (solo si allowBootstrap=true) – ignora 401/409 en entornos ya inicializados
+POST {{baseUrl}}/api/auth/register
+Content-Type: application/json
+
+{
+  "username": "{{username}}",
+  "password": "{{password}}",
+  "email": "{{email}}"
+}
+
+> {%
+// Captura cookie admin_token del Set-Cookie para siguientes requests
+const setCookie = response.headers['set-cookie'];
+if (setCookie) {
+  const source = Array.isArray(setCookie) ? setCookie[0] : setCookie;
+  const m = /admin_token=([^;]+)/.exec(source);
+  if (m) { client.global.set('authCookie', `admin_token=${m[1]}`); }
+}
+%}
+
+### 3) Login (si ya existe admin)
+POST {{baseUrl}}/api/auth/login
+Content-Type: application/json
+
+{
+  "username": "{{username}}",
+  "password": "{{password}}"
+}
+
+> {%
+// Captura cookie admin_token tras login
+const setCookie = response.headers['set-cookie'];
+if (setCookie) {
+  const source = Array.isArray(setCookie) ? setCookie[0] : setCookie;
+  const m = /admin_token=([^;]+)/.exec(source);
+  if (m) { client.global.set('authCookie', `admin_token=${m[1]}`); }
+}
+%}
+
+### 4) Verificar sesión
+GET {{baseUrl}}/api/auth
+Cookie: {{authCookie}}
+
+### 5) Listado público de términos (búsqueda)
+GET {{baseUrl}}/api/terms?q=css&page=1&pageSize=5
+
+### 6) Crear término (requiere admin)
+POST {{baseUrl}}/api/terms
+Content-Type: application/json
+Cookie: {{authCookie}}
+
+{
+  "term": "CSS Grid (temp)",
+  "translation": "Cuadrícula CSS (temp)",
+  "aliases": ["grid layout"],
+  "tags": ["css", "layout"],
+  "category": "frontend",
+  "meaning": "Sistema bidimensional para maquetar.",
+  "what": "Define áreas sin floats.",
+  "how": "display: grid; grid-template-columns: repeat(12, 1fr);",
+  "examples": [ { "title": "Ejemplo básico", "code": "display: grid;" } ]
+}
+
+> {%
+// Guarda el ID del término creado
+try {
+  const data = JSON.parse(response.body);
+  if (data && data.item && typeof data.item.id === 'number') {
+    client.global.set('termId', String(data.item.id));
+  }
+} catch {}
+%}
+
+### 7) Consultar término por ID (público)
+GET {{baseUrl}}/api/terms/{{termId}}
+
+### 8) Eliminar término (admin)
+DELETE {{baseUrl}}/api/terms/{{termId}}
+Cookie: {{authCookie}}
+
+### 9) Logout
+DELETE {{baseUrl}}/api/auth
+Cookie: {{authCookie}}
+@baseUrl = http://localhost:3000
+@adminUsername = admin
+@adminPassword = CambiaEstaPasswordUltraSegura123!
+@adminEmail = admin@example.com
+@authCookie = 
+@termId = 1
+
+###
+# 1) Registra el primer admin (solo funciona si no hay admins creados).
+#    Si ya existe uno, devolverá 401/403.
+POST {{baseUrl}}/api/auth/register
+Content-Type: application/json
+
+{
+  "username": "{{adminUsername}}",
+  "password": "{{adminPassword}}",
+  "email": "{{adminEmail}}",
+  "role": "admin"
+}
+
+> {%
+  const cookie = response.headers.valueOf("set-cookie");
+  if (cookie) {
+    client.global.set("authCookie", cookie.split(";")[0]);
+    console.log("Cookie guardada:", cookie.split(";")[0]);
+  }
+%}
+
+###
+# 2) Login (usa las credenciales del admin ya creado).
+POST {{baseUrl}}/api/auth/login
+Content-Type: application/json
+
+{
+  "username": "{{adminUsername}}",
+  "password": "{{adminPassword}}"
+}
+
+> {%
+  const cookie = response.headers.valueOf("set-cookie");
+  if (cookie) {
+    client.global.set("authCookie", cookie.split(";")[0]);
+  }
+%}
+
+###
+# 3) Consultar sesión actual. Requiere la cookie guardada antes.
+GET {{baseUrl}}/api/auth
+Cookie: {{authCookie}}
+
+###
+# 4) Listado público de términos con filtros opcionales.
+GET {{baseUrl}}/api/terms?page=1&pageSize=5&sort=recent&q=css
+
+###
+# 5) Crear un término protegido (requiere cookie admin).
+POST {{baseUrl}}/api/terms
+Content-Type: application/json
+Cookie: {{authCookie}}
+
+{
+  "term": "REST Client Sample",
+  "translation": "Ejemplo REST Client",
+  "category": "frontend",
+  "meaning": "Entrada creada para validar la API.",
+  "what": "Comprueba que la API acepte POST protegidos.",
+  "how": "Se envía desde VS Code REST Client con cookie de sesión.",
+  "aliases": ["rest client"],
+  "tags": ["example"],
+  "examples": [
+    {
+      "title": "Uso básico",
+      "code": "fetch('/api/terms')",
+      "note": "Solo referencia"
+    }
+  ]
+}
+
+> {%
+  const data = response.body ? JSON.parse(response.body) : null;
+  if (data?.item?.id) {
+    client.global.set("termId", data.item.id.toString());
+    console.log("Term ID:", data.item.id);
+  }
+%}
+
+###
+# 6) Obtener el término recién creado (usa {{termId}} capturado).
+GET {{baseUrl}}/api/terms/{{termId}}
+
+###
+# 7) Eliminar el término (protección admin).
+DELETE {{baseUrl}}/api/terms/{{termId}}
+Cookie: {{authCookie}}
+
+###
+# 8) Cerrar sesión (elimina cookie en el servidor).
+DELETE {{baseUrl}}/api/auth
+Cookie: {{authCookie}}

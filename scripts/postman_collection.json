@@ -1,0 +1,125 @@
+{
+  "info": {
+    "name": "Diccionario Técnico Web API",
+    "_postman_id": "6c3b87f6-30c2-4fce-8f21-b4a7f9d0b001",
+    "description": "Colección de ejemplos para probar la API del diccionario técnico. Ejecutar contra `npm run dev`.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "Auth · Estado",
+      "request": {
+        "method": "GET",
+        "header": [ { "key": "Cookie", "value": "{{authCookie}}" } ],
+        "url": "{{baseUrl}}/api/auth"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test('Status 200/401', function () { pm.expect([200,401]).to.include(pm.response.code); });",
+              "try { var data = pm.response.json(); if (typeof data.allowBootstrap === 'boolean') { pm.collectionVariables.set('allowBootstrap', String(data.allowBootstrap)); } } catch(e) {}"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Auth · Registro (bootstrap)",
+      "request": {
+        "method": "POST",
+        "header": [ { "key": "Content-Type", "value": "application/json" } ],
+        "url": "{{baseUrl}}/api/auth/register",
+        "body": { "mode": "raw", "raw": "{\n  \"username\": \"{{username}}\",\n  \"password\": \"{{password}}\",\n  \"email\": \"{{email}}\"\n}" }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "var sc = pm.response.headers.get('Set-Cookie');",
+              "if (sc) { var m = /admin_token=([^;]+)/.exec(sc); if (m) pm.collectionVariables.set('authCookie', 'admin_token=' + m[1]); }",
+              "pm.test('Status 201/401/409', function () { pm.expect([201,401,409]).to.include(pm.response.code); });"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Auth · Login",
+      "request": {
+        "method": "POST",
+        "header": [ { "key": "Content-Type", "value": "application/json" } ],
+        "url": "{{baseUrl}}/api/auth/login",
+        "body": { "mode": "raw", "raw": "{\n  \"username\": \"{{username}}\",\n  \"password\": \"{{password}}\"\n}" }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "var sc = pm.response.headers.get('Set-Cookie');",
+              "if (sc) { var m = /admin_token=([^;]+)/.exec(sc); if (m) pm.collectionVariables.set('authCookie', 'admin_token=' + m[1]); }",
+              "pm.test('Login 200', function () { pm.response.to.have.status(200); });"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Terms · Listado",
+      "request": { "method": "GET", "header": [], "url": "{{baseUrl}}/api/terms?q=css&page=1&pageSize=5" }
+    },
+    {
+      "name": "Terms · Crear (admin)",
+      "request": {
+        "method": "POST",
+        "header": [ { "key": "Content-Type", "value": "application/json" }, { "key": "Cookie", "value": "{{authCookie}}" } ],
+        "url": "{{baseUrl}}/api/terms",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"term\": \"CSS Grid (temp)\",\n  \"translation\": \"Cuadrícula CSS (temp)\",\n  \"aliases\": [\"grid layout\"],\n  \"tags\": [\"css\", \"layout\"],\n  \"category\": \"frontend\",\n  \"meaning\": \"Sistema bidimensional para maquetar.\",\n  \"what\": \"Define áreas sin floats.\",\n  \"how\": \"display: grid; grid-template-columns: repeat(12, 1fr);\",\n  \"examples\": [ { \"title\": \"Ejemplo básico\", \"code\": \"display: grid;\" } ]\n}"
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test('Creación 201', function () { pm.response.to.have.status(201); });",
+              "try { var data = pm.response.json(); if (data && data.item && data.item.id) { pm.collectionVariables.set('termId', String(data.item.id)); } } catch(e) {}"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Terms · Obtener por ID",
+      "request": { "method": "GET", "header": [], "url": "{{baseUrl}}/api/terms/{{termId}}" }
+    },
+    {
+      "name": "Terms · Eliminar (admin)",
+      "request": { "method": "DELETE", "header": [ { "key": "Cookie", "value": "{{authCookie}}" } ], "url": "{{baseUrl}}/api/terms/{{termId}}" },
+      "event": [ { "listen": "test", "script": { "exec": [ "pm.test('Eliminado 200', function () { pm.response.to.have.status(200); });" ], "type": "text/javascript" } } ]
+    },
+    {
+      "name": "Auth · Logout",
+      "request": { "method": "DELETE", "header": [ { "key": "Cookie", "value": "{{authCookie}}" } ], "url": "{{baseUrl}}/api/auth" }
+    }
+  ],
+  "event": [],
+  "variable": [
+    { "key": "baseUrl", "value": "http://localhost:3000" },
+    { "key": "username", "value": "admin" },
+    { "key": "password", "value": "CambiaEstaPasswordUltraSegura123!" },
+    { "key": "email", "value": "admin@example.com" },
+    { "key": "authCookie", "value": "" },
+    { "key": "termId", "value": "" },
+    { "key": "allowBootstrap", "value": "" }
+  ]
+}
