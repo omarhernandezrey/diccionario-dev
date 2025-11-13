@@ -204,7 +204,7 @@ const generatedTerms: SeedTerm[] = rawTerms.map(item => {
   };
 });
 
-const dictionary: SeedTerm[] = [...generatedTerms, ...cssTerms];
+const dictionary: SeedTerm[] = dedupeTerms([...generatedTerms, ...cssTerms]);
 
 function toSlug(value: string) {
   return value
@@ -309,4 +309,37 @@ function snapshotTerm<T>(term: T) {
   } catch {
     return term;
   }
+}
+
+function dedupeTerms(terms: SeedTerm[]) {
+  const map = new Map<string, SeedTerm>();
+
+  for (const term of terms) {
+    const key = term.term.trim().toLowerCase();
+    if (!key) continue;
+
+    const existing = map.get(key);
+    if (!existing) {
+      map.set(key, {
+        ...term,
+        aliases: term.aliases ?? [],
+        tags: term.tags ?? [],
+      });
+      continue;
+    }
+
+    map.set(key, {
+      ...existing,
+      ...term,
+      aliases: mergeUnique(existing.aliases ?? [], term.aliases ?? []),
+      tags: mergeUnique(existing.tags ?? [], term.tags ?? []),
+      examples: term.examples?.length ? term.examples : existing.examples,
+    });
+  }
+
+  return Array.from(map.values());
+}
+
+function mergeUnique<T>(a: T[], b: T[]) {
+  return Array.from(new Set([...a, ...b].filter(Boolean)));
 }
