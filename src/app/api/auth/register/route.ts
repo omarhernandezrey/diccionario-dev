@@ -55,7 +55,7 @@ export async function POST(req: NextRequest) {
   }
 
   const { username, password, email, role: desiredRole } = parsed.data;
-  const uniqueFilters: any[] = [{ username }];
+  const uniqueFilters: Array<{ username: string } | { email: string }> = [{ username }];
   if (email) {
     uniqueFilters.push({ email });
   }

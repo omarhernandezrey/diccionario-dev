@@ -1,4 +1,4 @@
-import { Prisma } from "@prisma/client";
+import { HistoryAction, Prisma } from "@prisma/client";
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { termSchema } from "@/lib/validation";
@@ -34,11 +34,16 @@ function jsonError(message: unknown, status = 400) {
   return NextResponse.json({ ok: false, error: message }, { status, headers: noStoreHeaders });
 }
 
-async function recordHistory(termId: number, snapshot: unknown, action: string, authorId?: number) {
+type PrismaWithHistory = typeof prisma & {
+  termHistory?: {
+    create?: (args: Prisma.TermHistoryCreateArgs) => Promise<unknown>;
+  };
+};
+
+async function recordHistory(termId: number, snapshot: unknown, action: HistoryAction, authorId?: number) {
   try {
-    // prisma.termHistory might not be present in the generated Prisma client types;
-    // cast to any and check at runtime to avoid TypeScript compile errors.
-    const client: any = prisma;
+    // prisma.termHistory puede no existir según el schema generado; chequeamos en runtime.
+    const client = prisma as PrismaWithHistory;
     if (client && typeof client.termHistory?.create === "function") {
       await client.termHistory.create({
         data: {
@@ -118,7 +123,7 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
         updatedBy: { connect: { id: admin.id } },
       },
     });
-    await recordHistory(updated.id, updated, "update", admin.id);
+      await recordHistory(updated.id, updated, HistoryAction.update, admin.id);
     return NextResponse.json({ ok: true, item: updated }, { headers: noStoreHeaders });
   } catch (error) {
     if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2002") {
@@ -145,7 +150,7 @@ export async function DELETE(req: NextRequest, { params }: { params: { id: strin
     if (!existing) {
       return jsonError("No se encontró el término para eliminar", 404);
     }
-    await recordHistory(existing.id, existing, "delete", admin.id);
+      await recordHistory(existing.id, existing, HistoryAction.delete, admin.id);
     await prisma.term.delete({ where: { id } });
     return NextResponse.json({ ok: true }, { headers: noStoreHeaders });
   } catch (error) {

@@ -297,7 +297,6 @@ const dictionaries = {
   },
 };
 
-type Dictionaries = typeof dictionaries;
 type TranslationKey = string;
 
 type I18nContextValue = {
@@ -314,8 +313,8 @@ export function I18nProvider({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     const stored = window.localStorage.getItem(STORAGE_KEY) as Locale | null;
-    if (stored && stored !== locale) {
-      setLocale(stored);
+    if (stored) {
+      setLocale((current) => (current === stored ? current : stored));
     }
   }, []);
 

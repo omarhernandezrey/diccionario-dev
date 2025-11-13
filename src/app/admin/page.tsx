@@ -1,7 +1,7 @@
 "use client";
 
 import Image from "next/image";
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 
 type TermExample = { title: string; code: string; note?: string };
 
@@ -34,6 +34,50 @@ type DeleteDialogState = {
 };
 
 const CATS = ["frontend", "backend", "database", "devops", "general"] as const;
+
+type TermsResponse = {
+  ok?: boolean;
+  items?: Term[];
+};
+
+type UnknownRecord = Record<string, unknown>;
+
+const isRecord = (value: unknown): value is UnknownRecord =>
+  typeof value === "object" && value !== null && !Array.isArray(value);
+
+function collectMessages(entry: unknown): string[] {
+  if (!entry) return [];
+  if (typeof entry === "string") return [entry];
+  if (Array.isArray(entry)) {
+    return entry.flatMap((value) => collectMessages(value));
+  }
+  if (isRecord(entry)) {
+    return Object.values(entry).flatMap((value) => collectMessages(value));
+  }
+  return [];
+}
+
+function extractErrorMessage(payload: unknown): string | null {
+  if (!isRecord(payload)) return null;
+  const errorValue = payload["error"];
+  const messageValue = payload["message"];
+  if (typeof errorValue === "string") return errorValue;
+  if (typeof messageValue === "string") return messageValue;
+  if (Array.isArray(errorValue)) {
+    const filtered = errorValue.filter((value): value is string => typeof value === "string");
+    if (filtered.length) return filtered.join(". ");
+  }
+  const nestedSources: unknown[] = [];
+  if (isRecord(errorValue)) {
+    nestedSources.push(errorValue["fieldErrors"], errorValue["formErrors"], errorValue["errors"]);
+  }
+  nestedSources.push(payload["fieldErrors"], payload["formErrors"]);
+  for (const source of nestedSources) {
+    const first = collectMessages(source).find((msg) => msg.trim().length);
+    if (first) return first;
+  }
+  return null;
+}
 
 export default function AdminPage() {
   const [q, setQ] = useState("");
@@ -90,6 +134,38 @@ export default function AdminPage() {
     [items.length, categoriesCount, exampleCount],
   );
 
+  const fetchTerms = useCallback(async (query: string) => {
+    const params = new URLSearchParams();
+    params.set("pageSize", "500");
+    if (query) params.set("q", query);
+    const url = `/api/terms?${params.toString()}`;
+    const res = await fetch(url, {
+      cache: "no-store",
+      credentials: "include",
+      headers: { "cache-control": "no-store" },
+    });
+    let data: TermsResponse | null = null;
+    let textFallback = "";
+    try {
+      data = (await res.json()) as TermsResponse;
+    } catch {
+      textFallback = await res.text().catch(() => "");
+    }
+    if (!res.ok || data?.ok === false) {
+      const message = extractErrorMessage(data) || (textFallback?.trim() || res.statusText || "Error cargando términos");
+      throw new Error(message);
+    }
+    const normalized = (Array.isArray(data?.items) ? data.items : []).map(
+      (item: Term): Term => ({
+        ...item,
+        aliases: item.aliases ?? [],
+        tags: item.tags ?? [],
+        examples: item.examples ?? [],
+      }),
+    );
+    return [...normalized].sort((a, b) => Number(a.id) - Number(b.id));
+  }, []);
+
   useEffect(() => {
     let cancelled = false;
     fetchTerms(q)
@@ -103,7 +179,7 @@ export default function AdminPage() {
     return () => {
       cancelled = true;
     };
-  }, [q, refreshIndex]);
+  }, [fetchTerms, q, refreshIndex]);
 
   useEffect(() => {
     refreshSession();
@@ -139,37 +215,6 @@ export default function AdminPage() {
     }
   }
 
-  async function fetchTerms(query: string) {
-    const params = new URLSearchParams();
-    params.set("pageSize", "500");
-    if (query) params.set("q", query);
-    const url = `/api/terms?${params.toString()}`;
-    const res = await fetch(url, {
-      cache: "no-store",
-      credentials: "include",
-      headers: { "cache-control": "no-store" },
-    });
-    let data: any = null;
-    let textFallback = "";
-    try {
-      data = await res.json();
-    } catch {
-      textFallback = await res.text().catch(() => "");
-    }
-    if (!res.ok || data?.ok === false) {
-      const message = extractErrorMessage(data) || (textFallback?.trim() || res.statusText || "Error cargando términos");
-      throw new Error(message);
-    }
-    const normalized = (Array.isArray(data?.items) ? data.items : []).map(
-      (item: Term): Term => ({
-        ...item,
-        aliases: item.aliases ?? [],
-        tags: item.tags ?? [],
-        examples: item.examples ?? [],
-      }),
-    );
-    return [...normalized].sort((a, b) => Number(a.id) - Number(b.id));
-  }
 
   function toggleItemSelection(id: number) {
     if (!canEdit) return;
@@ -235,32 +280,6 @@ export default function AdminPage() {
     setRegisterForm({ username: "", password: "", email: "", role: "user" });
   }
 
-  function collectMessages(entry: unknown): string[] {
-    if (!entry) return [];
-    if (Array.isArray(entry)) {
-      return entry.filter((msg): msg is string => typeof msg === "string");
-    }
-    if (typeof entry === "object") {
-      return Object.values(entry as Record<string, unknown>).flatMap((value) => collectMessages(value));
-    }
-    return [];
-  }
-
-  function extractErrorMessage(payload: any): string | null {
-    if (!payload) return null;
-    if (typeof payload.error === "string") return payload.error;
-    if (typeof payload.message === "string") return payload.message;
-    if (Array.isArray(payload.error)) {
-      return payload.error.filter(Boolean).join(". ");
-    }
-    const sources = [payload.error?.fieldErrors, payload.error?.formErrors, payload.error?.errors, payload.fieldErrors, payload.formErrors];
-    for (const source of sources) {
-      const first = collectMessages(source).find((msg) => msg.trim().length);
-      if (first) return first;
-    }
-    return null;
-  }
-
   const requestDeletion = (targetIds: number[], context: "single" | "bulk") => {
     if (session?.role !== "admin") {
       setAuthError("Solo un administrador puede eliminar");
@@ -306,7 +325,7 @@ export default function AdminPage() {
     try {
       const results = await Promise.all(
         uniqueIds.map(async (id) => {
-          let data: any = null;
+          let data: unknown = null;
           let textFallback = "";
           const res = await fetch(`/api/terms/${id}`, {
             method: "DELETE",
@@ -370,7 +389,7 @@ export default function AdminPage() {
     const isNew = !term.id;
     const url = isNew ? "/api/terms" : `/api/terms/${term.id}`;
     const method = isNew ? "POST" : "PATCH";
-    let data: any = null;
+    let data: unknown = null;
     let textFallback = "";
     try {
       const res = await fetch(url, {

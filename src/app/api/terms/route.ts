@@ -116,7 +116,7 @@ export async function POST(req: NextRequest) {
         meaning: t.meaning,
         what: t.what,
         how: t.how,
-        examples: t.examples as any,
+        examples: t.examples as Prisma.JsonArray,
         createdById: admin.id,
         updatedById: admin.id,
       },
@@ -148,7 +148,7 @@ function normalizeQuery(data: TermsQueryInput): TermsQueryInput {
 async function fetchTermsWithFilters(query: TermsQueryInput) {
   const { category, tag, q, page, pageSize, sort } = query;
   const filters: string[] = [];
-  const params: any[] = [];
+  const params: Array<string | number> = [];
 
   if (category) {
     filters.push(`"category" = ?`);
@@ -182,8 +182,7 @@ async function fetchTermsWithFilters(query: TermsQueryInput) {
   const total = typeof countValue === "bigint" ? Number(countValue) : Number(countValue);
 
   const listSql = `SELECT * FROM "Term" ${whereClause} ORDER BY ${orderByClause} LIMIT ? OFFSET ?;`;
-  const listParams = [...params, pageSize, (page - 1) * pageSize];
-  // @ts-ignore SQLite placeholders compatibles
+  const listParams: Array<string | number> = [...params, pageSize, (page - 1) * pageSize];
   const items = await prisma.$queryRawUnsafe(listSql, ...listParams);
 
   return { items, total };
