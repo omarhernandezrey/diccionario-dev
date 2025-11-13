@@ -95,7 +95,9 @@ async function createTerm() {
       method: "POST",
       body: JSON.stringify({
         term: unique,
+        translation: "término de prueba",
         aliases: [],
+        tags: [],
         category: "general",
         meaning: "Smoke test term",
         what: "Comprueba que la API protegida funciona",

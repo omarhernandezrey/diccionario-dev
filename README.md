@@ -219,22 +219,42 @@ Respuestas de ejemplo:
 
 ### 9. Script de humo `scripts/test-auth.js`
 
-Ejecución:
+Formas de ejecutarlo:
+
+- Opción A (recomendada): el script arranca y detiene el dev server automáticamente
 
 ```bash
-npm run dev &                # en otra terminal
-node scripts/test-auth.js    # usa TEST_BASE_URL o http://localhost:3000
+npm run test:auth
+```
+
+- Opción B: si ya tienes el server corriendo en otra terminal
+
+```bash
+npm run dev &
+node scripts/test-auth.js
+```
+
+- Opción C: si tu entorno requiere inyectar `DATABASE_URL` (Prisma 6 con `prisma.config.ts`)
+
+```bash
+TEST_SERVER_CMD='DATABASE_URL="file:./prisma/dev.db" npm run dev' \
+TEST_SERVER_TIMEOUT_MS=120000 \
+npm run test:auth
 ```
 
 Qué verifica:
 
-1. Registro (si el endpoint aún permite crear admin público) o detecta el 409.
+1. Registro (si el endpoint aún permite crear admin público) o detecta el 409/401.
 2. Login y captura de la cookie `admin_token`.
 3. `GET /api/auth` con la cookie → espera 200.
 4. `POST /api/terms` creando un término efímero → espera 201.
 5. Logout (`DELETE /api/auth`) y verificación de que la sesión queda en 401.
 
-Sale con código distinto de cero si alguna etapa falla.
+Notas:
+
+- El payload de creación de término incluye `translation` (requisito del `termSchema` en Zod) y `tags` vacíos.
+- Puedes ajustar `TEST_BASE_URL` si tu server no expone `http://localhost:3000`.
+- El script finaliza con código distinto de cero si alguna etapa falla.
 
 ---
 
