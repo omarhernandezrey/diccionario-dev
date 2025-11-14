@@ -145,59 +145,82 @@ function normalizeQuery(data: TermsQueryInput): TermsQueryInput {
   };
 }
 
+function buildFtsQuery(raw: string) {
+  const tokens = raw
+    .trim()
+    .split(/\s+/)
+    .map((token) => token.replace(/[^\p{L}\p{N}]+/gu, ""))
+    .filter(Boolean);
+  if (!tokens.length) {
+    return raw.trim();
+  }
+  return tokens.map((token) => `${token}*`).join(" ");
+}
+
 async function fetchTermsWithFilters(query: TermsQueryInput) {
   const { category, tag, q, page, pageSize, sort } = query;
+  const useFts = Boolean(q);
+  const termAlias = "t";
+  const searchAlias = "ts";
   const filters: string[] = [];
   const params: Array<string | number> = [];
 
   if (category) {
-    filters.push(`"category" = ?`);
+    filters.push(`${termAlias}."category" = ?`);
     params.push(category);
   }
   if (tag) {
-    filters.push(`lower(CAST(tags AS TEXT)) LIKE ?`);
+    filters.push(`lower(CAST(${termAlias}."tags" AS TEXT)) LIKE ?`);
     params.push(`%${tag.toLowerCase()}%`);
   }
-  if (q) {
+  if (useFts && q) {
+    filters.push(`"TermSearch" MATCH ?`);
+    params.push(buildFtsQuery(q));
+  } else if (q) {
     const like = `%${q.toLowerCase()}%`;
     filters.push(`(
-      lower("term") LIKE ? OR
-      lower("translation") LIKE ? OR
-      lower("meaning") LIKE ? OR
-      lower("what") LIKE ? OR
-      lower("how") LIKE ? OR
-      lower(CAST(aliases AS TEXT)) LIKE ? OR
-      lower(CAST(tags AS TEXT)) LIKE ? OR
-      lower(CAST(examples AS TEXT)) LIKE ?
+      lower(${termAlias}."term") LIKE ? OR
+      lower(${termAlias}."translation") LIKE ? OR
+      lower(${termAlias}."meaning") LIKE ? OR
+      lower(${termAlias}."what") LIKE ? OR
+      lower(${termAlias}."how") LIKE ? OR
+      lower(CAST(${termAlias}."aliases" AS TEXT)) LIKE ? OR
+      lower(CAST(${termAlias}."tags" AS TEXT)) LIKE ? OR
+      lower(CAST(${termAlias}."examples" AS TEXT)) LIKE ?
     )`);
     params.push(like, like, like, like, like, like, like, like);
   }
 
   const whereClause = filters.length ? `WHERE ${filters.join(" AND ")}` : "";
-  const orderByClause = resolveOrder(sort);
+  const joinClause = useFts
+    ? `FROM "TermSearch" AS ${searchAlias} JOIN "Term" AS ${termAlias} ON ${termAlias}."id" = ${searchAlias}."rowid"`
+    : `FROM "Term" AS ${termAlias}`;
+  const orderByClause = useFts
+    ? `bm25("TermSearch") ASC, ${resolveOrder(sort, termAlias)}`
+    : resolveOrder(sort, termAlias);
 
-  const countSql = `SELECT COUNT(*) as count FROM "Term" ${whereClause};`;
+  const countSql = `SELECT COUNT(*) as count ${joinClause} ${whereClause};`;
   const countResult = await prisma.$queryRawUnsafe<{ count: bigint | number }[]>(countSql, ...params);
   const countValue = countResult?.[0]?.count ?? 0;
   const total = typeof countValue === "bigint" ? Number(countValue) : Number(countValue);
 
-  const listSql = `SELECT * FROM "Term" ${whereClause} ORDER BY ${orderByClause} LIMIT ? OFFSET ?;`;
+  const listSql = `SELECT ${termAlias}.* ${joinClause} ${whereClause} ORDER BY ${orderByClause} LIMIT ? OFFSET ?;`;
   const listParams: Array<string | number> = [...params, pageSize, (page - 1) * pageSize];
   const items = await prisma.$queryRawUnsafe(listSql, ...listParams);
 
   return { items, total };
 }
 
-function resolveOrder(sort?: TermsQueryInput["sort"]) {
+function resolveOrder(sort: TermsQueryInput["sort"], alias = '"Term"') {
   switch (sort) {
     case "recent":
-      return `"createdAt" DESC, "id" DESC`;
+      return `${alias}."createdAt" DESC, ${alias}."id" DESC`;
     case "oldest":
-      return `"createdAt" ASC, "id" ASC`;
+      return `${alias}."createdAt" ASC, ${alias}."id" ASC`;
     case "term_desc":
-      return `"term" DESC`;
+      return `${alias}."term" DESC`;
     case "term_asc":
     default:
-      return `"term" ASC`;
+      return `${alias}."term" ASC`;
   }
 }
