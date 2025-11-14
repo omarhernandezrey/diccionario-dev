@@ -1,5 +1,6 @@
 import { PrismaClient, Category } from "@prisma/client";
 import bcrypt from "bcryptjs";
+import { getMetricsSnapshot, incrementMetric, logger } from "@/lib/logger";
 import type { SeedTerm, ExampleSnippet } from "./dictionary-types";
 import { cssTerms } from "./data/cssTerms";
 
@@ -230,8 +231,12 @@ async function main() {
   }));
 
   // elimina historiales solo si el modelo existe en el cliente Prisma
-  await (prisma as any).termHistory?.deleteMany?.({});
-  await prisma.term.deleteMany({});
+  const deletedHistory = await (prisma as any).termHistory?.deleteMany?.({});
+  if (deletedHistory?.count) {
+    incrementMetric("seed.term_history.deleted", deletedHistory.count);
+  }
+  const deletedTerms = await prisma.term.deleteMany({});
+  incrementMetric("seed.terms.deleted", deletedTerms.count);
   // si no existe TermHistory en el esquema, no lo incluimos aquí
   await resetSequences(["Term"]);
 
@@ -253,6 +258,7 @@ async function main() {
       });
     }
   }
+  incrementMetric("seed.terms.created", createdTerms.length);
 
   const adminUser = process.env.ADMIN_USERNAME || "admin";
   const adminPass = process.env.ADMIN_PASSWORD || process.env.ADMIN_TOKEN || "admin12345";
@@ -265,12 +271,16 @@ async function main() {
     create: { username: adminUser, email: adminEmail, password: hashed, role: "admin" },
   });
 
-  console.log(`Seed completado con ${createdTerms.length} términos.`);
+  incrementMetric("seed.admin.upserted");
+  logger.info(
+    { createdTerms: createdTerms.length, adminUser, metrics: getMetricsSnapshot() },
+    "seed.completed",
+  );
 }
 
 main()
   .catch(err => {
-    console.error(err);
+    logger.error({ err }, "seed.failed");
     process.exit(1);
   })
   .finally(async () => prisma.$disconnect());
@@ -299,7 +309,7 @@ async function resetSequences(tableNames: string[]) {
   try {
     await prisma.$executeRawUnsafe(`DELETE FROM sqlite_sequence WHERE name IN (${names});`);
   } catch (error) {
-    console.warn("No se pudo reiniciar sqlite_sequence", error);
+    logger.warn({ err: error, tables: tableNames }, "seed.reset_sequences_failed");
   }
 }
 

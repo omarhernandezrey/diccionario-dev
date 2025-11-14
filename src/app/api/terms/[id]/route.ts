@@ -4,6 +4,7 @@ import { prisma } from "@/lib/prisma";
 import { termSchema } from "@/lib/validation";
 import { requireAdmin, type AuthTokenPayload } from "@/lib/auth";
 import { rateLimit } from "@/lib/rate-limit";
+import { incrementMetric, logger } from "@/lib/logger";
 
 export const dynamic = "force-dynamic";
 
@@ -56,13 +57,10 @@ async function recordHistory(termId: number, snapshot: unknown, action: HistoryA
     } else {
       // If the termHistory model is not available at runtime, skip recording history.
       // This avoids throwing at runtime and preserves existing behavior.
-      console.warn("[History] termHistory model not available on Prisma client, skipping history record", {
-        termId,
-        action,
-      });
+      logger.warn({ termId, action }, "history.model_missing");
     }
   } catch (error) {
-    console.error("[History] Error registrando historial", { termId, action, error });
+    logger.error({ err: error, termId, action }, "history.write_failed");
   }
 }
 
@@ -89,13 +87,21 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
   }
   const rate = rateLimit(`${RATE_LIMIT_PREFIX}:${getClientIp(req)}:${id}`, { limit: 240, windowMs: 60_000 });
   if (!rate.ok) {
+    incrementMetric("terms.detail.rate_limited");
+    logger.warn({ route: "/api/terms/:id", id }, "terms.detail.rate_limited");
     return NextResponse.json(
       { ok: false, error: "Demasiadas solicitudes. Intenta nuevamente en unos segundos." },
       { status: 429, headers: { ...noStoreHeaders, "Retry-After": String(rate.retryAfterSeconds) } },
     );
   }
+  incrementMetric("terms.detail.requests");
   const item = await prisma.term.findUnique({ where: { id } });
-  if (!item) return jsonError("No se encontró el término", 404);
+  if (!item) {
+    incrementMetric("terms.detail.not_found");
+    return jsonError("No se encontró el término", 404);
+  }
+  incrementMetric("terms.detail.success");
+  logger.info({ route: "/api/terms/:id", id }, "terms.detail.success");
   return NextResponse.json({ ok: true, item }, { headers: noStoreHeaders });
 }
 
@@ -110,12 +116,14 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
 
   const partial = termSchema.partial().safeParse(body);
   if (!partial.success) {
-    console.warn("[PATCH /api/terms/:id] Validación fallida", partial.error.flatten());
+    incrementMetric("terms.update.invalid");
+    logger.warn({ route: "/api/terms/:id", id, reason: "invalid_body", details: partial.error.flatten() }, "terms.update.invalid");
     return jsonError(partial.error.flatten(), 400);
   }
   const updateData = partial.data;
 
   try {
+    incrementMetric("terms.update.attempt");
     const updated = await prisma.term.update({
       where: { id },
       data: {
@@ -123,16 +131,21 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
         updatedBy: { connect: { id: admin.id } },
       },
     });
-      await recordHistory(updated.id, updated, HistoryAction.update, admin.id);
+    await recordHistory(updated.id, updated, HistoryAction.update, admin.id);
+    incrementMetric("terms.update.success");
+    logger.info({ route: "/api/terms/:id", id }, "terms.update.success");
     return NextResponse.json({ ok: true, item: updated }, { headers: noStoreHeaders });
   } catch (error) {
     if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2002") {
+      incrementMetric("terms.update.conflict");
       return jsonError("Ya existe un término con ese nombre", 409);
     }
     if (error instanceof Prisma.PrismaClientValidationError) {
+      incrementMetric("terms.update.invalid");
       return jsonError(error.message, 400);
     }
-    console.error("Error actualizando término", error);
+    logger.error({ err: error, route: "/api/terms/:id", id }, "terms.update.error");
+    incrementMetric("terms.update.error");
     const message = error instanceof Error ? error.message : "No se pudo actualizar el término";
     return jsonError(message, 500);
   }
@@ -148,16 +161,21 @@ export async function DELETE(req: NextRequest, { params }: { params: { id: strin
   try {
     const existing = await prisma.term.findUnique({ where: { id } });
     if (!existing) {
+      incrementMetric("terms.delete.not_found");
       return jsonError("No se encontró el término para eliminar", 404);
     }
-      await recordHistory(existing.id, existing, HistoryAction.delete, admin.id);
+    await recordHistory(existing.id, existing, HistoryAction.delete, admin.id);
     await prisma.term.delete({ where: { id } });
+    incrementMetric("terms.delete.success");
+    logger.info({ route: "/api/terms/:id", id }, "terms.delete.success");
     return NextResponse.json({ ok: true }, { headers: noStoreHeaders });
   } catch (error) {
     if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2025") {
+      incrementMetric("terms.delete.not_found");
       return jsonError("No se encontró el término para eliminar", 404);
     }
-    console.error("Error eliminando término", error);
+    logger.error({ err: error, route: "/api/terms/:id", id }, "terms.delete.error");
+    incrementMetric("terms.delete.error");
     return jsonError("No se pudo eliminar el término", 500);
   }
 }

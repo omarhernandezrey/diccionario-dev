@@ -4,6 +4,7 @@ import { prisma } from "@/lib/prisma";
 import { termSchema, termsQuerySchema, type TermsQueryInput } from "@/lib/validation";
 import { requireAdmin, type AuthTokenPayload } from "@/lib/auth";
 import { rateLimit } from "@/lib/rate-limit";
+import { incrementMetric, logger } from "@/lib/logger";
 
 export const dynamic = "force-dynamic";
 
@@ -46,7 +47,7 @@ async function recordHistory(termId: number, snapshot: unknown, action: HistoryA
       },
     });
   } catch (error) {
-    console.error("[History] Error registrando historial", { termId, action, error });
+    logger.error({ err: error, termId, action }, "history.write_failed");
   }
 }
 
@@ -62,6 +63,8 @@ export async function GET(req: NextRequest) {
   const ip = getClientIp(req);
   const rate = rateLimit(`${RATE_LIMIT_PREFIX}:${ip}`, { limit: 180, windowMs: 60_000 });
   if (!rate.ok) {
+    incrementMetric("terms.list.rate_limited");
+    logger.warn({ route: "/api/terms", ip }, "terms.list.rate_limited");
     return NextResponse.json(
       {
         ok: false,
@@ -76,11 +79,14 @@ export async function GET(req: NextRequest) {
 
   const parsed = termsQuerySchema.safeParse(Object.fromEntries(new URL(req.url).searchParams));
   if (!parsed.success) {
+    incrementMetric("terms.list.invalid");
+    logger.warn({ route: "/api/terms", reason: "invalid_query", details: parsed.error.flatten() }, "terms.list.invalid");
     return jsonError(parsed.error.flatten(), 400);
   }
 
   const query = normalizeQuery(parsed.data);
   try {
+    incrementMetric("terms.list.requests");
     const { items, total } = await fetchTermsWithFilters(query);
     const meta = {
       page: query.page,
@@ -88,9 +94,15 @@ export async function GET(req: NextRequest) {
       total,
       totalPages: Math.max(1, Math.ceil(total / query.pageSize)),
     };
+    incrementMetric("terms.list.success");
+    logger.info(
+      { route: "/api/terms", total: meta.total, page: meta.page, filtered: Boolean(query.q) },
+      "terms.list.success",
+    );
     return NextResponse.json({ ok: true, items, meta }, { headers: noStoreHeaders });
   } catch (error) {
-    console.error("Error listando términos", error);
+    logger.error({ err: error, route: "/api/terms" }, "terms.list.error");
+    incrementMetric("terms.list.error");
     return jsonError("No se pudo obtener la lista de términos", 500);
   }
 }
@@ -101,11 +113,13 @@ export async function POST(req: NextRequest) {
   const body = await req.json();
   const parsed = termSchema.safeParse(body);
   if (!parsed.success) {
-    console.warn("[POST /api/terms] Validación fallida", parsed.error.flatten());
+    logger.warn({ route: "/api/terms", reason: "invalid_body", details: parsed.error.flatten() }, "terms.create.invalid");
+    incrementMetric("terms.create.invalid");
     return jsonError(parsed.error.flatten(), 400);
   }
   const t = parsed.data;
   try {
+    incrementMetric("terms.create.attempt");
     const created = await prisma.term.create({
       data: {
         term: t.term,
@@ -122,15 +136,20 @@ export async function POST(req: NextRequest) {
       },
     });
     await recordHistory(created.id, created, HistoryAction.create, admin.id);
+    incrementMetric("terms.create.success");
+    logger.info({ termId: created.id, route: "/api/terms" }, "terms.create.success");
     return NextResponse.json({ ok: true, item: created }, { status: 201, headers: noStoreHeaders });
   } catch (error) {
     if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2002") {
+      incrementMetric("terms.create.conflict");
       return jsonError("Ya existe un término con ese nombre", 409);
     }
     if (error instanceof Prisma.PrismaClientValidationError) {
+      incrementMetric("terms.create.invalid");
       return jsonError(error.message, 400);
     }
-    console.error("Error creando término", error);
+    logger.error({ err: error, route: "/api/terms" }, "terms.create.error");
+    incrementMetric("terms.create.error");
     const message = error instanceof Error ? error.message : "No se pudo guardar el término";
     return jsonError(message, 500);
   }
@@ -174,7 +193,7 @@ async function fetchTermsWithFilters(query: TermsQueryInput) {
     params.push(`%${tag.toLowerCase()}%`);
   }
   if (useFts && q) {
-    filters.push(`"TermSearch" MATCH ?`);
+    filters.push(`${searchAlias} MATCH ?`);
     params.push(buildFtsQuery(q));
   } else if (q) {
     const like = `%${q.toLowerCase()}%`;
@@ -195,9 +214,7 @@ async function fetchTermsWithFilters(query: TermsQueryInput) {
   const joinClause = useFts
     ? `FROM "TermSearch" AS ${searchAlias} JOIN "Term" AS ${termAlias} ON ${termAlias}."id" = ${searchAlias}."rowid"`
     : `FROM "Term" AS ${termAlias}`;
-  const orderByClause = useFts
-    ? `bm25("TermSearch") ASC, ${resolveOrder(sort, termAlias)}`
-    : resolveOrder(sort, termAlias);
+  const orderByClause = useFts ? `bm25(${searchAlias}) ASC, ${resolveOrder(sort, termAlias)}` : resolveOrder(sort, termAlias);
 
   const countSql = `SELECT COUNT(*) as count ${joinClause} ${whereClause};`;
   const countResult = await prisma.$queryRawUnsafe<{ count: bigint | number }[]>(countSql, ...params);
