@@ -1,5 +1,9 @@
 ## Diccionario Técnico Web (ES)
 
+[![CI](https://github.com/omarhernandezrey/diccionario-dev/actions/workflows/ci.yml/badge.svg)](https://github.com/omarhernandezrey/diccionario-dev/actions/workflows/ci.yml)
+[![OpenAPI Pages](https://github.com/omarhernandezrey/diccionario-dev/actions/workflows/openapi-pages.yml/badge.svg?branch=main)](https://github.com/omarhernandezrey/diccionario-dev/actions/workflows/openapi-pages.yml)
+[![OpenAPI Docs](https://img.shields.io/badge/OpenAPI-docs-6BA539?logo=swagger)](https://omarhernandezrey.github.io/diccionario-dev/)
+
 Buscador y panel de administración para términos técnicos de desarrollo web en español. Cada entrada describe significado, qué hace, cómo implementarlo y ejemplos de código.
 
 Stack principal:
