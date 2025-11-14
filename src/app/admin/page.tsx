@@ -429,7 +429,7 @@ export default function AdminPage() {
 
   return (
     <div className="min-h-screen bg-ink-900 text-white">
-      <header className="border-b border-white/10 bg-gradient-to-r from-ink-900 via-ink-800 to-ink-900">
+      <header className="border-b border-white/10 bg-linear-to-r from-ink-900 via-ink-800 to-ink-900">
         <div className="mx-auto flex max-w-6xl flex-col gap-8 px-6 py-12 lg:px-0">
           <div className="grid gap-10 lg:grid-cols-[1.2fr_0.8fr]">
             <div className="space-y-6">
@@ -804,7 +804,7 @@ function TermsTable({
           <tbody className="divide-y divide-white/5">
             {items.length ? (
               items.map((item) => (
-                <tr key={item.id} className="bg-white/[0.02]">
+                <tr key={item.id} className="bg-white/2">
                   <td className="px-4 py-3">
                     <input
                       type="checkbox"

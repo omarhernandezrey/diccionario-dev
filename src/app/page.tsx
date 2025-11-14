@@ -41,7 +41,7 @@ export default function HomePage() {
   const { t } = useI18n();
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-ink-900 via-ink-800/70 to-ink-900">
+    <div className="min-h-screen bg-linear-to-b from-ink-900 via-ink-800/70 to-ink-900">
       <header className="relative isolate overflow-hidden px-6 pb-24 pt-16 sm:px-12">
         <div className="absolute inset-0 -z-10 opacity-60 blur-3xl">
           <div className="absolute left-1/3 top-0 h-64 w-64 rounded-full bg-accent-primary/40" />
@@ -58,7 +58,7 @@ export default function HomePage() {
                 {t("hero.badge")}
               </span>
               <h1 className="text-4xl font-semibold leading-tight text-white sm:text-5xl">
-                <span className="bg-gradient-to-r from-accent-primary to-accent-secondary bg-clip-text text-transparent">
+                <span className="bg-linear-to-r from-accent-primary to-accent-secondary bg-clip-text text-transparent">
                   {t("hero.title")}
                 </span>
               </h1>
@@ -118,7 +118,7 @@ export default function HomePage() {
 function AdminPreview() {
   const { t } = useI18n();
   return (
-    <section className="glass-panel flex flex-col gap-6 rounded-3xl border border-white/10 bg-gradient-to-br from-ink-800 via-ink-900 to-ink-900 p-8">
+    <section className="glass-panel flex flex-col gap-6 rounded-3xl border border-white/10 bg-linear-to-br from-ink-800 via-ink-900 to-ink-900 p-8">
       <div className="flex flex-wrap items-center justify-between gap-4">
         <div>
           <p className="badge-pill">{t("landing.admin.badge")}</p>

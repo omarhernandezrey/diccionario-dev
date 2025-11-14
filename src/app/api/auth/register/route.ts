@@ -2,7 +2,6 @@ import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { buildAuthCookie, hashPassword, requireAdmin, signJwt } from "@/lib/auth";
-const ADMIN_TOKEN = process.env.ADMIN_TOKEN || process.env.JWT_SECRET || "";
 
 const registerSchema = z.object({
   username: z.string().min(3, "El usuario debe tener al menos 3 caracteres"),
@@ -35,6 +34,8 @@ export async function POST(req: NextRequest) {
 
   const adminCount = await prisma.user.count({ where: { role: "admin" } });
   const bootstrap = adminCount === 0;
+
+  const ADMIN_TOKEN = process.env.ADMIN_TOKEN || process.env.JWT_SECRET || "";
 
   if (!bootstrap) {
     // If we're running in development and no ADMIN_TOKEN is configured, allow registration

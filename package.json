@@ -17,12 +17,14 @@
     "docs:openapi": "tsx scripts/generate-openapi.ts",
     "test": "vitest",
     "test:unit": "vitest run",
-    "test:coverage": "c8 --reporter=text --reporter=lcov --check-coverage --lines 60 --branches 60 --functions 60 --statements 60 vitest run"
+    "test:coverage": "c8 --reporter=text --reporter=lcov --check-coverage --lines 60 --branches 60 --functions 60 --statements 60 vitest run",
+    "admin:ensure": "tsx scripts/ensure-admin.ts"
   },
   "dependencies": {
     "@asteasolutions/zod-to-openapi": "^7.1.0",
     "@prisma/client": "^6.0.0",
     "bcryptjs": "^2.4.3",
+    "dotenv": "^16.4.5",
     "jsonwebtoken": "^9.0.0",
     "next": "^14.2.33",
     "react": "18.3.1",
@@ -40,6 +42,7 @@
     "c8": "^10.1.3",
     "eslint": "8.57.0",
     "eslint-config-next": "14.2.15",
+    "next-test-api-route-handler": "^5.0.3",
     "postcss": "^8.5.6",
     "prisma": "^6.0.0",
     "rimraf": "^5.0.10",
