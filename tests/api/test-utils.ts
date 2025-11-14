@@ -1,7 +1,25 @@
 import type { NextRequest } from "next/server";
 import { beforeEach, vi } from "vitest";
-import { Prisma } from "@prisma/client";
 import { testApiHandler } from "next-test-api-route-handler";
+
+// Crear clases personalizadas para simular errores de Prisma
+class MockPrismaClientKnownRequestError extends Error {
+  code: string;
+  clientVersion: string;
+  constructor(message: string, { code, clientVersion }: { code: string; clientVersion: string }) {
+    super(message);
+    this.name = 'PrismaClientKnownRequestError';
+    this.code = code;
+    this.clientVersion = clientVersion;
+  }
+}
+
+class MockPrismaClientValidationError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = 'PrismaClientValidationError';
+  }
+}
 
 type AnyRecord = Record<string, unknown>;
 
@@ -56,8 +74,24 @@ vi.mock("@/lib/prisma", () => ({ prisma: prismaMock }));
 vi.mock("@/lib/auth", () => authMock);
 vi.mock("@/lib/rate-limit", () => ({ rateLimit: rateLimitMock }));
 
+// Mockear el namespace Prisma para que instanceof funcione
+vi.mock("@prisma/client", async (importOriginal) => {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const actual = await importOriginal() as any;
+  return {
+    ...actual,
+    // Exportar enums y tipos necesarios desde el actual
+    HistoryAction: actual.HistoryAction || { create: 'create', update: 'update', delete: 'delete', seed: 'seed' },
+    Prisma: {
+      ...actual.Prisma,
+      PrismaClientKnownRequestError: MockPrismaClientKnownRequestError,
+      PrismaClientValidationError: MockPrismaClientValidationError,
+    },
+  };
+});
+
 export function prismaKnownError(code: string) {
-  return new Prisma.PrismaClientKnownRequestError("error", { code, clientVersion: "test" });
+  return new MockPrismaClientKnownRequestError("error", { code, clientVersion: "test" });
 }
 
 type HttpMethod = "GET" | "POST" | "PUT" | "PATCH" | "DELETE" | "OPTIONS" | "HEAD";

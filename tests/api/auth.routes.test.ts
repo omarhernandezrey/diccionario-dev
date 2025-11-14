@@ -38,10 +38,15 @@ describe('/api/auth/register', () => {
 
   it('403 cuando no bootstrap y requireAdmin falla sin token', async () => {
     prismaMock.user.count.mockResolvedValue(1);
+    // Configurar ADMIN_TOKEN para forzar validación
+    const oldToken = process.env.ADMIN_TOKEN;
+    process.env.ADMIN_TOKEN = 'required-token';
     authMock.requireAdmin.mockImplementation(() => { throw new Response(null, { status: 403 }); });
     const mod = await importRoute('@/app/api/auth/register/route');
+    // Sin header x-admin-token debe fallar
     const { status } = await runRoute(mod, { method: 'POST', url: `${baseUrl}/api/auth/register`, body: { username: 'userx', password: 'Password123!' } });
     expect(status).toBe(403);
+    process.env.ADMIN_TOKEN = oldToken;
   });
 
   it('201 con ADMIN_TOKEN header válido', async () => {
