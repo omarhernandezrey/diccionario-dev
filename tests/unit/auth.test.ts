@@ -34,12 +34,13 @@ describe("auth helpers", () => {
     await expect(auth.comparePassword("otra", hash)).resolves.toBe(false);
   });
 
-  it("buildAuthCookie arma flags correctos y usa Secure solo en producción", async () => {
+  it("buildAuthCookie arma flags seguros (SameSite=Strict, Secure solo en prod)", async () => {
     const auth = await loadAuth({ NODE_ENV: "test" });
     const cookie = auth.buildAuthCookie("token123", 120);
     expect(cookie).toContain("admin_token=token123");
     expect(cookie).toContain("HttpOnly");
     expect(cookie).toContain("Max-Age=120");
+    expect(cookie).toContain("SameSite=Strict");
     expect(cookie).not.toContain("Secure");
 
     const authProd = await loadAuth({ NODE_ENV: "production" });

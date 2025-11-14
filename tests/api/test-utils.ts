@@ -81,7 +81,7 @@ export async function runRoute(
   }
 
   await testApiHandler({
-    appHandler: module as any,
+    appHandler: module as AppRouteModule,
     url,
     params,
     test: async ({ fetch }) => {
@@ -96,17 +96,24 @@ export async function runRoute(
   if (!response) throw new Error("La respuesta de la ruta no se capturó");
   let json: AnyRecord | null = null;
   try {
-    json = await response.clone().json();
+    // call json() via Response to avoid environment/type mismatches for clone()
+    json = await (response as unknown as Response).json();
   } catch {
-    json = null;
+    try {
+      const text = await (response as unknown as Response).text();
+      json = text ? JSON.parse(text) : null;
+    } catch {
+      json = null;
+    }
   }
+  const resFinal = response as FetchResponse;
   return {
-    res: response,
-    status: response.status,
+    res: resFinal,
+    status: resFinal.status,
     json,
-    headers: response.headers,
-    setCookie: response.headers.get("set-cookie"),
-    cookies: response.cookies ?? [],
+    headers: resFinal.headers,
+    setCookie: resFinal.headers.get("set-cookie"),
+    cookies: resFinal.cookies ?? [],
   };
 }
 

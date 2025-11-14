@@ -73,7 +73,7 @@ export function buildAuthCookie(token: string, maxAgeSeconds = MAX_AGE_SECONDS) 
     `${COOKIE_NAME}=${token}`,
     "Path=/",
     "HttpOnly",
-    "SameSite=Lax",
+    "SameSite=Strict",
     `Max-Age=${maxAgeSeconds}`,
   ];
   if (IS_PROD) {
