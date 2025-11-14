@@ -18,7 +18,9 @@
     "test": "vitest",
     "test:unit": "vitest run",
     "test:coverage": "c8 --reporter=text --reporter=lcov --check-coverage --lines 60 --branches 60 --functions 60 --statements 60 vitest run",
-    "admin:ensure": "tsx scripts/ensure-admin.ts"
+    "admin:ensure": "tsx scripts/ensure-admin.ts",
+    "ladle": "ladle dev",
+    "ladle:build": "ladle build"
   },
   "dependencies": {
     "@asteasolutions/zod-to-openapi": "^7.1.0",
@@ -34,6 +36,7 @@
     "zod": "^3.23.8"
   },
   "devDependencies": {
+    "@ladle/react": "^5.1.1",
     "@tailwindcss/postcss": "^4.1.17",
     "@types/node": "20.11.30",
     "@types/react": "18.2.79",
