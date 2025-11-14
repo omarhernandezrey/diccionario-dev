@@ -35,6 +35,7 @@ export const prismaMock = {
     create: vi.fn(),
   },
   $queryRawUnsafe: vi.fn(),
+  $queryRaw: vi.fn(),
 };
 
 export const authMock = {
@@ -142,4 +143,5 @@ beforeEach(() => {
   prismaMock.term.delete.mockResolvedValue({ ...baseTerm });
   prismaMock.termHistory.create.mockResolvedValue({});
   prismaMock.$queryRawUnsafe.mockResolvedValue([{ count: 0 }]);
+  prismaMock.$queryRaw.mockResolvedValue([{ "1": 1 }]);
 });
