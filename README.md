@@ -189,6 +189,7 @@ La cookie se lee automáticamente usando `credentials: "include"` en el frontend
 
 | Método | Ruta | Descripción |
 | --- | --- | --- |
+| `GET /api/health` | Health check con verificación de BD. Devuelve `{ ok: true, db: "up" }` (200) o `{ ok: false, db: "down" }` (503). |
 | `GET /api/terms` | Búsqueda pública (`q`, `category`). |
 | `POST /api/terms` | **Admin**: crea término (valida con `termSchema`). |
 | `GET /api/terms/:id` | Consulta pública de un término. |
@@ -198,6 +199,8 @@ La cookie se lee automáticamente usando `credentials: "include"` en el frontend
 | `POST /api/auth/login` | Inicia sesión y emite cookie. |
 | `GET /api/auth` | Verifica sesión (`allowBootstrap` incluido). |
 | `DELETE /api/auth` | Logout y eliminación de cookie. |
+
+**Monitorización**: Ver [docs/HEALTH_CHECK_MONITORING.md](./docs/HEALTH_CHECK_MONITORING.md) para configurar health checks en Kubernetes, UptimeRobot, Datadog, CloudWatch y más.
 
 Respuestas de ejemplo:
 
