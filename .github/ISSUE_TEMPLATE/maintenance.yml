@@ -1,0 +1,39 @@
+name: "🛠️ Mantenimiento / Refactor"
+description: "Documenta deudas técnicas, mejoras de performance o tareas de infraestructura"
+title: "[Maintenance]: "
+labels:
+  - maintenance
+  - needs-triage
+body:
+  - type: markdown
+    attributes:
+      value: "Usa este template para optimizaciones, refactors, mejoras de DX o tareas de infraestructura."
+  - type: textarea
+    id: descripcion
+    attributes:
+      label: Descripción
+      description: ¿Qué debe cambiar y por qué?
+    validations:
+      required: true
+  - type: textarea
+    id: alcance
+    attributes:
+      label: Alcance y entregables
+      description: Lista de acciones, módulos o componentes que se tocan.
+  - type: textarea
+    id: riesgo
+    attributes:
+      label: Riesgos / Consideraciones
+  - type: textarea
+    id: pruebas
+    attributes:
+      label: Estrategia de validación
+      description: Tests, métricas o indicadores que aseguren que el cambio es exitoso.
+  - type: checkboxes
+    id: dependencias
+    attributes:
+      label: Dependencias
+      options:
+        - label: Requiere cambios en la base de datos
+        - label: Requiere cambios en la infraestructura
+        - label: Requiere coordinación con otro equipo

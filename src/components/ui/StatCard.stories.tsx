@@ -3,9 +3,10 @@ import type { Story } from "@ladle/react";
 import { StatCard } from "./StatCard";
 import { FiActivity, FiUsers, FiDatabase } from "react-icons/fi";
 
-export default {
+const meta = {
   title: "UI/StatCard",
 };
+export default meta;
 
 export const Dashboard: Story = () => (
   <div className="grid gap-4 bg-ink-900 p-6 text-white md:grid-cols-3">

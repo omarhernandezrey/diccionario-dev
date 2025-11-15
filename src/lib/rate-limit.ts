@@ -82,21 +82,25 @@ class RedisRateLimitStore implements RateLimitStore {
     // redis@4.x pipeline: multi() -> add commands -> exec() returns [[err, result], ...]
     const pipeline = this.client.multi();
     pipeline.incr(redisKey);
-    pipeline.pttl(redisKey);
-    const responses = await pipeline.exec();
+    pipeline.pTTL(redisKey);
+    const responses = (await pipeline.exec()) as
+      | Array<[Error | null, string | number | Buffer | unknown]>
+      | null;
 
     if (!responses || responses.length < 2) {
       throw new Error("Redis transaction returned no results");
     }
 
     // responses: [[err, result], [err, result]]
-    const countReply = responses[0][1];
-    const ttlReply = responses[1][1];
+    const first = responses[0] as [Error | null, string | number | Buffer | unknown];
+    const second = responses[1] as [Error | null, string | number | Buffer | unknown];
+    const countReply = first[1];
+    const ttlReply = second[1];
     const count = typeof countReply === "number" ? countReply : Number(countReply);
     let ttl = typeof ttlReply === "number" ? ttlReply : Number(ttlReply);
 
     if (count === 1 || ttl < 0) {
-      await this.client.pexpire(redisKey, windowMs);
+      await this.client.pExpire(redisKey, windowMs);
       ttl = windowMs;
     }
 

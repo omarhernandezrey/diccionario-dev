@@ -43,9 +43,10 @@ const sampleTerms: TermDTO[] = [
   },
 ];
 
-export default {
+const meta = {
   title: "UI/TermsTable",
 };
+export default meta;
 
 export const DefaultView: Story = () => {
   const [lastSelected, setLastSelected] = useState<string | null>(null);

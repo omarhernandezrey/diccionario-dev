@@ -1,0 +1,42 @@
+name: "✨ Propuesta de funcionalidad"
+description: "Sugiere una nueva capacidad o mejora notable"
+title: "[Feature]: "
+labels:
+  - enhancement
+  - needs-triage
+body:
+  - type: markdown
+    attributes:
+      value: "Describe claramente el problema que resuelves y el impacto esperado."
+  - type: textarea
+    id: problema
+    attributes:
+      label: Problema a resolver
+      description: ¿Qué limitación existe hoy?
+    validations:
+      required: true
+  - type: textarea
+    id: propuesta
+    attributes:
+      label: Solución propuesta
+      description: Explica la funcionalidad, flujos o APIs requeridas.
+    validations:
+      required: true
+  - type: textarea
+    id: alternativas
+    attributes:
+      label: Alternativas consideradas
+      description: Otras ideas o workarounds evaluados.
+  - type: textarea
+    id: validacion
+    attributes:
+      label: Métricas o criterios de éxito
+      description: ¿Cómo sabremos que la funcionalidad funciona?
+  - type: checkboxes
+    id: checklist
+    attributes:
+      label: Checklist
+      options:
+        - label: He revisado issues existentes
+          required: true
+        - label: Estoy dispuesto a contribuir con un PR

@@ -2,9 +2,10 @@ import "@/app/globals.css";
 import type { Story } from "@ladle/react";
 import { Button } from "./Button";
 
-export default {
+const meta = {
   title: "UI/Button",
 };
+export default meta;
 
 export const Variants: Story = () => (
   <div className="flex flex-wrap gap-3 bg-ink-900 p-6 text-white">

@@ -3,9 +3,10 @@ import type { Story } from "@ladle/react";
 import { useState } from "react";
 import { RichEditor } from "./RichEditor";
 
-export default {
+const meta = {
   title: "UI/RichEditor",
 };
+export default meta;
 
 export const Playground: Story = () => {
   const [value, setValue] = useState("Describe un nuevo término...");

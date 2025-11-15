@@ -1,0 +1,8 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Soporte general
+    url: https://diccionario.dev/support
+    about: Preguntas genéricas o soporte fuera de GitHub.
+  - name: Reportes de seguridad
+    url: mailto:seguridad@diccionario.dev
+    about: Usa este canal para vulnerabilidades (ver SECURITY.md).
