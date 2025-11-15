@@ -8,6 +8,10 @@ const JWT_EXPIRES_IN = process.env.JWT_EXPIRES_IN || "1d";
 const SALT_ROUNDS = Number(process.env.BCRYPT_SALT_ROUNDS || 10);
 const IS_PROD = process.env.NODE_ENV === "production";
 
+/**
+ * Carga mínima que se firma en el JWT de administración y que el frontend consume.
+ * Debe contener suficiente información para validar permisos sin consultar la base de datos.
+ */
 export type AuthTokenPayload = {
   id: number;
   username: string;
@@ -42,19 +46,32 @@ function ensureSecret() {
   }
 }
 
+/**
+ * Hash seguro de contraseñas administrativas usando bcrypt con salt configurables.
+ */
 export async function hashPassword(password: string) {
   return bcrypt.hash(password, SALT_ROUNDS);
 }
 
+/**
+ * Compara un texto plano con su hash persistido para validar credenciales.
+ */
 export async function comparePassword(password: string, hash: string) {
   return bcrypt.compare(password, hash);
 }
 
+/**
+ * Firma un JWT con expiración controlada que luego se envía en cabeceras/cookies HTTP only.
+ */
 export function signJwt(payload: AuthTokenPayload | Partial<AuthTokenPayload>) {
   ensureSecret();
   return jwt.sign(payload, JWT_SECRET, { expiresIn: JWT_EXPIRES_IN });
 }
 
+/**
+ * Verifica y decodifica un JWT del administrador.
+ * @returns El payload autenticado o `null` si el token es inválido/expirado.
+ */
 export function verifyJwt(token: string): AuthTokenPayload | null {
   ensureSecret();
   try {
@@ -64,10 +81,16 @@ export function verifyJwt(token: string): AuthTokenPayload | null {
   }
 }
 
+/**
+ * Devuelve el nombre estándar de la cookie de administración para compartirlo entre capas.
+ */
 export function cookieName() {
   return COOKIE_NAME;
 }
 
+/**
+ * Genera la cabecera `Set-Cookie` que mantiene la sesión administrativa en modo seguro.
+ */
 export function buildAuthCookie(token: string, maxAgeSeconds = MAX_AGE_SECONDS) {
   const flags = [
     `${COOKIE_NAME}=${token}`,
@@ -82,10 +105,16 @@ export function buildAuthCookie(token: string, maxAgeSeconds = MAX_AGE_SECONDS) 
   return flags.join("; ");
 }
 
+/**
+ * Cookie que expira inmediatamente la sesión y elimina el token del navegador.
+ */
 export function buildLogoutCookie() {
   return buildAuthCookie("", 0);
 }
 
+/**
+ * Obtiene el token JWT desde Authorization Bearer o de la cookie HTTP only.
+ */
 export function getTokenFromHeaders(headers: Headers) {
   const authHeader = headers.get("authorization");
   if (authHeader?.startsWith("Bearer ")) {
@@ -125,6 +154,9 @@ export function requireAuth(headers: Headers): AuthTokenPayload {
   return payload;
 }
 
+/**
+ * Garantiza que la solicitud proviene de un administrador; lanza una respuesta JSON si no.
+ */
 export function requireAdmin(headers: Headers): AuthTokenPayload {
   const payload = requireAuth(headers);
   if (payload.role !== "admin") {

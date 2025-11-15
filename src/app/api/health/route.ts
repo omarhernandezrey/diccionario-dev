@@ -1,6 +1,10 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 
+/**
+ * GET /api/health
+ * Comprueba salud básica de la API y de la base de datos (consulta trivial a Prisma).
+ */
 export async function GET() {
   let dbStatus: "up" | "down" = "down";
   try {

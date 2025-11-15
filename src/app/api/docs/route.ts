@@ -4,6 +4,9 @@ export const dynamic = "force-dynamic";
 
 const html = String.raw;
 
+/**
+ * Devuelve el HTML servido en `/api/docs`, cargando Swagger UI desde CDN.
+ */
 function getHtml() {
   return html`<!DOCTYPE html>
   <html lang="es">
@@ -36,6 +39,10 @@ function getHtml() {
   </html>`;
 }
 
+/**
+ * GET /api/docs
+ * Entrega la UI de OpenAPI sin cache para que siempre refleje la última especificación.
+ */
 export async function GET() {
   return new NextResponse(getHtml(), {
     headers: {

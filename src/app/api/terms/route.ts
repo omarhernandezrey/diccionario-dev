@@ -12,6 +12,9 @@ const noStoreHeaders = { "Cache-Control": "no-store" } as const;
 const DEFAULT_PAGE_SIZE = 50;
 const RATE_LIMIT_PREFIX = "terms:list";
 
+/**
+ * Intenta autenticar como administrador. Si falla devuelve la respuesta HTTP lista para retornar.
+ */
 function adminOrResponse(headers: Headers): AuthTokenPayload | Response {
   try {
     return requireAdmin(headers);
@@ -23,6 +26,9 @@ function adminOrResponse(headers: Headers): AuthTokenPayload | Response {
   }
 }
 
+/**
+ * Extrae la IP del cliente usando cabeceras comunes de proxies/reverse-proxy.
+ */
 function getClientIp(req: NextRequest) {
   const xForwarded = req.headers.get("x-forwarded-for");
   if (xForwarded) return xForwarded.split(",")[0]?.trim() || "anonymous";
@@ -32,10 +38,16 @@ function getClientIp(req: NextRequest) {
   return "anonymous";
 }
 
+/**
+ * Respuesta de error normalizada para la API de términos.
+ */
 function jsonError(message: unknown, status = 400) {
   return NextResponse.json({ ok: false, error: message }, { status, headers: noStoreHeaders });
 }
 
+/**
+ * Persistencia del historial de cambios de un término para auditoría.
+ */
 async function recordHistory(termId: number, snapshot: unknown, action: HistoryAction, authorId?: number) {
   try {
     await prisma.termHistory.create({
@@ -51,6 +63,9 @@ async function recordHistory(termId: number, snapshot: unknown, action: HistoryA
   }
 }
 
+/**
+ * Clona un payload serializable para almacenar en histórico sin referencias circulares.
+ */
 function sanitizeSnapshot<T>(payload: T) {
   try {
     return JSON.parse(JSON.stringify(payload));
@@ -59,6 +74,10 @@ function sanitizeSnapshot<T>(payload: T) {
   }
 }
 
+/**
+ * GET /api/terms
+ * Lista términos con búsqueda FTS, filtros, paginación y rate limiting por IP.
+ */
 export async function GET(req: NextRequest) {
   const ip = getClientIp(req);
   const rate = await rateLimit(`${RATE_LIMIT_PREFIX}:${ip}`, { limit: 180, windowMs: 60_000 });
@@ -107,6 +126,10 @@ export async function GET(req: NextRequest) {
   }
 }
 
+/**
+ * POST /api/terms
+ * Crea un término nuevo. Solo accesible para admins. Registra historial y métricas.
+ */
 export async function POST(req: NextRequest) {
   const admin = adminOrResponse(req.headers);
   if (admin instanceof Response) return admin;
@@ -155,6 +178,9 @@ export async function POST(req: NextRequest) {
   }
 }
 
+/**
+ * Limpia parámetros opcionales para evitar strings vacíos y aplica valores por defecto de paginación.
+ */
 function normalizeQuery(data: TermsQueryInput): TermsQueryInput {
   return {
     ...data,
@@ -164,6 +190,9 @@ function normalizeQuery(data: TermsQueryInput): TermsQueryInput {
   };
 }
 
+/**
+ * Convierte una búsqueda libre en un query válido para FTS5, aplicando comodines.
+ */
 function buildFtsQuery(raw: string) {
   const tokens = raw
     .trim()
@@ -176,6 +205,9 @@ function buildFtsQuery(raw: string) {
   return tokens.map((token) => `${token}*`).join(" ");
 }
 
+/**
+ * Ejecuta la consulta principal sobre SQLite/FTS y devuelve items + total.
+ */
 async function fetchTermsWithFilters(query: TermsQueryInput) {
   const { category, tag, q, page, pageSize, sort } = query;
   const useFts = Boolean(q);
@@ -228,6 +260,9 @@ async function fetchTermsWithFilters(query: TermsQueryInput) {
   return { items, total };
 }
 
+/**
+ * Traductor del enum de ordenamiento a su expresión SQL correspondiente.
+ */
 function resolveOrder(sort: TermsQueryInput["sort"], alias = '"Term"') {
   switch (sort) {
     case "recent":

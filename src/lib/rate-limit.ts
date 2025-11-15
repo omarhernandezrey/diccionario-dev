@@ -6,15 +6,26 @@ type Bucket = {
   expiresAt: number;
 };
 
+/**
+ * Configuración de consumo por IP/usuario.
+ * `limit` define el número máximo de solicitudes y `windowMs` la ventana móvil.
+ */
 export type RateLimitOptions = {
   limit?: number;
   windowMs?: number;
 };
 
+/**
+ * Resultado normalizado del limitador.
+ * Cuando `ok` es falso el consumidor debe respetar el tiempo de espera sugerido.
+ */
 export type RateLimitResult =
   | { ok: true }
   | { ok: false; retryAfterMs: number; retryAfterSeconds: number };
 
+/**
+ * Almacén abstracto que permite alternar entre memoria y Redis sin tocar el resto del código.
+ */
 type RateLimitStore = {
   consume(key: string, limit: number, windowMs: number): Promise<RateLimitResult>;
 };
@@ -22,6 +33,9 @@ type RateLimitStore = {
 class MemoryRateLimitStore implements RateLimitStore {
   private buckets = new Map<string, Bucket>();
 
+  /**
+   * Implementación local basada en un simple mapa, útil para desarrollo o fallback.
+   */
   async consume(key: string, limit: number, windowMs: number): Promise<RateLimitResult> {
     const now = Date.now();
     const bucket = this.buckets.get(key);
@@ -76,6 +90,9 @@ class RedisRateLimitStore implements RateLimitStore {
     await this.connecting;
   }
 
+  /**
+   * Consume una unidad para la clave indicada empleando operaciones atómicas de Redis.
+   */
   async consume(key: string, limit: number, windowMs: number): Promise<RateLimitResult> {
     await this.ensureConnection();
     const redisKey = `ratelimit:${key}`;
@@ -121,6 +138,10 @@ const memoryStore = new MemoryRateLimitStore();
 const shouldUseRedis = process.env.RATE_LIMIT_DRIVER !== "memory" && !!process.env.REDIS_URL;
 const redisStore = shouldUseRedis && process.env.REDIS_URL ? new RedisRateLimitStore(process.env.REDIS_URL) : null;
 
+/**
+ * Limita solicitudes por clave (IP, usuario, etc.) con fallback automático a memoria.
+ * Usa Redis cuando la variable `REDIS_URL` está disponible para evitar sesgos en despliegues multi instancia.
+ */
 export async function rateLimit(key: string, options: RateLimitOptions = {}): Promise<RateLimitResult> {
   const limit = options.limit ?? 120;
   const windowMs = options.windowMs ?? 60_000;
