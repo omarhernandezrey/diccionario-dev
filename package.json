@@ -1,12 +1,14 @@
 {
   "name": "diccionario-dev",
-  "version": "0.1.0",
+  "version": "0.2.1",
   "private": true,
   "scripts": {
     "dev": "next dev",
     "build": "node -r dotenv/config node_modules/.bin/prisma generate && next build",
     "start": "next start",
     "dev:init": "bash scripts/dev-init.sh",
+    "changeset": "changeset",
+    "release:version": "changeset version",
     "lint": "eslint . --max-warnings=0",
     "lint:fix": "eslint . --fix",
     "typecheck": "tsc --noEmit",
@@ -21,7 +23,8 @@
     "test:coverage": "c8 --reporter=text --reporter=lcov --check-coverage --lines 60 --branches 60 --functions 60 --statements 60 vitest run",
     "admin:ensure": "tsx scripts/ensure-admin.ts",
     "ladle": "ladle dev",
-    "ladle:build": "ladle build"
+    "ladle:build": "ladle build",
+    "prepare": "husky install"
   },
   "dependencies": {
     "@asteasolutions/zod-to-openapi": "^7.1.0",
@@ -30,16 +33,19 @@
     "bcryptjs": "^2.4.3",
     "dotenv": "^16.4.5",
     "jsonwebtoken": "^9.0.0",
-    "next": "^14.2.33",
+    "next": "^14.2.5",
     "pino": "^9.5.0",
-    "redis": "^4.7.0",
     "react": "18.3.1",
     "react-dom": "18.3.1",
     "react-icons": "^5.5.0",
+    "redis": "^4.7.0",
     "swagger-ui-dist": "^5.30.2",
     "zod": "^3.23.8"
   },
   "devDependencies": {
+    "@changesets/cli": "^2.29.7",
+    "@commitlint/cli": "^19.8.1",
+    "@commitlint/config-conventional": "^19.8.1",
     "@ladle/react": "^5.1.1",
     "@tailwindcss/postcss": "^4.1.17",
     "@types/node": "20.11.30",
@@ -49,6 +55,7 @@
     "c8": "^10.1.3",
     "eslint": "8.57.0",
     "eslint-config-next": "14.2.15",
+    "husky": "^8.0.3",
     "next-test-api-route-handler": "^5.0.3",
     "postcss": "^8.5.6",
     "prisma": "^6.0.0",

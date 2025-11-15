@@ -27,7 +27,8 @@ Gracias por tu interés en mejorar el diccionario de CSS de Omar Hernandez Rey. 
 
 1. Rama basada en `main` actualizada.
 2. Commits pequeños, con mensajes claros en imperativo.
-3. Sin force-push sobre ramas compartidas. Rebase solo en tu fork.
+3. Sigue el estándar [Conventional Commits](https://www.conventionalcommits.org/es/v1.0.0/) (`feat:`, `fix:`, `docs:`, etc.).
+4. Sin force-push sobre ramas compartidas. Rebase solo en tu fork.
 
 ## Pull requests
 
@@ -35,6 +36,12 @@ Gracias por tu interés en mejorar el diccionario de CSS de Omar Hernandez Rey. 
 - Describe el contexto, capturas relevantes y pasos para probar.
 - Incluye pruebas o explica por qué no aplican.
 - Espera revisión antes de fusionar.
+
+## Releases y cambios
+
+- Para cada cambio relevante ejecuta `npm run changeset` y describe el impacto.
+- `npm run release:version` actualiza `package.json` y `CHANGELOG.md`.
+- Las versiones se generan automáticamente a partir del tipo de cambio declarado (patch/minor/major).
 
 ## Reporte de issues
 

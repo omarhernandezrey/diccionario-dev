@@ -180,7 +180,7 @@ async function fetchTermsWithFilters(query: TermsQueryInput) {
   const { category, tag, q, page, pageSize, sort } = query;
   const useFts = Boolean(q);
   const termAlias = "t";
-  const searchAlias = "ts";
+  const searchTable = `"TermSearch"`;
   const filters: string[] = [];
   const params: Array<string | number> = [];
 
@@ -193,7 +193,7 @@ async function fetchTermsWithFilters(query: TermsQueryInput) {
     params.push(`%${tag.toLowerCase()}%`);
   }
   if (useFts && q) {
-    filters.push(`${searchAlias} MATCH ?`);
+    filters.push(`${searchTable} MATCH ?`);
     params.push(buildFtsQuery(q));
   } else if (q) {
     const like = `%${q.toLowerCase()}%`;
@@ -212,9 +212,9 @@ async function fetchTermsWithFilters(query: TermsQueryInput) {
 
   const whereClause = filters.length ? `WHERE ${filters.join(" AND ")}` : "";
   const joinClause = useFts
-    ? `FROM "TermSearch" AS ${searchAlias} JOIN "Term" AS ${termAlias} ON ${termAlias}."id" = ${searchAlias}."rowid"`
+    ? `FROM ${searchTable} JOIN "Term" AS ${termAlias} ON ${termAlias}."id" = ${searchTable}."rowid"`
     : `FROM "Term" AS ${termAlias}`;
-  const orderByClause = useFts ? `bm25(${searchAlias}) ASC, ${resolveOrder(sort, termAlias)}` : resolveOrder(sort, termAlias);
+  const orderByClause = useFts ? `bm25(${searchTable}) ASC, ${resolveOrder(sort, termAlias)}` : resolveOrder(sort, termAlias);
 
   const countSql = `SELECT COUNT(*) as count ${joinClause} ${whereClause};`;
   const countResult = await prisma.$queryRawUnsafe<{ count: bigint | number }[]>(countSql, ...params);
