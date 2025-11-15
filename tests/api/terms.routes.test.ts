@@ -14,7 +14,7 @@ const importRoute = (p: string) => import(p);
 beforeEach(() => {
   vi.clearAllMocks();
   // reset rate limit to allow tests that do not explicitly block
-  rateLimitMock.mockReturnValue({ ok: true });
+  rateLimitMock.mockResolvedValue({ ok: true });
 });
 
 describe('/api/terms GET', () => {
@@ -24,7 +24,7 @@ describe('/api/terms GET', () => {
     expect(status).toBe(400);
   });
   it('429 cuando rate limit bloquea', async () => {
-    rateLimitMock.mockReturnValue({ ok: false, retryAfterMs: 1000, retryAfterSeconds: 1 });
+    rateLimitMock.mockResolvedValue({ ok: false, retryAfterMs: 1000, retryAfterSeconds: 1 });
     const mod = await importRoute('@/app/api/terms/route');
     const { status } = await runRoute(mod, { url: `${baseUrl}/api/terms` });
     expect(status).toBe(429);
@@ -81,7 +81,7 @@ describe('/api/terms/[id] GET', () => {
     expect(status).toBe(400);
   });
   it('429 rate limit', async () => {
-    rateLimitMock.mockReturnValue({ ok: false, retryAfterMs: 1000, retryAfterSeconds: 1 });
+    rateLimitMock.mockResolvedValue({ ok: false, retryAfterMs: 1000, retryAfterSeconds: 1 });
     const mod = await importRoute('@/app/api/terms/[id]/route');
     const { status } = await runRoute(mod, { url: `${baseUrl}/api/terms/1`, params: { id: '1' } });
     expect(status).toBe(429);

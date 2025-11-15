@@ -155,7 +155,7 @@ export async function runRoute(
 beforeEach(() => {
   vi.clearAllMocks();
   process.env.ADMIN_TOKEN = "";
-  rateLimitMock.mockReturnValue({ ok: true });
+  rateLimitMock.mockResolvedValue({ ok: true });
   authMock.hashPassword.mockImplementation(async (value: string) => `hashed-${value}`);
   authMock.comparePassword.mockResolvedValue(true);
   authMock.signJwt.mockReturnValue("signed-jwt");

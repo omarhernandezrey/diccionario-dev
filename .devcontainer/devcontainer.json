@@ -1,0 +1,25 @@
+{
+  "name": "Diccionario DevContainer",
+  "image": "mcr.microsoft.com/vscode/devcontainers/typescript-node:20",
+  "remoteUser": "node",
+  "features": {
+    "ghcr.io/devcontainers/features/eslint:1": {}
+  },
+  "forwardPorts": [3000, 6379],
+  "postCreateCommand": "npm install && npm run dev:init",
+  "mounts": [
+    "source=/var/run/docker.sock,target=/var/run/docker.sock,type=bind"
+  ],
+  "customizations": {
+    "vscode": {
+      "settings": {
+        "editor.formatOnSave": true
+      },
+      "extensions": [
+        "Prisma.prisma",
+        "dbaeumer.vscode-eslint",
+        "esbenp.prettier-vscode"
+      ]
+    }
+  }
+}

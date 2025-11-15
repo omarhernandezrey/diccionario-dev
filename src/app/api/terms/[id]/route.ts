@@ -85,7 +85,7 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
   if (!id) {
     return jsonError("Identificador inválido", 400);
   }
-  const rate = rateLimit(`${RATE_LIMIT_PREFIX}:${getClientIp(req)}:${id}`, { limit: 240, windowMs: 60_000 });
+  const rate = await rateLimit(`${RATE_LIMIT_PREFIX}:${getClientIp(req)}:${id}`, { limit: 240, windowMs: 60_000 });
   if (!rate.ok) {
     incrementMetric("terms.detail.rate_limited");
     logger.warn({ route: "/api/terms/:id", id }, "terms.detail.rate_limited");

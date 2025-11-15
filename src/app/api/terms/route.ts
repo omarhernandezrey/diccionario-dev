@@ -61,7 +61,7 @@ function sanitizeSnapshot<T>(payload: T) {
 
 export async function GET(req: NextRequest) {
   const ip = getClientIp(req);
-  const rate = rateLimit(`${RATE_LIMIT_PREFIX}:${ip}`, { limit: 180, windowMs: 60_000 });
+  const rate = await rateLimit(`${RATE_LIMIT_PREFIX}:${ip}`, { limit: 180, windowMs: 60_000 });
   if (!rate.ok) {
     incrementMetric("terms.list.rate_limited");
     logger.warn({ route: "/api/terms", ip }, "terms.list.rate_limited");

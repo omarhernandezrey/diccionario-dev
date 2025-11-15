@@ -32,6 +32,25 @@ Stack principal:
 
 ---
 
+## Desarrollo en Dev Containers (un clic)
+
+Este repo incluye configuración de Dev Containers. Al abrir la carpeta en VS Code y seleccionar “Reopen in Container”:
+
+- Se usa la imagen `typescript-node:20` (Node LTS).
+- Se instalan dependencias y se ejecuta `npm run dev:init` automáticamente (Prisma generate + migrate deploy + seed).
+- Quedas listo para ejecutar `npm run dev` dentro del contenedor.
+
+Requisitos previos en tu host:
+
+- Docker Desktop/Engine activo.
+- Extensión “Dev Containers” en VS Code.
+
+Consejos:
+- El socket Docker del host está montado, por lo que puedes ejecutar comandos Docker desde el contenedor si lo necesitas.
+- Ajusta secretos copiando `.env.example` a `.env` antes de “Reopen in Container” (o dentro del contenedor).
+
+---
+
 ### 1. Requisitos de entorno
 
 - Node.js >= 18
@@ -72,6 +91,41 @@ Atajos disponibles en `package.json`:
 | `npm run prisma:seed` | Rellena términos + admin |
 | `npm run db:reset` | Limpia el `dev.db` y reaplica migraciones |
 | `npm run test:auth` | Ejecuta `node scripts/test-auth.js` |
+
+---
+
+## Despliegue local con Docker Compose
+
+Este stack incluye `next` (Next.js + SQLite) y `redis` (para rate limit). El servicio `next` corre `npm run dev:init` al arrancar, expone el puerto 3000 en el contenedor como 3001 en el host y tiene healthcheck con curl.
+
+Arranque:
+
+```bash
+docker compose up -d
+# App disponible en http://localhost:3001
+```
+
+Logs de la app:
+
+```bash
+docker compose logs -f next
+```
+
+Pruebas con Compose (perfil test):
+
+```bash
+docker compose --profile test up --abort-on-container-exit --exit-code-from test test
+```
+
+Para detener:
+
+```bash
+docker compose down
+```
+
+Notas:
+- El healthcheck comprueba `/api/terms` y marca el servicio como healthy.
+- Si no deseas Redis, puedes omitir su uso (la app tiene fallback en memoria para rate limit), pero el servicio está listo para usar `REDIS_URL`.
 
 ---
 
@@ -292,3 +346,53 @@ Notas:
 ---
 
 ¡Listo! Con los pasos anteriores deberías poder migrar, sembrar y levantar el diccionario con autenticación basada en JWT + cookies HttpOnly. Si necesitas ampliar la arquitectura (por ejemplo, OAuth o roles adicionales), los helpers en `src/lib/auth.ts` son el punto de partida.
+
+---
+
+## Troubleshooting
+
+- Dev Containers no puede usar Docker (permiso denegado en `/var/run/docker.sock`):
+  - Asegúrate de que Docker Desktop/Engine esté corriendo en tu host.
+  - En Linux, agrega tu usuario al grupo `docker` y reinicia sesión:
+    ```bash
+    sudo usermod -aG docker "$USER"
+    newgrp docker
+    docker ps
+    ```
+  - El `devcontainer.json` ya monta el socket del host. Si persiste el error, reabre el proyecto en contenedor tras reiniciar Docker.
+
+- El servicio `next` queda en `health: starting` con Docker Compose:
+  - El healthcheck llama a `GET /api/terms` dentro del contenedor. Puede tardar mientras corre `dev:init` (migraciones y seed).
+  - Revisa logs: `docker compose logs -f next`.
+  - Si necesitas más tiempo de calentamiento, incrementa `start_period` en `docker-compose.yml`.
+
+- Puerto 3001 ocupado en el host:
+  - Cambia el mapeo en `docker-compose.yml`:
+    ```yaml
+    ports:
+      - "3002:3000"
+    ```
+  - Luego: `docker compose up -d`.
+
+- Prisma 6 falla al compilar por `DATABASE_URL` ausente:
+  - En local, el script de `build` ya carga `.env` con `-r dotenv/config`. Si usas CI o no hay `.env`, exporta la variable antes de construir:
+    ```bash
+    export DATABASE_URL="file:./prisma/dev.db"
+    npm run build
+    ```
+  - Si `prisma.config.ts` detecta config y omite `.env`, define `DATABASE_URL` en el entorno del job.
+
+- SQLite bloqueada o seed repetible:
+  - Cierra procesos que accedan a `dev.db` y usa:
+    ```bash
+    npm run db:reset
+    npm run prisma:seed
+    ```
+
+- Redis no disponible o logs de fallback del rate limiter:
+  - Si no defines `REDIS_URL`, el rate limiter usa memoria local. Los logs pueden indicar fallback; es esperado en desarrollo.
+  - Para usar Redis en Compose, ya está el servicio `redis` y `REDIS_URL=redis://redis:6379` configurado en el servicio `next`.
+
+- Next no escucha en la red del contenedor:
+  - El comando ya usa `next dev -H 0.0.0.0`. Si cambias el script, asegúrate de mantener `-H 0.0.0.0` para exponer el puerto.
+

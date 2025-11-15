@@ -1,0 +1,50 @@
+services:
+  next:
+    image: node:20-bookworm
+    working_dir: /workspace
+    # Simplified startup: init (migrations/seed) then foreground Next dev server.
+    # Use exec so Node becomes PID 1 (proper signal handling)
+    command: bash -lc "npm run dev:init && exec npm run dev -- -H 0.0.0.0"
+    ports:
+      - "3001:3000"
+    environment:
+      DATABASE_URL: "file:./prisma/dev.db"
+      REDIS_URL: "redis://redis:6379"
+      NODE_ENV: "development"
+    volumes:
+      - .:/workspace:cached
+    depends_on:
+      - redis
+    restart: unless-stopped
+    healthcheck:
+      # Use curl (present in node:20-bookworm) to verify the API returns 200
+      test: ["CMD-SHELL", "curl -fsS http://localhost:3000/api/terms?page=1&pageSize=1 >/dev/null || exit 1"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+  redis:
+    image: redis:7-alpine
+    command: redis-server --save 60 1 --loglevel warning
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis-data:/data
+    restart: unless-stopped
+
+  test:
+    image: node:20-bookworm
+    working_dir: /workspace
+    command: bash -lc "npm ci && npm run test:unit"
+    environment:
+      DATABASE_URL: "file:./prisma/dev.db"
+      REDIS_URL: "redis://redis:6379"
+      NODE_ENV: "test"
+    volumes:
+      - .:/workspace:cached
+    depends_on:
+      - redis
+    profiles: ["test"]
+
+volumes:
+  redis-data:
