@@ -38,6 +38,7 @@ model Term {
   useCases    UseCase[]
   faqs        Faq[]
   exercises   Exercise[]
+  searchLogs  SearchLog[]
 
   @@index([term])
   @@index([slug])
@@ -161,6 +162,22 @@ enum Difficulty {
   easy
   medium
   hard
+}
+
+model SearchLog {
+  id        Int      @id @default(autoincrement())
+  termId    Int?
+  query     String
+  language  String   @default("es")
+  context   String   @default("dictionary")
+  mode      String   @default("list")
+  createdAt DateTime @default(now())
+
+  term Term? @relation(fields: [termId], references: [id], onDelete: SetNull)
+
+  @@index([termId])
+  @@index([context])
+  @@index([createdAt])
 }
 
 model TermHistory {

@@ -74,16 +74,47 @@ function sanitizeSnapshot<T>(payload: T) {
   }
 }
 
+async function recordSearchEvent(event: {
+  query: string;
+  language: string;
+  context: string;
+  mode: string;
+  termId?: number | null;
+}) {
+  const { query, language, context, mode, termId = null } = event;
+  try {
+    await prisma.searchLog.create({
+      data: {
+        query,
+        language,
+        context,
+        mode,
+        termId,
+      },
+    });
+  } catch (error) {
+    logger.warn({ err: error, query, context, mode }, "search.log_failed");
+  }
+}
+
 /**
  * GET /api/terms
  * Lista términos con búsqueda FTS, filtros, paginación y rate limiting por IP.
  */
 export async function GET(req: NextRequest) {
+  const url = new URL(req.url);
+  const searchParams = url.searchParams;
+  const context = searchParams.get("context") ?? "dictionary";
+  const mode = searchParams.get("mode") ?? "list";
+  const language =
+    searchParams.get("language") ?? req.headers.get("accept-language")?.split(",")[0]?.trim()?.toLowerCase() ?? "es";
+  const rawQuery = searchParams.get("q") ?? "";
   const ip = getClientIp(req);
   const rate = await rateLimit(`${RATE_LIMIT_PREFIX}:${ip}`, { limit: 180, windowMs: 60_000 });
   if (!rate.ok) {
     incrementMetric("terms.list.rate_limited");
     logger.warn({ route: "/api/terms", ip }, "terms.list.rate_limited");
+    void recordSearchEvent({ query: rawQuery, language, context, mode, termId: null });
     return NextResponse.json(
       {
         ok: false,
@@ -96,10 +127,11 @@ export async function GET(req: NextRequest) {
     );
   }
 
-  const parsed = termsQuerySchema.safeParse(Object.fromEntries(new URL(req.url).searchParams));
+  const parsed = termsQuerySchema.safeParse(Object.fromEntries(searchParams));
   if (!parsed.success) {
     incrementMetric("terms.list.invalid");
     logger.warn({ route: "/api/terms", reason: "invalid_query", details: parsed.error.flatten() }, "terms.list.invalid");
+    void recordSearchEvent({ query: rawQuery, language, context, mode, termId: null });
     return jsonError(parsed.error.flatten(), 400);
   }
 
@@ -118,10 +150,13 @@ export async function GET(req: NextRequest) {
       { route: "/api/terms", total: meta.total, page: meta.page, filtered: Boolean(query.q) },
       "terms.list.success",
     );
+    const primaryTermId = items.length === 1 ? items[0]?.id ?? null : null;
+    void recordSearchEvent({ query: rawQuery, language, context, mode, termId: primaryTermId });
     return NextResponse.json({ ok: true, items, meta }, { headers: noStoreHeaders });
   } catch (error) {
     logger.error({ err: error, route: "/api/terms" }, "terms.list.error");
     incrementMetric("terms.list.error");
+    void recordSearchEvent({ query: rawQuery, language, context, mode, termId: null });
     return jsonError("No se pudo obtener la lista de términos", 500);
   }
 }

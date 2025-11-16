@@ -18,9 +18,22 @@
   - prisma/seed.ts ahora genera automáticamente toda esa información: crea slugs, ejemplos ES/EN, variantes según el stack (incluye CSS), casos de uso para entrevista/proyecto/bug, FAQs y ejercicios, y persiste cada bloque en las tablas relacionadas. También deduplica términos respetando las colecciones nuevas.
   - Generamos la migración prisma/migrations/20251115210519_expand_term_structure/ con todo el SQL para ampliar Term y crear las tablas auxiliares. Utilizamos `npx prisma migrate deploy` localmente (tras generar la migración vía `prisma migrate diff`) y ejecutamos `npx prisma db seed` para validar el nuevo sembrado.
 
-### 3. Observabilidad
-- Crear tabla/evento `SearchLog` con `termId`, `query`, `language`, `context`, `mode`.
-- Dashboard interno básico para saber qué faltas hay.
+### 3. Observabilidad ✅
+- **Completado**: Añadimos la tabla/evento `SearchLog` y habilitamos el registro de búsquedas.
+  - **Prisma**:
+    - `prisma/schema.prisma` incluye el modelo `SearchLog` (query, language, context, mode, termId opcional) con relaciones e índices.
+    - Generamos la migración `20251115213055_add_search_log` para crear la tabla.
+    - El dataset y tipos (`prisma/dictionary-types.ts`, `prisma/data/cssTerms.ts`, `prisma/seed.ts`) quedaron intactos; solo se amplió el schema y se añadió el logging.
+  - **API / Observabilidad**:
+    - `src/app/api/terms/route.ts` ahora registra cada búsqueda mediante `recordSearchEvent`. Captura:
+      - `query` (valor de q o vacío).
+      - `language` (parámetro language o cabecera accept-language).
+      - `context` y `mode` (query params, default dictionary/list).
+      - `termId` si hay un único resultado.
+    - Se logea tanto en éxitos como en rate limit, validaciones fallidas y errores, sin impactar la respuesta al usuario.
+  - **Migraciones**:
+    - Nueva carpeta `prisma/migrations/20251115213055_add_search_log/` con el SQL que añade `SearchLog`.
+    - Ejecutamos `export DATABASE_URL="file:./prisma/dev.db" && npx prisma migrate deploy` para aplicar los cambios.
 
 ## 2. Experiencia principal (Buscador unificado)
 
