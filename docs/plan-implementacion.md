@@ -1,0 +1,116 @@
+# 📘 Plan de Implementación por Prioridades Diccionario Dev
+
+## 1. Arquitectura y Datos
+
+### 1. Extender modelo en Prisma ✅
+- **Completado**: Ampliamos `prisma/schema.prisma` con los modelos definidos:
+  - **Term**: título ES/EN, categoría, significado ES/EN, “cómo se usa”, tags, alias, slug.
+  - **TermVariant**: FK a Term, lenguaje (js, py, go, etc.), snippet, notas, nivel.
+  - **UseCase**: FK a Term, contexto (entrevista, proyecto, bug), explicación corta, pasos, tips de comunicación.
+  - **Faq**: pregunta, respuesta larga ES/EN, snippet, categoría, campo “cómo responder”.
+  - **Exercise**: enunciado ES/EN, dificultad, soluciones (language, code, explain).
+- **Formateado**: El esquema fue formateado con `DATABASE_URL=file:./prisma/dev.db npx prisma format` para asegurar consistencia.
+
+### 2. Dataset
+- Migrar datos actuales a la nueva estructura.
+- Añadir traducciones precisas ES/EN, ejemplos bilingües y variantes por lenguaje.
+
+### 3. Observabilidad
+- Crear tabla/evento `SearchLog` con `termId`, `query`, `language`, `context`, `mode`.
+- Dashboard interno básico para saber qué faltas hay.
+
+## 2. Experiencia principal (Buscador unificado)
+
+### 1. Input inteligente
+- Detectar si se ingresa palabra, fragmento de código o pregunta.
+- Mostrar chips de contexto (diccionario, entrevista, bug, etc.).
+
+### 2. Resultados
+- Bloques: Significado (ES/EN), traducción literal, snippet base, botones para cambiar lenguaje/contexto.
+- Panel lateral con UseCases, Faqs, Exercises relacionados.
+
+### 3. Modo traducción estructural
+- Parser por lenguaje (JS/TS, JSX, Python). Traducir solo strings/comentarios manteniendo identación.
+- Fallback textual para lenguajes sin parser.
+
+### 4. Selector de lenguaje/contexto
+- Cambia dinámicamente las secciones usando `TermVariant` y `UseCase`.
+
+### 5. Atajos
+- Copiar definición, copiar snippet, abrir “cheat sheet”, generar respuesta en ES/EN.
+
+## 3. Integraciones y flujo real
+
+### 1. Extensión navegador / Hotkey
+- Capturar selección y abrir diccionario con query prellenada.
+
+### 2. VSCode helper
+- Comando para traducir/explicar el texto seleccionado en el editor.
+
+### 3. Portapapeles inteligente
+- Auto detectar bloque pegado y sugerir traducción estructural.
+
+## 4. Comunidad y colaboración
+
+### 1. Panel interno
+- CRUD de términos, variantes, FAQs, ejercicios. Workflow de revisión con estados (pendiente/aprobado).
+
+### 2. Gamificación ligera
+- Rank de contribuidores, insignias por lenguajes cubiertos.
+
+### 3. Analítica
+- Métricas de términos más consultados, idiomas más usados, huecos detectados.
+
+## 5. Entrenamiento y entrevistas
+
+### 1. FAQ técnico
+- Biblioteca por stack (frontend/backend/arquitectura/algoritmos) con respuesta + snippet + “cómo explicarlo”.
+
+### 2. Recetario de ejercicios
+- Reto por lenguaje con solución y guía narrativa.
+
+### 3. Soft skills
+- Plantillas bilingües para preguntas de HR.
+
+### 4. Modo cheat sheet
+- Overlay compacto para consultas durante una call (atajo de teclado, historial).
+
+### 5. Modo entrenamiento
+- Quizzes autogenerados con feedback e historial de progreso.
+
+## 6. Español ↔ Inglés context-aware
+
+### 1. Microtraductor técnico
+- Analizar la query y mapear términos automáticamente para mostrar traducción + explicación contextual.
+
+### 2. Respuesta bilingüe
+- Botón para alternar entre ES y EN en todas las secciones, incluyendo respuestas listas para entrevistas.
+
+## 7. Modo “Entrevista en vivo”
+
+### 1. UI ultra compacta
+- Mini buscador flotante con respuestas resumidas y botones de copia rápida.
+
+### 2. Frases listas
+- Generar “cómo explicarlo en inglés/español” con un click.
+
+### 3. Soluciones instantáneas
+- Para cada reto propuesto, devolver solución, pasos, edge cases y cómo defenderla verbalmente.
+
+## 8. Integración por fases (lanzamientos)
+
+### 1. MVP enriquecido
+- Nuevos campos en Term, variantes por lenguaje, buscador traducido.
+
+### 2. FAQ + Ejercicios
+- Indexar y mostrar en resultados.
+
+### 3. Traducción estructural + integraciones (extensión/VSCode).
+
+### 4. Entrenamiento + cheat sheet + modo entrevista en vivo.
+
+### 5. Comunidad + observabilidad avanzada.
+
+---
+
+Con esta hoja de ruta tienes tareas claras para cada área. Podemos ir bloque por bloque (datos → buscador → integraciones → comunidad → entrenamiento → entrevista) y desplegar en fases, asegurando que el diccionario siempre sea útil, tanto estudiando como en una entrevista en vivo.
