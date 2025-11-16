@@ -1,28 +1,3 @@
--- DropTable
-PRAGMA foreign_keys=off;
-DROP TABLE "TermSearch";
-PRAGMA foreign_keys=on;
-
--- DropTable
-PRAGMA foreign_keys=off;
-DROP TABLE "TermSearch_config";
-PRAGMA foreign_keys=on;
-
--- DropTable
-PRAGMA foreign_keys=off;
-DROP TABLE "TermSearch_data";
-PRAGMA foreign_keys=on;
-
--- DropTable
-PRAGMA foreign_keys=off;
-DROP TABLE "TermSearch_docsize";
-PRAGMA foreign_keys=on;
-
--- DropTable
-PRAGMA foreign_keys=off;
-DROP TABLE "TermSearch_idx";
-PRAGMA foreign_keys=on;
-
 -- CreateTable
 CREATE TABLE "SearchLog" (
     "id" INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
@@ -43,4 +18,3 @@ CREATE INDEX "SearchLog_context_idx" ON "SearchLog"("context");
 
 -- CreateIndex
 CREATE INDEX "SearchLog_createdAt_idx" ON "SearchLog"("createdAt");
-

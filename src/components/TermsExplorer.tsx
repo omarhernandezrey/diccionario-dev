@@ -219,16 +219,20 @@ export default function TermsExplorer() {
           <CardSkeleton />
         ) : data.items.length ? (
           <div className="grid gap-4 [grid-template-columns:repeat(auto-fit,minmax(260px,1fr))]">
-            {data.items.map((term) => (
-              <article key={term.id} className="rounded-3xl border border-white/10 bg-white/5 p-5 shadow-glow-card">
-                <div className="flex items-start justify-between">
-                  <div>
-                    <h3 className="text-xl font-semibold text-white">{term.term}</h3>
-                    <p className="text-sm text-white/60">{term.translation}</p>
+            {data.items.map((term) => {
+              const meaning = term.meaningEs ?? term.meaning ?? term.meaningEn ?? "";
+              const howCopy = term.howEs ?? term.how ?? term.howEn ?? "";
+              const translation = term.translation || term.titleEs || term.term;
+              return (
+                <article key={term.id} className="rounded-3xl border border-white/10 bg-white/5 p-5 shadow-glow-card">
+                  <div className="flex items-start justify-between">
+                    <div>
+                      <h3 className="text-xl font-semibold text-white">{term.term}</h3>
+                      <p className="text-sm text-white/60">{translation}</p>
+                    </div>
+                    <span className="rounded-full bg-white/10 px-3 py-1 text-xs text-white/70">{term.category}</span>
                   </div>
-                  <span className="rounded-full bg-white/10 px-3 py-1 text-xs text-white/70">{term.category}</span>
-                </div>
-                <p className="mt-3 line-clamp-3 text-sm text-white/80">{term.meaning}</p>
+                  <p className="mt-3 line-clamp-3 text-sm text-white/80">{meaning}</p>
                 <dl className="mt-4 space-y-2 text-xs text-white/60">
                   {term.aliases?.length ? (
                     <div>
@@ -245,10 +249,11 @@ export default function TermsExplorer() {
                 </dl>
                 <div className="mt-4 rounded-2xl border border-white/10 bg-ink-900/60 p-3">
                   <p className="text-xs uppercase tracking-wide text-white/50">{t("terms.how")}</p>
-                  <p className="line-clamp-3 text-xs text-white/80">{term.how}</p>
+                    <p className="line-clamp-3 text-xs text-white/80">{howCopy}</p>
                 </div>
-              </article>
-            ))}
+                </article>
+              );
+            })}
           </div>
         ) : (
           <p className="rounded-3xl border border-dashed border-white/10 px-4 py-8 text-center text-white/60">{status === "error" ? errorMsg || t("state.error") : t("state.empty")}</p>

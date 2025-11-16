@@ -35,7 +35,7 @@
     - Nueva carpeta `prisma/migrations/20251115213055_add_search_log/` con el SQL que añade `SearchLog`.
     - Ejecutamos `export DATABASE_URL="file:./prisma/dev.db" && npx prisma migrate deploy` para aplicar los cambios.
 
-## 2. Experiencia principal (Buscador unificado)
+## 2. Experiencia principal (Buscador unificado) ✅
 
 ### 1. Input inteligente ✅
 - **Completado**: El buscador identifica el tipo de entrada y permite ajustar el contexto explícitamente.

@@ -5,6 +5,12 @@ import { termSchema, termsQuerySchema, type TermsQueryInput } from "@/lib/valida
 import { requireAdmin, type AuthTokenPayload } from "@/lib/auth";
 import { rateLimit } from "@/lib/rate-limit";
 import { incrementMetric, logger } from "@/lib/logger";
+import type {
+  TermDTO,
+  TermExampleDTO,
+  TermExerciseSolutionDTO,
+  UseCaseStepDTO,
+} from "@/types/term";
 
 export const dynamic = "force-dynamic";
 
@@ -288,9 +294,26 @@ async function fetchTermsWithFilters(query: TermsQueryInput) {
   const countValue = countResult?.[0]?.count ?? 0;
   const total = typeof countValue === "bigint" ? Number(countValue) : Number(countValue);
 
-  const listSql = `SELECT ${termAlias}.* ${joinClause} ${whereClause} ORDER BY ${orderByClause} LIMIT ? OFFSET ?;`;
+  const listSql = `SELECT ${termAlias}."id" ${joinClause} ${whereClause} ORDER BY ${orderByClause} LIMIT ? OFFSET ?;`;
   const listParams: Array<string | number> = [...params, pageSize, (page - 1) * pageSize];
-  const items = await prisma.$queryRawUnsafe(listSql, ...listParams);
+  const orderedIds = (await prisma.$queryRawUnsafe<{ id: number }[]>(listSql, ...listParams)).map(row => row.id);
+  let items: TermDTO[] = [];
+  if (orderedIds.length) {
+    const related = await prisma.term.findMany({
+      where: { id: { in: orderedIds } },
+      include: {
+        variants: true,
+        useCases: true,
+        faqs: true,
+        exercises: true,
+      },
+    });
+    const map = new Map(related.map(term => [term.id, term]));
+    items = orderedIds
+      .map(id => map.get(id))
+      .filter((term): term is PrismaTermWithRelations => Boolean(term))
+      .map(term => serializeTerm(term));
+  }
 
   return { items, total };
 }
@@ -311,3 +334,148 @@ function resolveOrder(sort: TermsQueryInput["sort"], alias = '"Term"') {
       return `${alias}."term" ASC`;
   }
 }
+
+type PrismaTermWithRelations = Prisma.TermGetPayload<{
+  include: { variants: true; useCases: true; faqs: true; exercises: true };
+}>;
+
+function serializeTerm(record: PrismaTermWithRelations): TermDTO {
+  const examples = parseExamples(record.examples);
+  const aliases = toStringArray(record.aliases);
+  const tags = toStringArray(record.tags);
+  return {
+    id: record.id,
+    term: record.term,
+    translation: record.translation,
+    slug: record.slug ?? undefined,
+    aliases,
+    tags,
+    category: record.category,
+    titleEs: record.titleEs ?? record.translation ?? record.term,
+    titleEn: record.titleEn ?? record.term,
+    meaning: record.meaning,
+    meaningEs: record.meaningEs ?? record.meaning,
+    meaningEn: record.meaningEn ?? undefined,
+    what: record.what,
+    whatEs: record.whatEs ?? record.what,
+    whatEn: record.whatEn ?? undefined,
+    how: record.how,
+    howEs: record.howEs ?? record.how,
+    howEn: record.howEn ?? undefined,
+    examples,
+    variants: record.variants?.map(variant => ({
+      id: variant.id,
+      language: variant.language,
+      snippet: variant.snippet,
+      notes: variant.notes ?? undefined,
+      level: variant.level,
+    })),
+    useCases: record.useCases?.map(useCase => ({
+      id: useCase.id,
+      context: useCase.context,
+      summary: useCase.summary,
+      steps: parseSteps(useCase.steps),
+      tips: useCase.tips ?? undefined,
+    })),
+    faqs: record.faqs?.map(faq => ({
+      id: faq.id,
+      questionEs: faq.questionEs,
+      questionEn: faq.questionEn ?? undefined,
+      answerEs: faq.answerEs,
+      answerEn: faq.answerEn ?? undefined,
+      snippet: faq.snippet ?? undefined,
+      category: faq.category ?? undefined,
+      howToExplain: faq.howToExplain ?? undefined,
+    })),
+    exercises: record.exercises?.map(exercise => ({
+      id: exercise.id,
+      titleEs: exercise.titleEs,
+      titleEn: exercise.titleEn ?? undefined,
+      promptEs: exercise.promptEs,
+      promptEn: exercise.promptEn ?? undefined,
+      difficulty: exercise.difficulty,
+      solutions: parseSolutions(exercise.solutions),
+    })),
+  };
+}
+
+function parseExamples(value: Prisma.JsonValue | null | undefined): TermExampleDTO[] {
+  if (!value || typeof value !== "object") {
+    return [];
+  }
+  const arr = Array.isArray(value) ? value : [];
+  return arr
+    .map((example) => {
+      if (!isRecord(example)) return null;
+      const code = getString(example.code) ?? "";
+      if (!code) return null;
+      const title = getString(example.title) ?? getString(example.titleEs) ?? getString(example.titleEn);
+      const note = getString(example.note) ?? getString(example.noteEs) ?? getString(example.noteEn);
+      return {
+        title,
+        titleEs: getString(example.titleEs),
+        titleEn: getString(example.titleEn),
+        code,
+        note,
+        noteEs: getString(example.noteEs),
+        noteEn: getString(example.noteEn),
+      };
+    })
+    .filter((example): example is TermExampleDTO => Boolean(example));
+}
+
+function parseSteps(value: Prisma.JsonValue | null | undefined): UseCaseStepDTO[] {
+  if (!value) return [];
+  if (!Array.isArray(value)) return [];
+  return value
+    .map(step => {
+      if (typeof step === "string") {
+        return { es: step };
+      }
+      if (isRecord(step)) {
+        return {
+          es: getString(step.es),
+          en: getString(step.en),
+        };
+      }
+      return null;
+    })
+    .filter((step): step is UseCaseStepDTO => Boolean(step));
+}
+
+function parseSolutions(value: Prisma.JsonValue | null | undefined): TermExerciseSolutionDTO[] {
+  if (!value) return [];
+  if (!Array.isArray(value)) return [];
+  return value
+    .map(solution => {
+      if (!isRecord(solution)) return null;
+      const code = getString(solution.code) ?? "";
+      if (!code) return null;
+      return {
+        language: getString(solution.language) ?? "js",
+        code,
+        explainEs: getString(solution.explainEs) ?? "",
+        explainEn: getString(solution.explainEn),
+      };
+    })
+    .filter((solution): solution is TermExerciseSolutionDTO => Boolean(solution));
+}
+
+function toStringArray(value: Prisma.JsonValue | null | undefined) {
+  if (!value) return [];
+  if (Array.isArray(value)) {
+    return value
+      .map(item => {
+        if (typeof item === "string") return item;
+        if (typeof item === "number" || typeof item === "boolean") return String(item);
+        return null;
+      })
+      .filter((item): item is string => Boolean(item));
+  }
+  return [];
+}
+
+const isRecord = (value: unknown): value is Record<string, unknown> =>
+  typeof value === "object" && value !== null && !Array.isArray(value);
+
+const getString = (value: unknown): string | undefined => (typeof value === "string" ? value : undefined);
