@@ -50,9 +50,30 @@
 - Bloques: Significado (ES/EN), traducción literal, snippet base, botones para cambiar lenguaje/contexto.
 - Panel lateral con UseCases, Faqs, Exercises relacionados.
 
-### 3. Modo traducción estructural
-- Parser por lenguaje (JS/TS, JSX, Python). Traducir solo strings/comentarios manteniendo identación.
-- Fallback textual para lenguajes sin parser.
+### 3. Modo traducción estructural ✅
+- **Completado**: Implementamos un motor de traducción estructural con parsers por lenguaje y fallback textual.
+  - **Parsers implementados**:
+    - ✅ **JavaScript/TypeScript**: @babel/parser con plugins (jsx, typescript, decorators, etc.). Detecta strings, templates, comentarios.
+    - ✅ **JSX/TSX**: Detección automática via regex de tags XML. Traduce textos dentro de elementos preservando estructura.
+    - ✅ **Python**: Parser manual personalizado. Detecta strings (triple-quoted, raw, f-strings), comentarios, mantiene identación.
+    - ✅ **Fallback textual**: Para Go, PHP, Ruby, Java, C#, Kotlin, Swift, Rust, C++. Usa regex case-insensitive global con preservación de mayúsculas.
+  - **Características principales**:
+    - ✅ **Traducción selectiva**: Solo strings y comentarios; código estructural PRESERVADO (variables, funciones, sintaxis intactas).
+    - ✅ **Mantenimiento de identación**: Usa `magic-string` (position-based, no regex global) para preservar espacios y saltos de línea exactamente.
+    - ✅ **Diccionario dinámico**: Carga desde Prisma, caché memoizado, incluye aliases y traducciones por defecto.
+    - ✅ **Segmentación**: Array de cambios (`segments`) con original/traducido/posiciones para UI preview.
+  - **Endpoint API**:
+    - POST `/api/translate` con rate limiting (120 req/min), validación Zod, logging en `SearchLog`.
+    - Input: `{ code: string, language?: string }` | Output: `{ code, language, fallbackApplied, segments, replacedStrings, replacedComments }`
+    - Archivos: `src/app/api/translate/route.ts`, `src/lib/validation.ts`, `src/lib/structural-translate.ts`.
+  - **Pruebas unitarias** (5/5 PASS):
+    - ✅ JS string literals without altering structure
+    - ✅ Template literals preserving expressions
+    - ✅ Comments independently from code
+    - ✅ Python strings with correct parsing
+    - ✅ Fallback textual for unsupported languages (Go)
+    - Archivo: `tests/structural-translate.test.ts`
+  - **Validación completa**: Documento `docs/validacion-traduccion-estructural.md` con requisitos, implementación detallada y pruebas.
 
 ### 4. Selector de lenguaje/contexto
 - Cambia dinámicamente las secciones usando `TermVariant` y `UseCase`.
