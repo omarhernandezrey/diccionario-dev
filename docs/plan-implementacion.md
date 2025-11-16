@@ -108,8 +108,57 @@
   - **Validación**: Documento `docs/validacion-selector-dinamico.md` con arquitectura, flujo de datos, ejemplos UX.
   - **Typecheck**: ✅ 0 errores
 
-### 5. Atajos
-- Copiar definición, copiar snippet, abrir “cheat sheet”, generar respuesta en ES/EN.
+### 5. Atajos ✅
+- **Completado**: Panel de acciones rápidas para copiar, compartir y generar respuestas.
+  - **Componentes implementados**:
+    - ✅ **ShortcutPanel** (líneas 690-720): Barra de botones de acciones con 5 opciones:
+      - "Copiar definición": llama `handleCopyDefinition()`
+      - "Copiar snippet": llama `handleCopySnippet()`
+      - "Abrir cheat sheet": alterna `cheatSheetOpen`
+      - "Respuesta ES": llama `handleGenerateAnswer("es")`
+      - "Respuesta EN": llama `handleGenerateAnswer("en")`
+    - ✅ **ShortcutButton** (líneas 722-740): Botón individual con estado `active` y feedback visual (accent-teal cuando activo)
+    - ✅ **CheatSheetCard** (líneas 742-800): Vista compacta para consulta rápida con:
+      - Término y traducción
+      - Significado bilingüe
+      - Uso (cómo se usa)
+      - Lenguaje de variante (badge)
+      - Contexto de uso case
+      - Tags del término
+  
+  - **Handlers implementados**:
+    - ✅ **copyText()** (líneas 309-318): Función async con navigator.clipboard.writeText + manejo de errores, activa `actionMessage` por 2s
+    - ✅ **handleCopyDefinition()** (líneas 320-327): Construye texto con `buildDefinitionSnippet()`, copia y muestra confirmación
+    - ✅ **handleCopySnippet()** (líneas 329-334): Copia el snippet de la variante seleccionada
+    - ✅ **handleGenerateAnswer()** (líneas 336-349): Genera respuesta de entrevista con `buildInterviewAnswer()` en idioma seleccionado (ES/EN), copia y activa preview
+    - ✅ **actionMessage**: Estado que muestra feedback por 2s ("Copiado a portapapeles", "Respuesta lista")
+    - ✅ **answerPreview**: Estado que almacena respuesta generada para mostrar en preview
+  
+  - **Funciones helper**:
+    - ✅ **buildDefinitionSnippet()** (líneas 935-947): Arma texto "{term} ({translation}): {meaning}. Se aplica para {usage}."
+    - ✅ **buildInterviewAnswer()** (líneas 949-1000): Genera respuesta multilinea estructurada:
+      - Intro contextual bilingüe
+      - Punto "Significa"
+      - Punto "Lo uso para"
+      - Punto opcional "Caso de uso" si existe UseCase
+      - Punto opcional "Snippet" si existe TermVariant
+      - Outro reafirmando consistencia
+      - Conecta por idioma: etiquetas `contextLabels` y `languageLabels` para traducciones
+  
+  - **Estado y Memoización**:
+    - `variantLang`: lenguaje seleccionado en SelectorPanel (predeterminado al primero disponible)
+    - `useCaseContext`: contexto de caso de uso (predeterminado al primero disponible)
+    - `cheatSheetOpen`: booleano que alterna vista compacta
+    - `actionMessage`: string que se limpia automáticamente tras 2s
+    - `answerPreview`: string con respuesta generada para mostrar en preview temporal
+  
+  - **UX**:
+    - Retroalimentación inmediata: mensaje "Copiado a portapapeles" al copiar
+    - Respuesta generada se muestra en preview antes de copiar (opcional)
+    - Cheat sheet abre/cierra sin recargar el componente
+    - Botones se desactivan si no hay datos relevantes (ej: "Copiar snippet" si no hay variante)
+  
+  - **Validación**: Typecheck ✅ 0 errores, componentes integrados en `ResultPreview`
 
 ## 3. Integraciones y flujo real
 
