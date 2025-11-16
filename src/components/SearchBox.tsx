@@ -7,6 +7,17 @@ import { useI18n } from "@/lib/i18n";
 import type { TermDTO } from "@/types/term";
 
 const quickTerms = ["fetch", "useState", "REST", "JOIN", "JWT", "Docker"];
+const contexts = [
+  { id: "dictionary", label: "Diccionario" },
+  { id: "interview", label: "Entrevista" },
+  { id: "bug", label: "Debug" },
+  { id: "translate", label: "Traducción" },
+];
+const modeLabels: Record<string, string> = {
+  list: "Concepto",
+  code: "Código",
+  question: "Pregunta",
+};
 type Status = "idle" | "loading" | "ready" | "empty" | "error";
 
 export default function SearchBox() {
@@ -16,7 +27,11 @@ export default function SearchBox() {
   const [selected, setSelected] = useState<TermDTO | null>(null);
   const [status, setStatus] = useState<Status>("idle");
   const [errorMsg, setErrorMsg] = useState("");
+  const [context, setContext] = useState<string>("dictionary");
+  const [modeOverride, setModeOverride] = useState<string | null>(null);
   const debounced = useDebounce(search, 220);
+  const detectedMode = useMemo(() => detectInputMode(debounced), [debounced]);
+  const effectiveMode = modeOverride ?? detectedMode;
 
   const hasQuery = debounced.trim().length > 1;
   const statusMessage = useMemo(() => {
@@ -50,6 +65,8 @@ export default function SearchBox() {
       q: debounced,
       pageSize: "12",
       sort: "term_asc",
+      context,
+      mode: effectiveMode,
     });
     fetch(`/api/terms?${params.toString()}`, { signal: controller.signal })
       .then((res) => {
@@ -72,7 +89,7 @@ export default function SearchBox() {
         setErrorMsg(error?.message || "");
       });
     return () => controller.abort();
-  }, [debounced, hasQuery]);
+  }, [debounced, hasQuery, context, effectiveMode]);
 
   return (
     <section id="search" className="rounded-3xl border border-white/10 bg-white/5 p-6 shadow-glow-card space-y-4">
@@ -105,6 +122,41 @@ export default function SearchBox() {
               #{term}
             </button>
           ))}
+        </div>
+        <div className="flex flex-wrap items-center gap-2 pt-2">
+          {contexts.map((ctx) => {
+            const active = context === ctx.id;
+            return (
+              <button
+                key={ctx.id}
+                type="button"
+                className={`rounded-full px-3 py-1 text-xs font-semibold transition ${
+                  active ? "bg-white text-ink-900 shadow" : "border border-white/15 text-white/70 hover:bg-white/10"
+                }`}
+                aria-pressed={active}
+                onClick={() => setContext(ctx.id)}
+              >
+                {ctx.label}
+              </button>
+            );
+          })}
+          <span className="text-xs text-white/60">
+            Modo:{" "}
+            <button
+              type="button"
+              className="underline-offset-4 hover:underline"
+              onClick={() =>
+                setModeOverride((current) => {
+                  if (current === null) return detectedMode;
+                  const modes = Object.keys(modeLabels);
+                  const idx = modes.indexOf(current);
+                  return modes[(idx + 1) % modes.length];
+                })
+              }
+            >
+              {modeLabels[effectiveMode]}
+            </button>
+          </span>
         </div>
       </div>
 
@@ -317,6 +369,17 @@ function SkeletonList() {
   );
 }
 
+function detectInputMode(value: string): string {
+  const trimmed = value.trim();
+  if (!trimmed) return "list";
+  if (/\n/.test(trimmed) || /[{<>=;]/.test(trimmed) || trimmed.includes("function") || trimmed.includes("const ")) {
+    return "code";
+  }
+  if (trimmed.endsWith("?") || /^¿/.test(trimmed) || /(how|why|qué|por qué|como)\b/i.test(trimmed)) {
+    return "question";
+  }
+  return "list";
+}
 function useDebounce<T>(value: T, delay = 250) {
   const [debounced, setDebounced] = useState(value);
   useEffect(() => {

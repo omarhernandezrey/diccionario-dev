@@ -37,9 +37,14 @@
 
 ## 2. Experiencia principal (Buscador unificado)
 
-### 1. Input inteligente
-- Detectar si se ingresa palabra, fragmento de código o pregunta.
-- Mostrar chips de contexto (diccionario, entrevista, bug, etc.).
+### 1. Input inteligente ✅
+- **Completado**: El buscador identifica el tipo de entrada y permite ajustar el contexto explícitamente.
+  - `src/components/SearchBox.tsx`: Añadimos detectores heurísticos que reconocen:
+    - Código (multi‑línea, símbolos como `{`, `<`, `;`, etc.).
+    - Preguntas (`?`, palabras como “cómo”, “why”).
+  - Se muestra el modo detectado (“Concepto”, “Código” o “Pregunta”) y puedes alternarlo manualmente.
+  - Incorporamos chips de contexto (Diccionario, Entrevista, Debug, Traducción). Cada chip actualiza el estado `context`, que se envía en la query.
+  - Las llamadas a `/api/terms` ahora incluyen `context` y `mode`, lo que alimenta el nuevo `SearchLog`, asociando cada búsqueda a estos parámetros.
 
 ### 2. Resultados
 - Bloques: Significado (ES/EN), traducción literal, snippet base, botones para cambiar lenguaje/contexto.
