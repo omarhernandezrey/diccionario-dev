@@ -1,6 +1,8 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import { Prism as SyntaxHighlighter } from "react-syntax-highlighter";
+import { dracula } from "react-syntax-highlighter/dist/cjs/styles/prism";
 import { useI18n } from "@/lib/i18n";
 import type { TermDTO } from "@/types/term";
 
@@ -73,16 +75,8 @@ export default function SearchBox() {
   }, [debounced, hasQuery]);
 
   return (
-    <section id="search" className="glass-panel">
-      <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
-        <div>
-          <p className="badge-pill">{t("search.title")}</p>
-          <h2 className="text-2xl font-semibold text-white sm:text-3xl">{t("search.subtitle")}</h2>
-          <p className="text-sm text-white/70">{t("search.overview")}</p>
-        </div>
-      </div>
-
-      <div className="mt-6 space-y-4">
+    <section id="search" className="rounded-3xl border border-white/10 bg-white/5 p-6 shadow-glow-card space-y-4">
+      <div className="space-y-3">
         <label htmlFor="term-search" className="sr-only">
           {t("search.ariaLabel")}
         </label>
@@ -114,15 +108,15 @@ export default function SearchBox() {
         </div>
       </div>
 
-      <div className="mt-8 grid gap-6 lg:grid-cols-2">
-        <div className="glass-card h-full rounded-3xl border border-white/10 bg-ink-800/80 p-4">
+      <div className="mt-2 flex flex-col gap-6 lg:flex-row">
+        <div className="flex-1 space-y-4">
           <header className="flex items-center justify-between gap-2">
             <h3 className="text-lg font-semibold text-white">{t("search.results")}</h3>
             <span className="rounded-full border border-white/10 px-3 py-1 text-xs text-white/70" aria-live="polite">
               {statusMessage}
             </span>
           </header>
-          <div className="mt-4 max-h-[360px] overflow-y-auto pr-2">
+          <div className="max-h-[360px] overflow-y-auto pr-2 scroll-silent">
             {status === "loading" ? (
               <SkeletonList />
             ) : items.length ? (
@@ -164,7 +158,7 @@ export default function SearchBox() {
           </div>
         </div>
 
-        <div className="glass-card h-full rounded-3xl border border-white/10 bg-ink-800/60 p-5">
+        <div className="flex-1">
           {selected ? <ResultPreview term={selected} /> : <Placeholder copy={t("search.helper")} />}
         </div>
       </div>
@@ -189,28 +183,25 @@ function ResultPreview({ term }: { term: TermDTO }) {
         <p className="text-xs uppercase tracking-wide text-white/60">{t("terms.what")}</p>
         <p className="text-sm text-white">{term.what}</p>
       </div>
-      <div className="flex-1 rounded-2xl border border-white/10 bg-ink-900/60 p-4">
-        <p className="text-xs uppercase tracking-wide text-white/60">{t("terms.how")}</p>
-        <CodeBlock code={term.how} />
-      </div>
+        <div className="flex-1 rounded-2xl border border-white/10 bg-ink-900/60 p-4">
+          <p className="text-xs uppercase tracking-wide text-white/60">{t("terms.how")}</p>
+          <CodeBlock code={term.how} label={t("terms.how")} />
+        </div>
       {term.examples?.length ? (
-        <div className="space-y-3">
-          <p className="text-xs uppercase tracking-wide text-white/60">{t("terms.examples")}</p>
-          <div className="space-y-2">
-            {term.examples.map((example, index) => (
-              <div key={`${example.title}-${index}`} className="rounded-2xl border border-white/10 bg-ink-900/60 p-4">
-                <div className="flex items-center justify-between gap-3">
+          <div className="space-y-3">
+            <p className="text-xs uppercase tracking-wide text-white/60">{t("terms.examples")}</p>
+            <div className="space-y-2">
+              {term.examples.map((example, index) => (
+                <div key={`${example.title}-${index}`} className="rounded-2xl border border-white/10 bg-ink-900/60 p-4">
                   <div>
                     <p className="text-sm font-semibold text-white">{example.title || `Snippet #${index + 1}`}</p>
                     {example.note ? <p className="text-xs text-white/60">{example.note}</p> : null}
                   </div>
-                  <CopyButton code={example.code} />
+                  <CodeBlock code={example.code} label={example.title || `Snippet #${index + 1}`} />
                 </div>
-                <CodeBlock code={example.code} />
-              </div>
-            ))}
+              ))}
+            </div>
           </div>
-        </div>
       ) : null}
     </article>
   );
@@ -224,18 +215,61 @@ function Placeholder({ copy }: { copy: string }) {
   );
 }
 
-function CodeBlock({ code }: { code: string }) {
-  const normalized = code?.replace(/\r\n/g, "\n") || "";
-  const lines = normalized.split("\n");
+function CodeBlock({ code, label }: { code: string; label?: string }) {
+  const normalized = (code ?? "").trimEnd().replace(/\r\n/g, "\n") || "// Sin código";
   return (
-    <pre className="mt-3 max-h-48 overflow-auto rounded-2xl bg-ink-900/80 p-4 text-xs text-white/80">
-      {lines.map((line, index) => (
-        <code key={`${index}-${line.slice(0, 8)}`} className="flex gap-3 whitespace-pre">
-          <span className="w-6 text-right text-white/30">{String(index + 1).padStart(2, "0")}</span>
-          <span className="flex-1">{line || "\u00A0"}</span>
-        </code>
-      ))}
-    </pre>
+    <div className="mt-3 overflow-hidden rounded-2xl border border-white/10 bg-[#050915] shadow-inner">
+      <div className="flex items-center justify-between gap-2 border-b border-white/5 px-4 py-2 text-[11px] text-white/60">
+        <div className="flex items-center gap-3">
+          <span className="flex gap-1">
+            <span className="h-2.5 w-2.5 rounded-full bg-[#ff5f56]" />
+            <span className="h-2.5 w-2.5 rounded-full bg-[#ffbd2e]" />
+            <span className="h-2.5 w-2.5 rounded-full bg-[#27c93f]" />
+          </span>
+          <span className="uppercase tracking-wide opacity-70">{label || "Snippet"}</span>
+        </div>
+        <CopyButton code={normalized} />
+      </div>
+      <SyntaxHighlighter
+        language="tsx"
+        style={dracula}
+        customStyle={{
+          borderRadius: 0,
+          padding: "1rem 1.25rem",
+          maxHeight: "11rem",
+          overflow: "auto",
+          fontSize: "0.78rem",
+          backgroundColor: "transparent",
+          margin: 0,
+        }}
+        codeTagProps={{
+          style: {
+            fontFamily: "JetBrains Mono, SFMono-Regular, Menlo, monospace",
+            whiteSpace: "pre-wrap",
+            wordBreak: "break-word",
+          },
+        }}
+        lineNumberStyle={{
+          minWidth: "2.5ch",
+          paddingRight: "0.75rem",
+          textAlign: "right",
+          color: "rgba(255,255,255,0.35)",
+        }}
+        lineProps={{
+          style: {
+            display: "block",
+            paddingLeft: "0.85rem",
+            textIndent: "-0.85rem",
+          },
+        }}
+        showLineNumbers
+        wrapLines
+        wrapLongLines
+        className="scroll-silent"
+      >
+        {normalized}
+      </SyntaxHighlighter>
+    </div>
   );
 }
 

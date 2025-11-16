@@ -114,7 +114,7 @@ export default function TermsExplorer() {
   }
 
   return (
-    <section id="explorer" className="glass-panel space-y-6">
+    <section id="explorer" className="glass-panel space-y-6 rounded-3xl border border-white/10 bg-white/5 p-5 sm:p-8">
       <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
         <div>
           <p className="badge-pill">{t("filters.heading")}</p>
@@ -126,7 +126,7 @@ export default function TermsExplorer() {
         </span>
       </div>
 
-      <div className="grid gap-4 lg:grid-cols-[2fr_1fr]">
+      <div className="grid gap-4 lg:grid-cols-[minmax(0,2fr)_minmax(0,1fr)]">
         <div className="space-y-4">
           <label className="text-sm text-white/70" htmlFor="explorer-search">
             {t("search.ariaLabel")}
@@ -218,7 +218,7 @@ export default function TermsExplorer() {
         {status === "loading" ? (
           <CardSkeleton />
         ) : data.items.length ? (
-          <div className="grid gap-4 md:grid-cols-2">
+          <div className="grid gap-4 [grid-template-columns:repeat(auto-fit,minmax(260px,1fr))]">
             {data.items.map((term) => (
               <article key={term.id} className="rounded-3xl border border-white/10 bg-white/5 p-5 shadow-glow-card">
                 <div className="flex items-start justify-between">
@@ -284,8 +284,8 @@ export default function TermsExplorer() {
 
 function CardSkeleton() {
   return (
-    <div className="grid gap-4 md:grid-cols-2">
-      {Array.from({ length: 4 }).map((_, index) => (
+    <div className="grid gap-4 [grid-template-columns:repeat(auto-fit,minmax(260px,1fr))]">
+      {Array.from({ length: 6 }).map((_, index) => (
         <div key={index} className="animate-pulse rounded-3xl border border-white/5 bg-white/5 p-5">
           <div className="flex items-center justify-between">
             <div className="h-6 w-32 rounded-full bg-white/20" />

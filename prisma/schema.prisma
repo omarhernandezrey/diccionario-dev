@@ -8,25 +8,37 @@ datasource db {
 }
 
 model Term {
-  id           Int       @id @default(autoincrement())
-  term         String    @unique
-  translation  String    @default("")
-  aliases      Json      @default("[]")
-  tags         Json      @default("[]")
-  category     Category
-  meaning      String
-  what         String
-  how          String
-  examples     Json      @default("[]")
-  createdAt    DateTime  @default(now())
-  updatedAt    DateTime  @updatedAt
-  createdById  Int?
-  updatedById  Int?
-  createdBy    User?     @relation("TermsCreated", fields: [createdById], references: [id])
-  updatedBy    User?     @relation("TermsUpdated", fields: [updatedById], references: [id])
-  history      TermHistory[]
+  id          Int           @id @default(autoincrement())
+  term        String        @unique
+  translation String        @default("")
+  titleEs     String?
+  titleEn     String?
+  slug        String        @unique
+  aliases     Json          @default("[]")
+  tags        Json          @default("[]")
+  category    Category
+  meaning     String
+  meaningEs   String?
+  meaningEn   String?
+  what        String
+  how         String
+  howEs       String?
+  howEn       String?
+  examples    Json          @default("[]")
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+  createdById Int?
+  updatedById Int?
+  createdBy   User?         @relation("TermsCreated", fields: [createdById], references: [id])
+  updatedBy   User?         @relation("TermsUpdated", fields: [updatedById], references: [id])
+  history     TermHistory[]
+  variants    TermVariant[]
+  useCases    UseCase[]
+  faqs        Faq[]
+  exercises   Exercise[]
 
   @@index([term])
+  @@index([slug])
   @@index([category])
   @@index([translation])
   @@index([createdAt])
@@ -42,16 +54,110 @@ enum Category {
 }
 
 model User {
-  id            Int            @id @default(autoincrement())
-  username      String         @unique
-  email         String?        @unique
+  id            Int           @id @default(autoincrement())
+  username      String        @unique
+  email         String?       @unique
   password      String
-  role          String         @default("user")
-  createdAt     DateTime       @default(now())
-  updatedAt     DateTime       @updatedAt
-  createdTerms  Term[]         @relation("TermsCreated")
-  updatedTerms  Term[]         @relation("TermsUpdated")
-  historyEvents TermHistory[]  @relation("HistoryAuthor")
+  role          String        @default("user")
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+  createdTerms  Term[]        @relation("TermsCreated")
+  updatedTerms  Term[]        @relation("TermsUpdated")
+  historyEvents TermHistory[] @relation("HistoryAuthor")
+}
+
+model TermVariant {
+  id       Int        @id @default(autoincrement())
+  termId   Int
+  language Language
+  snippet  String
+  notes    String?
+  level    SkillLevel @default(intermediate)
+
+  term Term @relation(fields: [termId], references: [id], onDelete: Cascade)
+
+  @@index([termId])
+  @@index([language])
+}
+
+enum Language {
+  js
+  ts
+  py
+  java
+  csharp
+  go
+  php
+  ruby
+  rust
+  cpp
+  swift
+  kotlin
+}
+
+enum SkillLevel {
+  beginner
+  intermediate
+  advanced
+}
+
+model UseCase {
+  id      Int            @id @default(autoincrement())
+  termId  Int
+  context UseCaseContext
+  summary String
+  steps   Json           @default("[]")
+  tips    String?
+
+  term Term @relation(fields: [termId], references: [id], onDelete: Cascade)
+
+  @@index([termId])
+  @@index([context])
+}
+
+enum UseCaseContext {
+  interview
+  project
+  bug
+}
+
+model Faq {
+  id           Int     @id @default(autoincrement())
+  termId       Int?
+  questionEs   String
+  questionEn   String?
+  answerEs     String
+  answerEn     String?
+  snippet      String?
+  category     String?
+  howToExplain String?
+
+  term Term? @relation(fields: [termId], references: [id], onDelete: SetNull)
+
+  @@index([termId])
+  @@index([category])
+}
+
+model Exercise {
+  id         Int        @id @default(autoincrement())
+  termId     Int?
+  titleEs    String
+  titleEn    String?
+  promptEs   String
+  promptEn   String?
+  difficulty Difficulty @default(medium)
+  solutions  Json       @default("[]")
+
+  term Term? @relation(fields: [termId], references: [id], onDelete: SetNull)
+
+  @@index([termId])
+  @@index([difficulty])
+}
+
+enum Difficulty {
+  easy
+  medium
+  hard
 }
 
 model TermHistory {
@@ -61,9 +167,9 @@ model TermHistory {
   action    HistoryAction
   note      String?
   authorId  Int?
-  createdAt DateTime       @default(now())
+  createdAt DateTime      @default(now())
 
-  term   Term @relation(fields: [termId], references: [id], onDelete: Cascade)
+  term   Term  @relation(fields: [termId], references: [id], onDelete: Cascade)
   author User? @relation("HistoryAuthor", fields: [authorId], references: [id])
 
   @@index([termId, createdAt])

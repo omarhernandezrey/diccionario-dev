@@ -1,108 +1,44 @@
-### Diccionario · Ejemplos REST (VS Code REST Client)
-### Requiere extensión: REST Client (by Huachao Mao)
-
 @baseUrl = http://localhost:3000
-@username = {{ADMIN_USERNAME}}
-@password = {{ADMIN_PASSWORD}}
-@email = {{ADMIN_EMAIL}}
+@adminToken = REEMPLAZA_CON_TU_TOKEN
 
-### 0) Salud: Versión del spec OpenAPI (opcional)
-GET {{baseUrl}}/api/openapi
+### Healthcheck
+GET {{baseUrl}}/api/health
 
-### 1) Estado de sesión (y bootstrap flag)
-GET {{baseUrl}}/api/auth
-
-> {%
-// Guarda bandera de bootstrap si viene en la respuesta
-try {
-  const data = JSON.parse(response.body);
-  if (data && typeof data.allowBootstrap === 'boolean') {
-    client.global.set('allowBootstrap', String(data.allowBootstrap));
-  }
-} catch {}
-%}
-
-### 2) Registro (solo si allowBootstrap=true) – ignora 401/409 en entornos ya inicializados
-POST {{baseUrl}}/api/auth/register
-Content-Type: application/json
-
-{
-  "username": "{{username}}",
-  "password": "{{password}}",
-  "email": "{{email}}"
-}
-
-> {%
-// Captura cookie admin_token del Set-Cookie para siguientes requests
-const setCookie = response.headers['set-cookie'];
-if (setCookie) {
-  const source = Array.isArray(setCookie) ? setCookie[0] : setCookie;
-  const m = /admin_token=([^;]+)/.exec(source);
-  if (m) { client.global.set('authCookie', `admin_token=${m[1]}`); }
-}
-%}
-
-### 3) Login (si ya existe admin)
+### Login administrador
 POST {{baseUrl}}/api/auth/login
 Content-Type: application/json
 
 {
-  "username": "{{username}}",
-  "password": "{{password}}"
+  "username": "admin",
+  "password": "AdminPass123!"
 }
 
-> {%
-// Captura cookie admin_token tras login
-const setCookie = response.headers['set-cookie'];
-if (setCookie) {
-  const source = Array.isArray(setCookie) ? setCookie[0] : setCookie;
-  const m = /admin_token=([^;]+)/.exec(source);
-  if (m) { client.global.set('authCookie', `admin_token=${m[1]}`); }
-}
-%}
-
-### 4) Verificar sesión
+### Obtener perfil autenticado (requiere cookie o header Authorization)
 GET {{baseUrl}}/api/auth
-Cookie: {{authCookie}}
+Authorization: Bearer {{adminToken}}
 
-### 5) Listado público de términos (búsqueda)
-GET {{baseUrl}}/api/terms?q=css&page=1&pageSize=5
+### Listar términos con filtros
+GET {{baseUrl}}/api/terms?q=css&tag=layout&page=1&pageSize=5&sort=recent
 
-### 6) Crear término (requiere admin)
+### Crear término (admin únicamente)
 POST {{baseUrl}}/api/terms
+Authorization: Bearer {{adminToken}}
 Content-Type: application/json
-Cookie: {{authCookie}}
 
 {
-  "term": "CSS Grid (temp)",
-  "translation": "Cuadrícula CSS (temp)",
-  "aliases": ["grid layout"],
-  "tags": ["css", "layout"],
+  "term": "CSS Grid",
+  "translation": "Cuadrícula CSS",
+  "aliases": ["grid layout", "layout bidimensional"],
+  "tags": ["layout", "responsive"],
   "category": "frontend",
-  "meaning": "Sistema bidimensional para maquetar.",
-  "what": "Define áreas sin floats.",
-  "how": "display: grid; grid-template-columns: repeat(12, 1fr);",
-  "examples": [ { "title": "Ejemplo básico", "code": "display: grid;" } ]
+  "meaning": "Sistema bidimensional que permite ubicar elementos en filas y columnas.",
+  "what": "Define áreas y tracks para maquetaciones complejas.",
+  "how": "Combina display: grid, grid-template y fracciones para controlar columnas/filas.",
+  "examples": [
+    {
+      "title": "Plantilla básica",
+      "code": " .grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1rem; } ",
+      "note": "Ajusta `gap` según el espaciado deseado."
+    }
+  ]
 }
-
-> {%
-// Guarda el ID del término creado
-try {
-  const data = JSON.parse(response.body);
-  if (data && data.item && typeof data.item.id === 'number') {
-    client.global.set('termId', String(data.item.id));
-  }
-} catch {}
-%}
-
-### 7) Consultar término por ID (público)
-GET {{baseUrl}}/api/terms/{{termId}}
-
-### 8) Eliminar término (admin)
-DELETE {{baseUrl}}/api/terms/{{termId}}
-Cookie: {{authCookie}}
-
-### 9) Logout
-DELETE {{baseUrl}}/api/auth
-Cookie: {{authCookie}}
-

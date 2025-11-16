@@ -430,7 +430,7 @@ export default function AdminPage() {
   return (
     <div className="min-h-screen bg-ink-900 text-white">
       <header className="border-b border-white/10 bg-linear-to-r from-ink-900 via-ink-800 to-ink-900">
-        <div className="mx-auto flex max-w-6xl flex-col gap-8 px-6 py-12 lg:px-0">
+        <div className="mx-auto flex w-full max-w-7xl flex-col gap-8 px-4 py-10 sm:px-6 lg:px-10">
           <div className="grid gap-10 lg:grid-cols-[1.2fr_0.8fr]">
             <div className="space-y-6">
               <div className="flex flex-wrap items-center gap-4">
@@ -485,7 +485,7 @@ export default function AdminPage() {
           </div>
         </div>
       </header>
-      <main className="mx-auto flex w-full max-w-6xl flex-col gap-8 px-6 py-10 lg:px-0">
+      <main className="mx-auto flex w-full max-w-7xl flex-col gap-8 px-4 py-10 sm:px-6 lg:px-10">
         <ToastStack
           error={authError}
           message={message}
@@ -780,8 +780,8 @@ function TermsTable({
           </button>
         </div>
       </div>
-      <div className="overflow-hidden rounded-3xl border border-white/10">
-        <table className="min-w-full divide-y divide-white/10 text-sm">
+      <div className="overflow-x-auto rounded-3xl border border-white/10 bg-white/5">
+        <table className="min-w-[720px] divide-y divide-white/10 text-sm">
           <thead className="bg-white/5 text-left text-xs uppercase tracking-wide text-white/60">
             <tr>
               <th className="px-4 py-3">
@@ -861,6 +861,8 @@ type EditorSheetProps = {
 
 function EditorSheet({ term, onCancel, onSave }: EditorSheetProps) {
   const [val, setVal] = useState(term);
+  const baseFieldClasses =
+    "mt-1 w-full rounded-2xl border border-white/15 bg-[#0d1424] px-4 py-2 text-white shadow-inner focus:border-accent-secondary focus:outline-none placeholder-white/50";
 
   useEffect(() => {
     setVal(term);
@@ -869,8 +871,8 @@ function EditorSheet({ term, onCancel, onSave }: EditorSheetProps) {
   const requiredFilled = Boolean(val.term.trim() && val.translation.trim() && val.meaning.trim() && val.what.trim() && val.how.trim());
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 px-4 py-6">
-      <section className="max-h-[90vh] w-full max-w-5xl overflow-y-auto rounded-3xl border border-white/10 bg-ink-900 p-6 shadow-glow-card">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-ink-950/90 px-4 py-6 backdrop-blur">
+      <section className="max-h-[90vh] w-full max-w-5xl overflow-y-auto rounded-3xl border border-white/15 bg-[#050915] p-6 shadow-glow-card">
         <header className="flex flex-wrap items-center justify-between gap-4">
           <div>
             <p className="text-xs uppercase tracking-wide text-white/60">{val.id ? "Editar término" : "Nuevo término"}</p>
@@ -884,7 +886,7 @@ function EditorSheet({ term, onCancel, onSave }: EditorSheetProps) {
           <label className="text-sm text-white/70">
             Término
             <input
-              className="mt-1 w-full rounded-2xl border border-white/10 bg-transparent px-4 py-2 text-white focus:border-accent-secondary focus:outline-none"
+              className={baseFieldClasses}
               required
               value={val.term}
               onChange={(event) => setVal({ ...val, term: event.target.value })}
@@ -893,7 +895,7 @@ function EditorSheet({ term, onCancel, onSave }: EditorSheetProps) {
           <label className="text-sm text-white/70">
             Traducción
             <input
-              className="mt-1 w-full rounded-2xl border border-white/10 bg-transparent px-4 py-2 text-white focus:border-accent-secondary focus:outline-none"
+              className={baseFieldClasses}
               required
               value={val.translation}
               onChange={(event) => setVal({ ...val, translation: event.target.value })}
@@ -902,7 +904,7 @@ function EditorSheet({ term, onCancel, onSave }: EditorSheetProps) {
           <label className="text-sm text-white/70">
             Categoría
             <select
-              className="mt-1 w-full rounded-2xl border border-white/10 bg-ink-900/70 px-4 py-2 text-white focus:border-accent-secondary focus:outline-none"
+              className={`${baseFieldClasses} bg-ink-800`}
               value={val.category}
               onChange={(event) => setVal({ ...val, category: event.target.value as Term["category"] })}
             >
@@ -919,7 +921,7 @@ function EditorSheet({ term, onCancel, onSave }: EditorSheetProps) {
           <label className="text-sm text-white/70">
             Significado
             <textarea
-              className="mt-1 w-full rounded-2xl border border-white/10 bg-transparent px-4 py-2 text-white focus:border-accent-secondary focus:outline-none"
+              className={`${baseFieldClasses} min-h-[96px] resize-none`}
               rows={2}
               required
               value={val.meaning}
@@ -929,7 +931,7 @@ function EditorSheet({ term, onCancel, onSave }: EditorSheetProps) {
           <label className="text-sm text-white/70">
             Qué resuelve
             <textarea
-              className="mt-1 w-full rounded-2xl border border-white/10 bg-transparent px-4 py-2 text-white focus:border-accent-secondary focus:outline-none"
+              className={`${baseFieldClasses} min-h-[96px] resize-none`}
               rows={2}
               required
               value={val.what}
@@ -940,7 +942,7 @@ function EditorSheet({ term, onCancel, onSave }: EditorSheetProps) {
         <label className="mt-4 block text-sm text-white/70">
           Cómo se usa
           <textarea
-            className="mt-1 w-full rounded-2xl border border-white/10 bg-ink-900/80 px-4 py-2 font-mono text-sm text-white focus:border-accent-secondary focus:outline-none"
+            className={`${baseFieldClasses} min-h-[160px] bg-ink-900 font-mono text-sm`}
             rows={5}
             required
             value={val.how}
@@ -1014,17 +1016,17 @@ function ChipInput({ label, placeholder, values, onChange }: ChipInputProps) {
   return (
     <label className="text-sm text-white/70">
       {label}
-      <div className="mt-1 flex flex-wrap gap-2 rounded-2xl border border-white/10 bg-ink-900/60 px-3 py-2">
+      <div className="mt-1 flex flex-wrap gap-2 rounded-2xl border border-white/15 bg-[#0d1424] px-3 py-2 shadow-inner">
         {values.map((value) => (
-          <span key={value} className="inline-flex items-center gap-2 rounded-full bg-white/10 px-3 py-1 text-xs text-white/80">
+          <span key={value} className="inline-flex items-center gap-2 rounded-full bg-white/20 px-3 py-1 text-xs text-white">
             {value}
-            <button type="button" aria-label={`Eliminar ${value}`} onClick={() => removeChip(value)} className="text-white/60 hover:text-white">
+            <button type="button" aria-label={`Eliminar ${value}`} onClick={() => removeChip(value)} className="text-white/70 hover:text-white">
               ✕
             </button>
           </span>
         ))}
         <input
-          className="flex-1 bg-transparent text-sm text-white focus:outline-none"
+          className="flex-1 bg-transparent text-sm text-white placeholder-white/40 focus:outline-none"
           value={draft}
           placeholder={placeholder}
           onChange={(event) => setDraft(event.target.value)}
@@ -1092,7 +1094,7 @@ function ExamplesEditor({ value, onChange }: ExamplesEditorProps) {
       {list.length ? (
         <div className="space-y-4">
           {list.map((example, index) => (
-            <div key={`${example.title}-${index}`} className="rounded-2xl border border-white/10 bg-ink-900/60 p-4">
+            <div key={`${example.title}-${index}`} className="rounded-2xl border border-white/15 bg-[#050915] p-4 shadow-inner">
               <div className="flex flex-wrap items-center justify-between gap-3">
                 <p className="text-sm font-semibold text-white">Bloque #{index + 1}</p>
                 <div className="flex gap-2">
@@ -1111,7 +1113,7 @@ function ExamplesEditor({ value, onChange }: ExamplesEditorProps) {
                 <label className="text-xs uppercase tracking-wide text-white/50">
                   Título
                   <input
-                    className="mt-1 w-full rounded-2xl border border-white/10 bg-transparent px-3 py-2 text-sm text-white focus:border-accent-secondary focus:outline-none"
+                    className="mt-1 w-full rounded-2xl border border-white/15 bg-[#0d1424] px-3 py-2 text-sm text-white shadow-inner focus:border-accent-secondary focus:outline-none"
                     value={example.title}
                     onChange={(event) => update(index, { title: event.target.value })}
                   />
@@ -1119,7 +1121,7 @@ function ExamplesEditor({ value, onChange }: ExamplesEditorProps) {
                 <label className="text-xs uppercase tracking-wide text-white/50">
                   Nota
                   <input
-                    className="mt-1 w-full rounded-2xl border border-white/10 bg-transparent px-3 py-2 text-sm text-white focus:border-accent-secondary focus:outline-none"
+                    className="mt-1 w-full rounded-2xl border border-white/15 bg-[#0d1424] px-3 py-2 text-sm text-white shadow-inner focus:border-accent-secondary focus:outline-none"
                     value={example.note || ""}
                     onChange={(event) => update(index, { note: event.target.value })}
                   />
@@ -1128,7 +1130,7 @@ function ExamplesEditor({ value, onChange }: ExamplesEditorProps) {
               <label className="mt-3 block text-xs uppercase tracking-wide text-white/50">
                 Código
                 <textarea
-                  className="mt-1 w-full rounded-2xl border border-white/10 bg-ink-900/80 px-3 py-2 font-mono text-xs text-white focus:border-accent-secondary focus:outline-none"
+                  className="mt-1 w-full rounded-2xl border border-white/15 bg-[#050915] px-3 py-2 font-mono text-xs text-white shadow-inner focus:border-accent-secondary focus:outline-none"
                   rows={4}
                   value={example.code}
                   onChange={(event) => update(index, { code: event.target.value })}
