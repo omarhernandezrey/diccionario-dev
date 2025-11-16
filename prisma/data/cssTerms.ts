@@ -1,7 +1,6 @@
 import { Category } from "@prisma/client";
-import type { SeedTerm } from "../dictionary-types";
 
-type CssInputTerm = {
+export type CssInputTerm = {
   term: string;
   translation: string;
   description: string;
@@ -1340,15 +1339,4 @@ button {
   },
 ];
 
-export const cssTerms: SeedTerm[] = cssBaseTerms.map(item => ({
-  term: item.term,
-  translation: item.translation,
-  aliases: item.aliases ?? [],
-  category: Category.frontend,
-  meaning: `En CSS "${item.term}" se usa para ${item.description}.`,
-  what: item.what ?? `Lo empleamos para ${item.description} dentro de interfaces frontend.`,
-  how:
-    item.how ??
-    `Declara "${item.term}" en tus estilos o utilidades para ${item.description} y prueba el resultado en distintos breakpoints.`,
-  examples: [item.example],
-}));
+export const cssTerms: CssInputTerm[] = cssBaseTerms;

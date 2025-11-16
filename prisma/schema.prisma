@@ -13,7 +13,7 @@ model Term {
   translation String        @default("")
   titleEs     String?
   titleEn     String?
-  slug        String        @unique
+  slug        String?       @unique
   aliases     Json          @default("[]")
   tags        Json          @default("[]")
   category    Category
@@ -21,6 +21,8 @@ model Term {
   meaningEs   String?
   meaningEn   String?
   what        String
+  whatEs      String?
+  whatEn      String?
   how         String
   howEs       String?
   howEn       String?
@@ -83,6 +85,7 @@ model TermVariant {
 enum Language {
   js
   ts
+  css
   py
   java
   csharp

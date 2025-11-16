@@ -11,9 +11,12 @@
   - **Exercise**: enunciado ES/EN, dificultad, soluciones (language, code, explain).
 - **Formateado**: El esquema fue formateado con `DATABASE_URL=file:./prisma/dev.db npx prisma format` para asegurar consistencia.
 
-### 2. Dataset
-- Migrar datos actuales a la nueva estructura.
-- Añadir traducciones precisas ES/EN, ejemplos bilingües y variantes por lenguaje.
+### 2. Dataset ✅
+- **Completado**: Migramos los datos actuales a la nueva estructura.
+  - prisma/schema.prisma ahora refleja el modelo completo: añadimos slug, títulos ES/EN, campos bilingües (meaningEs/En, whatEs/En, howEs/En), y los nuevos modelos TermVariant, UseCase, Faq y Exercise con sus enums (Language, SkillLevel, UseCaseContext, Difficulty).
+  - prisma/dictionary-types.ts y prisma/data/cssTerms.ts se actualizaron para soportar el nuevo dataset: los ejemplos son bilingües y los términos pueden declarar variantes por lenguaje, casos de uso, FAQs y ejercicios.
+  - prisma/seed.ts ahora genera automáticamente toda esa información: crea slugs, ejemplos ES/EN, variantes según el stack (incluye CSS), casos de uso para entrevista/proyecto/bug, FAQs y ejercicios, y persiste cada bloque en las tablas relacionadas. También deduplica términos respetando las colecciones nuevas.
+  - Generamos la migración prisma/migrations/20251115210519_expand_term_structure/ con todo el SQL para ampliar Term y crear las tablas auxiliares. Utilizamos `npx prisma migrate deploy` localmente (tras generar la migración vía `prisma migrate diff`) y ejecutamos `npx prisma db seed` para validar el nuevo sembrado.
 
 ### 3. Observabilidad
 - Crear tabla/evento `SearchLog` con `termId`, `query`, `language`, `context`, `mode`.
