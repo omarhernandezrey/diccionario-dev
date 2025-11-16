@@ -39,6 +39,31 @@ export const termSchema = z.object({
     )
     .optional()
     .default([]),
+  variants: z
+    .array(
+      z.object({
+        language: z.enum([
+          "js",
+          "ts",
+          "css",
+          "py",
+          "java",
+          "csharp",
+          "go",
+          "php",
+          "ruby",
+          "rust",
+          "cpp",
+          "swift",
+          "kotlin",
+        ]),
+        snippet: z.string().min(1),
+        notes: z.string().optional(),
+        level: z.enum(["beginner", "intermediate", "advanced"]).optional(),
+      }),
+    )
+    .optional()
+    .default([]),
 });
 
 /**
@@ -71,3 +96,12 @@ export type TermInput = z.infer<typeof termSchema>;
 
 /** Tipo utilitario derivado de `termsQuerySchema` que resume filtros ya normalizados. */
 export type TermsQueryInput = z.infer<typeof termsQuerySchema>;
+
+export const translationRequestSchema = z.object({
+  code: z.string().min(1, "El fragmento no puede estar vacío"),
+  language: z
+    .enum(["js", "ts", "jsx", "python", "plain", "go"])
+    .optional(),
+});
+
+export type TranslationRequestInput = z.infer<typeof translationRequestSchema>;

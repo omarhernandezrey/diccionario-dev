@@ -4,7 +4,8 @@ import { useEffect, useMemo, useState } from "react";
 import { Prism as SyntaxHighlighter } from "react-syntax-highlighter";
 import { dracula } from "react-syntax-highlighter/dist/cjs/styles/prism";
 import { useI18n } from "@/lib/i18n";
-import type { TermDTO } from "@/types/term";
+import type { TermDTO, TermVariantDTO } from "@/types/term";
+import type { StructuralTranslationResult } from "@/types/translate";
 
 const quickTerms = ["fetch", "useState", "REST", "JOIN", "JWT", "Docker"];
 const contexts = [
@@ -39,6 +40,11 @@ const difficultyLabels: Record<string, string> = {
   medium: "Media",
   hard: "Alta",
 };
+const skillLabels: Record<string, string> = {
+  beginner: "Principiante",
+  intermediate: "Intermedio",
+  advanced: "Avanzado",
+};
 type Status = "idle" | "loading" | "ready" | "empty" | "error";
 
 export default function SearchBox() {
@@ -46,6 +52,7 @@ export default function SearchBox() {
   const [search, setSearch] = useState("");
   const [items, setItems] = useState<TermDTO[]>([]);
   const [selected, setSelected] = useState<TermDTO | null>(null);
+  const [translationResult, setTranslationResult] = useState<StructuralTranslationResult | null>(null);
   const [status, setStatus] = useState<Status>("idle");
   const [errorMsg, setErrorMsg] = useState("");
   const [context, setContext] = useState<string>("dictionary");
@@ -56,6 +63,28 @@ export default function SearchBox() {
 
   const hasQuery = debounced.trim().length > 1;
   const statusMessage = useMemo(() => {
+    if (context === "translate") {
+      switch (status) {
+        case "idle":
+          return "Pega un fragmento para traducirlo.";
+        case "loading":
+          return t("state.loading");
+        case "empty":
+          return t("search.empty");
+        case "error":
+          return errorMsg || t("state.error");
+        case "ready": {
+          if (!translationResult) return t("search.empty");
+          if (translationResult.fallbackApplied) {
+            return translationResult.segments.length ? "Modo básico aplicado" : "No hay texto para traducir";
+          }
+          const total = (translationResult.replacedStrings ?? 0) + (translationResult.replacedComments ?? 0);
+          return total ? `${total} segmentos traducidos` : "No se detectaron cadenas";
+        }
+        default:
+          return "";
+      }
+    }
     switch (status) {
       case "idle":
         return t("search.helper");
@@ -70,18 +99,48 @@ export default function SearchBox() {
       default:
         return "";
     }
-  }, [status, errorMsg, t, items.length]);
+  }, [status, errorMsg, t, items.length, context, translationResult]);
 
   useEffect(() => {
     if (!hasQuery) {
       setItems([]);
       setSelected(null);
+      setTranslationResult(null);
       setStatus("idle");
       return;
     }
     const controller = new AbortController();
     setStatus("loading");
     setErrorMsg("");
+    if (context === "translate") {
+      setItems([]);
+      setSelected(null);
+      setTranslationResult(null);
+      fetch("/api/translate", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ code: debounced }),
+        signal: controller.signal,
+      })
+        .then((res) => {
+          if (!res.ok) {
+            throw new Error(`HTTP ${res.status}`);
+          }
+          return res.json();
+        })
+        .then((payload) => {
+          setTranslationResult(payload?.result ?? null);
+          setStatus(payload?.result ? "ready" : "empty");
+        })
+        .catch((error) => {
+          if (error.name === "AbortError") return;
+          setTranslationResult(null);
+          setStatus("error");
+          setErrorMsg(error?.message || "");
+        });
+      return () => controller.abort();
+    }
+    setTranslationResult(null);
     const params = new URLSearchParams({
       q: debounced,
       pageSize: "12",
@@ -181,70 +240,87 @@ export default function SearchBox() {
         </div>
       </div>
 
-      <div className="mt-2 flex flex-col gap-6 lg:flex-row">
-        <div className="flex-1 space-y-4">
-          <header className="flex items-center justify-between gap-2">
-            <h3 className="text-lg font-semibold text-white">{t("search.results")}</h3>
-            <span className="rounded-full border border-white/10 px-3 py-1 text-xs text-white/70" aria-live="polite">
-              {statusMessage}
-            </span>
-          </header>
-          <div className="max-h-[360px] overflow-y-auto pr-2 scroll-silent">
-            {status === "loading" ? (
-              <SkeletonList />
-            ) : items.length ? (
-              <ul className="space-y-2">
-                {items.map((term) => {
-                  const active = selected?.id === term.id;
-                  return (
-                    <li key={term.id}>
-                      <button
-                        type="button"
-                        className={`w-full rounded-2xl border px-4 py-3 text-left transition ${
-                          active
-                            ? "border-accent-secondary/70 bg-white/10 shadow-glow-card"
-                            : "border-white/5 bg-white/0 hover:border-white/20 hover:bg-white/[0.03]"
-                        }`}
-                        onClick={() => setSelected(term)}
-                        aria-pressed={active}
-                      >
-                        <div className="flex items-center justify-between gap-3">
-                          <div>
-                            <p className="text-base font-semibold text-white">{term.term}</p>
-                            <p className="text-xs uppercase tracking-wide text-white/50">{term.translation}</p>
+      {context === "translate" ? (
+        <TranslationPanel input={debounced} status={status} helper={statusMessage} result={translationResult} />
+      ) : (
+        <div className="mt-2 flex flex-col gap-6 lg:flex-row">
+          <div className="flex-1 space-y-4">
+            <header className="flex items-center justify-between gap-2">
+              <h3 className="text-lg font-semibold text-white">{t("search.results")}</h3>
+              <span className="rounded-full border border-white/10 px-3 py-1 text-xs text-white/70" aria-live="polite">
+                {statusMessage}
+              </span>
+            </header>
+            <div className="max-h-[360px] overflow-y-auto pr-2 scroll-silent">
+              {status === "loading" ? (
+                <SkeletonList />
+              ) : items.length ? (
+                <ul className="space-y-2">
+                  {items.map((term) => {
+                    const active = selected?.id === term.id;
+                    return (
+                      <li key={term.id}>
+                        <button
+                          type="button"
+                          className={`w-full rounded-2xl border px-4 py-3 text-left transition ${
+                            active
+                              ? "border-accent-secondary/70 bg-white/10 shadow-glow-card"
+                              : "border-white/5 bg-white/0 hover:border-white/20 hover:bg-white/[0.03]"
+                          }`}
+                          onClick={() => setSelected(term)}
+                          aria-pressed={active}
+                        >
+                          <div className="flex items-center justify-between gap-3">
+                            <div>
+                              <p className="text-base font-semibold text-white">{term.term}</p>
+                              <p className="text-xs uppercase tracking-wide text-white/50">{term.translation}</p>
+                            </div>
+                            <span className="rounded-full bg-white/5 px-2 py-1 text-xs text-white/70">{term.category}</span>
                           </div>
-                          <span className="rounded-full bg-white/5 px-2 py-1 text-xs text-white/70">{term.category}</span>
-                        </div>
-                        {term.aliases?.length ? (
-                          <p className="mt-2 line-clamp-1 text-xs text-white/60">
-                            Aliases: <span className="text-white/80">{term.aliases.slice(0, 3).join(", ")}</span>
-                          </p>
-                        ) : null}
-                      </button>
-                    </li>
-                  );
-                })}
-              </ul>
-            ) : (
-              <p className="rounded-2xl border border-dashed border-white/10 px-4 py-6 text-sm text-white/60">{statusMessage}</p>
-            )}
+                          {term.aliases?.length ? (
+                            <p className="mt-2 line-clamp-1 text-xs text-white/60">
+                              Aliases: <span className="text-white/80">{term.aliases.slice(0, 3).join(", ")}</span>
+                            </p>
+                          ) : null}
+                        </button>
+                      </li>
+                    );
+                  })}
+                </ul>
+              ) : (
+                <p className="rounded-2xl border border-dashed border-white/10 px-4 py-6 text-sm text-white/60">{statusMessage}</p>
+              )}
+            </div>
+          </div>
+
+          <div className="flex-1">
+            {selected ? <ResultPreview term={selected} activeContext={context} /> : <Placeholder copy={t("search.helper")} />}
           </div>
         </div>
-
-        <div className="flex-1">
-          {selected ? <ResultPreview term={selected} /> : <Placeholder copy={t("search.helper")} />}
-        </div>
-      </div>
+      )}
     </section>
   );
 }
 
-function ResultPreview({ term }: { term: TermDTO }) {
+function ResultPreview({ term, activeContext }: { term: TermDTO; activeContext: string }) {
   const { t } = useI18n();
   const [variantLang, setVariantLang] = useState<string | null>(term.variants?.[0]?.language ?? null);
+  const useCases = term.useCases ?? [];
+  const availableUseCaseContexts = useMemo(
+    () => Array.from(new Set(useCases.map((useCase) => useCase.context))),
+    [useCases],
+  );
+  const defaultUseCaseContext = useMemo(() => {
+    if (!availableUseCaseContexts.length) return null;
+    return availableUseCaseContexts.includes(activeContext) ? activeContext : availableUseCaseContexts[0];
+  }, [availableUseCaseContexts, activeContext]);
+  const [useCaseContext, setUseCaseContext] = useState<string | null>(defaultUseCaseContext);
   useEffect(() => {
     setVariantLang(term.variants?.[0]?.language ?? null);
   }, [term.id, term.variants]);
+  useEffect(() => {
+    setUseCaseContext(defaultUseCaseContext);
+  }, [defaultUseCaseContext, term.id]);
   const variantOptions = term.variants ?? [];
   const activeVariant =
     (variantLang ? variantOptions.find((variant) => variant.language === variantLang) : undefined) ??
@@ -260,9 +336,9 @@ function ResultPreview({ term }: { term: TermDTO }) {
     : t("terms.how");
   const aliasList = term.aliases ?? [];
   const tags = term.tags ?? [];
-  const useCases = term.useCases ?? [];
   const faqs = term.faqs ?? [];
   const exercises = term.exercises ?? [];
+  const filteredUseCases = useCaseContext ? useCases.filter((useCase) => useCase.context === useCaseContext) : useCases;
   return (
     <article className="flex flex-col gap-6 lg:flex-row">
       <div className="flex-1 space-y-4">
@@ -320,32 +396,14 @@ function ResultPreview({ term }: { term: TermDTO }) {
           </div>
         </div>
 
-        <div className="rounded-2xl border border-white/10 bg-ink-900/60 p-4">
-          <div className="flex flex-wrap items-center justify-between gap-2">
-            <p className="text-xs uppercase tracking-wide text-white/60">{t("terms.how")}</p>
-            {variantOptions.length ? (
-              <div className="flex flex-wrap gap-2 text-xs">
-                {variantOptions.map((variant) => {
-                  const active = variant.language === (variantLang ?? variantOptions[0]?.language);
-                  return (
-                    <button
-                      key={`${term.id}-${variant.language}`}
-                      type="button"
-                      className={`rounded-full px-3 py-1 font-semibold transition ${
-                        active ? "bg-white text-ink-900" : "border border-white/20 text-white/60 hover:bg-white/10"
-                      }`}
-                      onClick={() => setVariantLang(variant.language)}
-                    >
-                      {languageLabels[variant.language] ?? variant.language.toUpperCase()}
-                    </button>
-                  );
-                })}
-              </div>
-            ) : null}
-          </div>
-          <CodeBlock code={snippetCode} label={snippetLabel} />
-          {activeVariant?.notes ? <p className="mt-2 text-xs text-white/60">{activeVariant.notes}</p> : null}
-        </div>
+        <SelectorPanel
+          variantOptions={variantOptions}
+          variantLang={variantLang}
+          onVariantChange={setVariantLang}
+          activeVariant={activeVariant}
+          snippetLabel={snippetLabel}
+          snippetCode={snippetCode}
+        />
 
         {term.examples?.length ? (
           <div className="space-y-3">
@@ -373,27 +431,54 @@ function ResultPreview({ term }: { term: TermDTO }) {
       <aside className="w-full space-y-4 lg:w-80">
         {useCases.length ? (
           <section className="rounded-2xl border border-white/10 bg-ink-900/50 p-4">
-            <p className="text-xs uppercase tracking-wide text-white/60 mb-2">Casos de uso</p>
-            <div className="space-y-3">
-              {useCases.slice(0, 3).map((useCase) => (
-                <div key={`${term.id}-usecase-${useCase.context}-${useCase.id ?? ""}`} className="rounded-2xl border border-white/10 bg-white/5 p-3">
-                  <div className="flex items-center justify-between text-xs text-white/60">
-                    <span className="font-semibold">{contextLabels[useCase.context] ?? useCase.context}</span>
-                  </div>
-                  <p className="mt-2 text-sm text-white">{useCase.summary}</p>
-                  {useCase.steps?.length ? (
-                    <ul className="mt-2 space-y-1 text-xs text-white/70">
-                      {useCase.steps.slice(0, 3).map((step, index) => (
-                        <li key={`${term.id}-step-${useCase.context}-${index}`} className="flex gap-2">
-                          <span className="text-white/40">{index + 1}.</span>
-                          <span>{step.es || step.en}</span>
-                        </li>
-                      ))}
-                    </ul>
-                  ) : null}
-                  {useCase.tips ? <p className="mt-2 text-xs text-white/50">{useCase.tips}</p> : null}
+            <header className="flex flex-wrap items-center justify-between gap-2">
+              <p className="text-xs uppercase tracking-wide text-white/60">Casos de uso</p>
+              {availableUseCaseContexts.length > 1 ? (
+                <div className="flex flex-wrap gap-2 text-[11px]">
+                  {availableUseCaseContexts.map((ctx) => {
+                    const active = ctx === useCaseContext;
+                    return (
+                      <button
+                        key={`${term.id}-ctx-${ctx}`}
+                        type="button"
+                        className={`rounded-full px-2.5 py-0.5 font-semibold transition ${
+                          active ? "bg-white text-ink-900" : "border border-white/20 text-white/60 hover:bg-white/10"
+                        }`}
+                        onClick={() => setUseCaseContext(ctx)}
+                      >
+                        {contextLabels[ctx] ?? ctx}
+                      </button>
+                    );
+                  })}
                 </div>
-              ))}
+              ) : null}
+            </header>
+            <div className="space-y-3 pt-3">
+              {filteredUseCases.length ? (
+                filteredUseCases.slice(0, 3).map((useCase) => (
+                  <div key={`${term.id}-usecase-${useCase.context}-${useCase.id ?? ""}`} className="rounded-2xl border border-white/10 bg-white/5 p-3">
+                    <div className="flex items-center justify-between text-xs text-white/60">
+                      <span className="font-semibold">{contextLabels[useCase.context] ?? useCase.context}</span>
+                    </div>
+                    <p className="mt-2 text-sm text-white">{useCase.summary}</p>
+                    {useCase.steps?.length ? (
+                      <ul className="mt-2 space-y-1 text-xs text-white/70">
+                        {useCase.steps.slice(0, 3).map((step, index) => (
+                          <li key={`${term.id}-step-${useCase.context}-${index}`} className="flex gap-2">
+                            <span className="text-white/40">{index + 1}.</span>
+                            <span>{step.es || step.en}</span>
+                          </li>
+                        ))}
+                      </ul>
+                    ) : null}
+                    {useCase.tips ? <p className="mt-2 text-xs text-white/50">{useCase.tips}</p> : null}
+                  </div>
+                ))
+              ) : (
+                <p className="rounded-2xl border border-dashed border-white/10 p-4 text-xs text-white/60">
+                  No tenemos guías para este contexto todavía.
+                </p>
+              )}
             </div>
           </section>
         ) : null}
@@ -451,12 +536,188 @@ function ResultPreview({ term }: { term: TermDTO }) {
   );
 }
 
+type SelectorPanelProps = {
+  variantOptions: TermVariantDTO[];
+  variantLang: string | null;
+  onVariantChange: (language: string) => void;
+  activeVariant: TermVariantDTO | null;
+  snippetCode: string;
+  snippetLabel: string;
+};
+
+function SelectorPanel({
+  variantOptions = [],
+  variantLang,
+  onVariantChange,
+  activeVariant,
+  snippetCode,
+  snippetLabel,
+}: SelectorPanelProps) {
+  const { t } = useI18n();
+  const hasVariants = Boolean(variantOptions.length);
+  return (
+    <div className="rounded-2xl border border-white/10 bg-ink-900/60 p-4">
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <p className="text-xs uppercase tracking-wide text-white/60">{t("terms.how")}</p>
+        {activeVariant?.level ? (
+          <span className="rounded-full border border-white/15 bg-white/5 px-3 py-0.5 text-[11px] uppercase tracking-wide text-white/60">
+            {skillLabels[activeVariant.level] ?? activeVariant.level}
+          </span>
+        ) : null}
+      </div>
+      {hasVariants ? (
+        <div className="mt-3 flex flex-wrap gap-2 text-xs">
+          {variantOptions.map((variant) => {
+            const active = variant.language === (variantLang ?? variantOptions[0]?.language);
+            return (
+              <button
+                key={`variant-${variant.language}`}
+                type="button"
+                className={`rounded-full px-3 py-1 font-semibold transition ${
+                  active ? "bg-white text-ink-900" : "border border-white/20 text-white/60 hover:bg-white/10"
+                }`}
+                onClick={() => onVariantChange(variant.language)}
+              >
+                {languageLabels[variant.language] ?? variant.language.toUpperCase()}
+              </button>
+            );
+          })}
+        </div>
+      ) : null}
+      <CodeBlock code={snippetCode} label={snippetLabel} />
+      {activeVariant?.notes ? <p className="mt-2 text-xs text-white/60">{activeVariant.notes}</p> : null}
+    </div>
+  );
+}
+
 function Placeholder({ copy }: { copy: string }) {
   return (
     <div className="flex h-full flex-col items-center justify-center rounded-3xl border border-dashed border-white/10 bg-white/5 p-6 text-center text-sm text-white/60">
       <p>{copy}</p>
     </div>
   );
+}
+
+function ErrorBlock({ message }: { message: string }) {
+  return (
+    <div className="rounded-3xl border border-accent-danger/30 bg-accent-danger/10 p-6 text-center text-sm text-accent-danger">
+      {message}
+    </div>
+  );
+}
+
+function TranslationPanel({
+  input,
+  status,
+  helper,
+  result,
+}: {
+  input: string;
+  status: Status;
+  helper: string;
+  result: StructuralTranslationResult | null;
+}) {
+  const trimmed = input.trim();
+  if (!trimmed) {
+    return <Placeholder copy="Pega código o texto técnico para traducirlo al español." />;
+  }
+  if (status === "loading") {
+    return <TranslationSkeleton />;
+  }
+  if (status === "error") {
+    return <ErrorBlock message={helper} />;
+  }
+  if (!result) {
+    return <Placeholder copy={helper} />;
+  }
+  return (
+    <div className="mt-3 space-y-5">
+      <header className="flex flex-wrap items-center justify-between gap-2">
+        <h3 className="text-lg font-semibold text-white">Traducción estructural</h3>
+        <span className="rounded-full border border-white/10 px-3 py-1 text-xs text-white/70">{helper}</span>
+      </header>
+      <div className="grid gap-4 lg:grid-cols-2">
+        <div className="rounded-2xl border border-white/10 bg-white/5 p-4">
+          <p className="text-xs uppercase tracking-wide text-white/60">Fragmento original</p>
+          <CodeBlock code={input} label="Original" />
+        </div>
+        <div className="rounded-2xl border border-white/10 bg-ink-900/50 p-4">
+          <div className="flex items-center justify-between gap-2 text-xs text-white/60">
+            <p>Salida en español</p>
+            <span className="rounded-full border border-white/15 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.2em] text-white/70">
+              {result.fallbackApplied ? "Modo básico" : result.language.toUpperCase()}
+            </span>
+          </div>
+          <CodeBlock code={result.code} label="Traducción" />
+        </div>
+      </div>
+      <TranslationSummary result={result} />
+    </div>
+  );
+}
+
+function TranslationSummary({ result }: { result: StructuralTranslationResult }) {
+  const meaningfulSegments = (result.segments || []).filter((segment) => segment.type !== "text");
+  const topSegments = meaningfulSegments.slice(0, 4);
+  return (
+    <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
+      <div className="rounded-2xl border border-white/10 bg-white/5 p-4">
+        <p className="text-xs uppercase tracking-wide text-white/60">Resumen</p>
+        <dl className="mt-3 grid gap-2 text-sm text-white">
+          <div className="flex items-center justify-between">
+            <dt className="text-white/60">Cadenas</dt>
+            <dd className="font-semibold">{result.replacedStrings}</dd>
+          </div>
+          <div className="flex items-center justify-between">
+            <dt className="text-white/60">Comentarios</dt>
+            <dd className="font-semibold">{result.replacedComments}</dd>
+          </div>
+          {result.fallbackApplied ? (
+            <p className="rounded-full border border-white/10 bg-white/10 px-3 py-1 text-center text-[11px] text-white/70">
+              Se activó el modo básico para mantener la estructura.
+            </p>
+          ) : null}
+        </dl>
+      </div>
+      <div className="rounded-2xl border border-white/10 bg-ink-900/50 p-4">
+        <p className="text-xs uppercase tracking-wide text-white/60">Segmentos detectados</p>
+        {topSegments.length ? (
+          <ul className="mt-3 space-y-2 text-xs text-white/80">
+            {topSegments.map((segment, index) => (
+              <li key={`${segment.type}-${segment.start}-${index}`} className="rounded-xl border border-white/10 bg-white/5 p-3">
+                <div className="flex items-center justify-between text-[11px] text-white/60">
+                  <span className="font-semibold capitalize">
+                    {segment.type === "comment" ? "Comentario" : "Cadena"} #{index + 1}
+                  </span>
+                  <span>pos {segment.start}-{segment.end}</span>
+                </div>
+                <p className="mt-2 text-[11px] text-white/50">Original: {truncateSegment(segment.original)}</p>
+                <p className="mt-1 text-[11px] text-white">→ {truncateSegment(segment.translated)}</p>
+              </li>
+            ))}
+          </ul>
+        ) : (
+          <p className="mt-3 text-xs text-white/60">No encontramos strings ni comentarios en este fragmento.</p>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function TranslationSkeleton() {
+  return (
+    <div className="mt-3 space-y-4">
+      {Array.from({ length: 2 }).map((_, index) => (
+        <div key={index} className="h-48 animate-pulse rounded-3xl border border-white/5 bg-white/5" />
+      ))}
+    </div>
+  );
+}
+
+function truncateSegment(text: string, limit = 120) {
+  const trimmed = text.trim();
+  if (trimmed.length <= limit) return trimmed || "—";
+  return `${trimmed.slice(0, limit)}…`;
 }
 
 function CodeBlock({ code, label }: { code: string; label?: string }) {

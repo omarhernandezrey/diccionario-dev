@@ -1,4 +1,4 @@
-import { HistoryAction, Prisma } from "@prisma/client";
+import { HistoryAction, Prisma, Language, SkillLevel } from "@prisma/client";
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { termSchema } from "@/lib/validation";
@@ -124,13 +124,38 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
 
   try {
     incrementMetric("terms.update.attempt");
+  type VariantInput = { language: Language; snippet?: string; code?: string; notes?: string; level?: SkillLevel };
+  type TermPatchInput = Partial<import("@/lib/validation").TermInput> & { variants?: VariantInput[] };
+  const { variants, ...rest } = updateData as TermPatchInput;
     const updated = await prisma.term.update({
       where: { id },
       data: {
-        ...updateData,
+        ...rest,
         updatedBy: { connect: { id: admin.id } },
       },
     });
+    if (Array.isArray(variants)) {
+      // Estrategia simple: reemplazar todas las variantes
+      type PrismaVariantClient = {
+        termVariant: {
+          deleteMany(args: Prisma.TermVariantDeleteManyArgs): Promise<Prisma.BatchPayload>;
+          createMany(args: Prisma.TermVariantCreateManyArgs): Promise<Prisma.BatchPayload>;
+        };
+      };
+      const client = prisma as unknown as PrismaVariantClient;
+      await client.termVariant.deleteMany({ where: { termId: id } });
+      if (variants.length) {
+        await client.termVariant.createMany({
+          data: variants.map((v) => ({
+            termId: id,
+            language: v.language,
+            snippet: v.snippet ?? "",
+            notes: v.notes,
+            level: v.level || undefined,
+          })),
+        });
+      }
+    }
     await recordHistory(updated.id, updated, HistoryAction.update, admin.id);
     incrementMetric("terms.update.success");
     logger.info({ route: "/api/terms/:id", id }, "terms.update.success");

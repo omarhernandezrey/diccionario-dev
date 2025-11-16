@@ -1,4 +1,4 @@
-import { HistoryAction, Prisma } from "@prisma/client";
+import { HistoryAction, Prisma, Language, SkillLevel } from "@prisma/client";
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { termSchema, termsQuerySchema, type TermsQueryInput } from "@/lib/validation";
@@ -199,10 +199,39 @@ export async function POST(req: NextRequest) {
         updatedById: admin.id,
       },
     });
-    await recordHistory(created.id, created, HistoryAction.create, admin.id);
+
+    // Crear variantes si vienen en el payload
+    if (t.variants?.length) {
+      await prisma.termVariant.createMany({
+        data: t.variants.map(v => ({
+          termId: created.id,
+          language: v.language as Language,
+          snippet: v.snippet,
+          notes: v.notes,
+          level: (v.level as SkillLevel) || undefined,
+        })),
+      });
+    }
+
+    // Recargar término con relaciones para respuesta completa
+    const fullTerm = await prisma.term.findUnique({
+      where: { id: created.id },
+      include: { variants: true, useCases: true, faqs: true, exercises: true },
+    });
+
+    if (fullTerm) {
+      await recordHistory(fullTerm.id, fullTerm, HistoryAction.create, admin.id);
+    } else {
+      await recordHistory(created.id, created, HistoryAction.create, admin.id);
+    }
+
+    // Registrar evento de búsqueda (modo create) para analítica básica
+    void recordSearchEvent({ query: t.term, language: "es", context: "dictionary", mode: "create", termId: created.id });
+
     incrementMetric("terms.create.success");
     logger.info({ termId: created.id, route: "/api/terms" }, "terms.create.success");
-    return NextResponse.json({ ok: true, item: created }, { status: 201, headers: noStoreHeaders });
+    const serialized = fullTerm ? serializeTerm(fullTerm as PrismaTermWithRelations) : created;
+    return NextResponse.json({ ok: true, item: serialized }, { status: 201, headers: noStoreHeaders });
   } catch (error) {
     if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2002") {
       incrementMetric("terms.create.conflict");
@@ -400,65 +429,57 @@ function serializeTerm(record: PrismaTermWithRelations): TermDTO {
 }
 
 function parseExamples(value: Prisma.JsonValue | null | undefined): TermExampleDTO[] {
-  if (!value || typeof value !== "object") {
-    return [];
+  if (!value || typeof value !== "object" || !Array.isArray(value)) return [];
+  const items: TermExampleDTO[] = [];
+  for (const raw of value) {
+    if (!isRecord(raw)) continue;
+    const code = getString(raw.code) ?? "";
+    if (!code) continue;
+    const title = getString(raw.title) ?? getString(raw.titleEs) ?? getString(raw.titleEn);
+    const note = getString(raw.note) ?? getString(raw.noteEs) ?? getString(raw.noteEn);
+    items.push({
+      title,
+      titleEs: getString(raw.titleEs),
+      titleEn: getString(raw.titleEn),
+      code,
+      note,
+      noteEs: getString(raw.noteEs),
+      noteEn: getString(raw.noteEn),
+    });
   }
-  const arr = Array.isArray(value) ? value : [];
-  return arr
-    .map((example) => {
-      if (!isRecord(example)) return null;
-      const code = getString(example.code) ?? "";
-      if (!code) return null;
-      const title = getString(example.title) ?? getString(example.titleEs) ?? getString(example.titleEn);
-      const note = getString(example.note) ?? getString(example.noteEs) ?? getString(example.noteEn);
-      return {
-        title,
-        titleEs: getString(example.titleEs),
-        titleEn: getString(example.titleEn),
-        code,
-        note,
-        noteEs: getString(example.noteEs),
-        noteEn: getString(example.noteEn),
-      };
-    })
-    .filter((example): example is TermExampleDTO => Boolean(example));
+  return items;
 }
 
 function parseSteps(value: Prisma.JsonValue | null | undefined): UseCaseStepDTO[] {
-  if (!value) return [];
-  if (!Array.isArray(value)) return [];
-  return value
-    .map(step => {
-      if (typeof step === "string") {
-        return { es: step };
-      }
-      if (isRecord(step)) {
-        return {
-          es: getString(step.es),
-          en: getString(step.en),
-        };
-      }
-      return null;
-    })
-    .filter((step): step is UseCaseStepDTO => Boolean(step));
+  if (!value || !Array.isArray(value)) return [];
+  const steps: UseCaseStepDTO[] = [];
+  for (const raw of value) {
+    if (typeof raw === "string") {
+      steps.push({ es: raw });
+      continue;
+    }
+    if (isRecord(raw)) {
+      steps.push({ es: getString(raw.es), en: getString(raw.en) });
+    }
+  }
+  return steps;
 }
 
 function parseSolutions(value: Prisma.JsonValue | null | undefined): TermExerciseSolutionDTO[] {
-  if (!value) return [];
-  if (!Array.isArray(value)) return [];
-  return value
-    .map(solution => {
-      if (!isRecord(solution)) return null;
-      const code = getString(solution.code) ?? "";
-      if (!code) return null;
-      return {
-        language: getString(solution.language) ?? "js",
-        code,
-        explainEs: getString(solution.explainEs) ?? "",
-        explainEn: getString(solution.explainEn),
-      };
-    })
-    .filter((solution): solution is TermExerciseSolutionDTO => Boolean(solution));
+  if (!value || !Array.isArray(value)) return [];
+  const solutions: TermExerciseSolutionDTO[] = [];
+  for (const raw of value) {
+    if (!isRecord(raw)) continue;
+    const code = getString(raw.code) ?? "";
+    if (!code) continue;
+    solutions.push({
+      language: getString(raw.language) ?? "js",
+      code,
+      explainEs: getString(raw.explainEs) ?? "",
+      explainEn: getString(raw.explainEn),
+    });
+  }
+  return solutions;
 }
 
 function toStringArray(value: Prisma.JsonValue | null | undefined) {

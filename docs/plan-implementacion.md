@@ -75,8 +75,38 @@
     - Archivo: `tests/structural-translate.test.ts`
   - **Validación completa**: Documento `docs/validacion-traduccion-estructural.md` con requisitos, implementación detallada y pruebas.
 
-### 4. Selector de lenguaje/contexto
-- Cambia dinámicamente las secciones usando `TermVariant` y `UseCase`.
+### 4. Selector de lenguaje/contexto ✅
+- **Completado**: Componentes dinámicos para seleccionar lenguaje y contexto de uso en tiempo real.
+  - **ResultPreview** (líneas 296-341):
+    - Recibe `term: TermDTO` y `activeContext: string`
+    - Memoiza `variantLang` y `useCaseContext` (estado local preservado)
+    - Se reinicia al cambiar término seleccionado (`useEffect` línea 319-320)
+    - Actualizaciones en tiempo real sin recargar el resto del card
+  
+  - **SelectorPanel** (líneas 539-591):
+    - Chips de lenguaje basados en `TermVariant`
+    - Etiquetas legibles: `JavaScript`, `TypeScript`, `Python`, etc.
+    - Badge de nivel: `Principiante`, `Intermedio`, `Avanzado` (del enum `SkillLevel`)
+    - Snippet dinámico: se actualiza al cambiar lenguaje
+    - Notas específicas: mostradas solo si la variante tiene datos
+  
+  - **UseCaseSelector** (líneas 431-484):
+    - Chips de contexto: `interview`, `project`, `bug` (disponibles dinámicamente)
+    - Filtrado en tiempo real: solo muestra `UseCase` del contexto seleccionado
+    - Mensaje fallback: "No tenemos guías para este contexto todavía." cuando no hay datos
+  
+  - **Datos Prisma cargados**:
+    - `variants: TermVariant[]` (language, snippet, notes, level)
+    - `useCases: UseCase[]` (context, summary, steps, tips)
+    - Query: `/api/terms` con `include: { variants, useCases, ... }`
+  
+  - **Estado y Memoización**:
+    - `useMemo` para `availableUseCaseContexts` (evita recálculos)
+    - Estado local preserva selecciones del usuario
+    - Ajuste inteligente si contexto global no está disponible
+  
+  - **Validación**: Documento `docs/validacion-selector-dinamico.md` con arquitectura, flujo de datos, ejemplos UX.
+  - **Typecheck**: ✅ 0 errores
 
 ### 5. Atajos
 - Copiar definición, copiar snippet, abrir “cheat sheet”, generar respuesta en ES/EN.
