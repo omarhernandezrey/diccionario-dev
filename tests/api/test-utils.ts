@@ -45,11 +45,15 @@ export const prismaMock = {
   },
   term: {
     findUnique: vi.fn(),
+    findMany: vi.fn(),
     create: vi.fn(),
     update: vi.fn(),
     delete: vi.fn(),
   },
   termHistory: {
+    create: vi.fn(),
+  },
+  searchLog: {
     create: vi.fn(),
   },
   $queryRawUnsafe: vi.fn(),

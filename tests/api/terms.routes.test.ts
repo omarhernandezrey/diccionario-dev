@@ -32,8 +32,9 @@ describe('/api/terms GET', () => {
   it('200 devuelve items y meta', async () => {
     prismaMock.$queryRawUnsafe.mockImplementation((sql: string) => {
       if (/COUNT/.test(sql)) return Promise.resolve([{ count: 1 }]);
-      return Promise.resolve([{ id: 1, term: 'css', translation: 'css', category: 'frontend' }]);
+      return Promise.resolve([{ id: 1 }]);
     });
+    prismaMock.term.findMany.mockResolvedValue([{ id: 1, term: 'css', translation: 'css', category: 'frontend', variants: [], useCases: [], faqs: [], exercises: [] }]);
     const mod = await importRoute('@/app/api/terms/route');
     const { status, json } = await runRoute(mod, { url: `${baseUrl}/api/terms?q=css` });
     expect(status).toBe(200);
@@ -64,6 +65,7 @@ describe('/api/terms POST', () => {
   });
   it('201 crea término y registra history', async () => {
     prismaMock.term.create.mockResolvedValue({ id: 55, term: 'css', translation: 'css', category: 'frontend' });
+    prismaMock.term.findUnique.mockResolvedValue({ id: 55, term: 'css', translation: 'css', category: 'frontend', variants: [], useCases: [], faqs: [], exercises: [] });
     const mod = await importRoute('@/app/api/terms/route');
     const body = { term: 'grid', translation: 'grid', category: 'frontend', meaning: 'm', what: 'w', how: 'h' };
     const { status, json } = await runRoute(mod, { method: 'POST', url: `${baseUrl}/api/terms`, body });
