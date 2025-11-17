@@ -58,6 +58,7 @@ export default function SearchBox() {
   const [context, setContext] = useState<string>("dictionary");
   const [modeOverride, setModeOverride] = useState<string | null>(null);
   const [clipboardHint, setClipboardHint] = useState<string | null>(null);
+  const [paramsHydrated, setParamsHydrated] = useState(false);
   const debounced = useDebounce(search, 220);
   const detectedMode = useMemo(() => detectInputMode(debounced), [debounced]);
   const effectiveMode = modeOverride ?? detectedMode;
@@ -107,6 +108,48 @@ export default function SearchBox() {
     const timer = window.setTimeout(() => setClipboardHint(null), 3800);
     return () => window.clearTimeout(timer);
   }, [clipboardHint]);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const params = new URLSearchParams(window.location.search);
+    const qParam = params.get("q");
+    const contextParam = params.get("context");
+    const modeParam = params.get("mode");
+    if (qParam) {
+      setSearch(qParam);
+    }
+    if (contextParam && contexts.some((ctx) => ctx.id === contextParam)) {
+      setContext(contextParam);
+    }
+    if (modeParam && modeLabels[modeParam]) {
+      setModeOverride(modeParam);
+    }
+    setParamsHydrated(true);
+  }, []);
+
+  useEffect(() => {
+    if (!paramsHydrated || typeof window === "undefined") return;
+    const params = new URLSearchParams(window.location.search);
+    const trimmed = search.trim();
+    if (trimmed) {
+      params.set("q", trimmed);
+    } else {
+      params.delete("q");
+    }
+    if (context !== "dictionary") {
+      params.set("context", context);
+    } else {
+      params.delete("context");
+    }
+    if (modeOverride) {
+      params.set("mode", modeOverride);
+    } else {
+      params.delete("mode");
+    }
+    const queryString = params.toString();
+    const nextUrl = queryString ? `${window.location.pathname}?${queryString}` : window.location.pathname;
+    window.history.replaceState(null, "", nextUrl);
+  }, [search, context, modeOverride, paramsHydrated]);
 
   const handlePaste = (event: ClipboardEvent<HTMLInputElement>) => {
     const pasted = event.clipboardData?.getData("text") ?? "";

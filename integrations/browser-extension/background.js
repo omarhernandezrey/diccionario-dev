@@ -1,4 +1,5 @@
-const DEFAULT_BASE_URL = "https://diccionario.dev";
+// Predeterminado seguro para dev; configurable desde opciones
+const DEFAULT_BASE_URL = "http://localhost:3000";
 
 chrome.runtime.onInstalled.addListener(() => {
   chrome.contextMenus.create({

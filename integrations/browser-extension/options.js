@@ -1,4 +1,5 @@
-const DEFAULT_BASE_URL = "https://diccionario.dev";
+# Registration with admin token (out of bootstrap)ightio aún no apuntado
+const DEFAULT_BASE_URL = "http://localhost:3000";
 
 const form = document.getElementById("options-form");
 const baseUrlInput = document.getElementById("baseUrl");

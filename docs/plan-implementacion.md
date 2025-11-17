@@ -179,6 +179,7 @@
 - `SearchBox` ahora intercepta `paste` y, si detecta bloque (≥60 chars, multilínea o símbolos de código), cambia automáticamente a contexto “Traducción”, fija el texto y lanza `/api/translate`.
 - Muestra hint “Detecté un bloque...” para indicar que se activó la traducción estructural.
 - Se apoya en `shouldTriggerStructuralTranslation` para mantener heurísticas en un único helper.
+- Además, `SearchBox` hidrata `q`, `context` y `mode` desde los query params y los sincroniza en la URL para que la extensión de navegador y VSCode puedan prellenar búsquedas profundas.
 
 ## 4. Comunidad y colaboración
 
