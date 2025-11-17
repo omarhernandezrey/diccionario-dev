@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, type ClipboardEvent } from "react";
 import { Prism as SyntaxHighlighter } from "react-syntax-highlighter";
 import { dracula } from "react-syntax-highlighter/dist/cjs/styles/prism";
 import { useI18n } from "@/lib/i18n";
@@ -57,6 +57,7 @@ export default function SearchBox() {
   const [errorMsg, setErrorMsg] = useState("");
   const [context, setContext] = useState<string>("dictionary");
   const [modeOverride, setModeOverride] = useState<string | null>(null);
+  const [clipboardHint, setClipboardHint] = useState<string | null>(null);
   const debounced = useDebounce(search, 220);
   const detectedMode = useMemo(() => detectInputMode(debounced), [debounced]);
   const effectiveMode = modeOverride ?? detectedMode;
@@ -100,6 +101,24 @@ export default function SearchBox() {
         return "";
     }
   }, [status, errorMsg, t, items.length, context, translationResult]);
+
+  useEffect(() => {
+    if (!clipboardHint) return;
+    const timer = window.setTimeout(() => setClipboardHint(null), 3800);
+    return () => window.clearTimeout(timer);
+  }, [clipboardHint]);
+
+  const handlePaste = (event: ClipboardEvent<HTMLInputElement>) => {
+    const pasted = event.clipboardData?.getData("text") ?? "";
+    if (!pasted) return;
+    if (shouldTriggerStructuralTranslation(pasted)) {
+      event.preventDefault();
+      setSearch(pasted);
+      setContext("translate");
+      setModeOverride("code");
+      setClipboardHint("Detecté un bloque de código y activé la traducción estructural.");
+    }
+  };
 
   useEffect(() => {
     if (!hasQuery) {
@@ -185,6 +204,7 @@ export default function SearchBox() {
             id="term-search"
             value={search}
             onChange={(event) => setSearch(event.target.value)}
+            onPaste={handlePaste}
             placeholder={t("search.placeholder")}
             aria-label={t("search.ariaLabel")}
             className="w-full bg-transparent text-base text-white placeholder:text-white/40 focus:outline-none"
@@ -203,6 +223,7 @@ export default function SearchBox() {
             </button>
           ))}
         </div>
+        {clipboardHint ? <p className="text-sm font-semibold text-accent-secondary">{clipboardHint}</p> : null}
         <div className="flex flex-wrap items-center gap-2 pt-2">
           {contexts.map((ctx) => {
             const active = context === ctx.id;
@@ -833,6 +854,17 @@ function detectInputMode(value: string): string {
   }
   return "list";
 }
+
+function shouldTriggerStructuralTranslation(value: string): boolean {
+  const trimmed = value.trim();
+  if (trimmed.length < 60) return false;
+  if (trimmed.includes("\n")) return true;
+  if (/[{}/();=<>\[\]]/.test(trimmed)) return true;
+  if (/<[a-z][\s\S]*?>/i.test(trimmed)) return true;
+  if (/\b(function|class|const|let|def)\b/i.test(trimmed)) return true;
+  return false;
+}
+
 function useDebounce<T>(value: T, delay = 250) {
   const [debounced, setDebounced] = useState(value);
   useEffect(() => {

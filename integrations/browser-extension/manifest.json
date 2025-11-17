@@ -1,0 +1,30 @@
+{
+  "manifest_version": 3,
+  "name": "Diccionario Dev Lookup",
+  "description": "Abre Diccionario Dev con la selección actual y llena la consulta automáticamente.",
+  "version": "0.1.0",
+  "permissions": [
+    "contextMenus",
+    "storage",
+    "scripting",
+    "tabs",
+    "activeTab"
+  ],
+  "host_permissions": [
+    "<all_urls>"
+  ],
+  "background": {
+    "service_worker": "background.js",
+    "type": "module"
+  },
+  "commands": {
+    "lookup-selection": {
+      "suggested_key": {
+        "default": "Ctrl+Shift+D",
+        "mac": "Command+Shift+D"
+      },
+      "description": "Abrir Diccionario Dev con la selección actual"
+    }
+  },
+  "options_page": "options.html"
+}

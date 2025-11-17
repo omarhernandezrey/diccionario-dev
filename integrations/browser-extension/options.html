@@ -1,0 +1,61 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="utf-8" />
+    <title>Diccionario Dev – Opciones</title>
+    <style>
+      :root {
+        font-family: "Inter", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+        color: #0f172a;
+        background: #f8fafc;
+      }
+      body {
+        margin: 0;
+        padding: 24px;
+        max-width: 520px;
+      }
+      h1 {
+        font-size: 1.2rem;
+        margin-bottom: 0.5rem;
+      }
+      label {
+        display: block;
+        font-weight: 600;
+        margin-bottom: 0.25rem;
+      }
+      input {
+        width: 100%;
+        padding: 0.5rem 0.75rem;
+        border-radius: 0.5rem;
+        border: 1px solid #cbd5f5;
+        font-size: 0.95rem;
+      }
+      button {
+        margin-top: 1rem;
+        border: none;
+        border-radius: 999px;
+        padding: 0.65rem 1.5rem;
+        background: #6366f1;
+        color: white;
+        font-weight: 600;
+        cursor: pointer;
+      }
+      .status {
+        margin-top: 0.75rem;
+        font-size: 0.85rem;
+        color: #0f172a;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>Diccionario Dev</h1>
+    <p>Define la URL base de tu instancia (prod o local) para abrir el diccionario con la selección actual.</p>
+    <form id="options-form">
+      <label for="baseUrl">URL base</label>
+      <input id="baseUrl" type="url" placeholder="https://diccionario.dev" required />
+      <button type="submit">Guardar</button>
+      <p class="status" id="status"></p>
+    </form>
+    <script src="options.js"></script>
+  </body>
+</html>

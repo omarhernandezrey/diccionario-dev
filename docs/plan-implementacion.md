@@ -160,16 +160,25 @@
   
   - **Validación**: Typecheck ✅ 0 errores, componentes integrados en `ResultPreview`
 
-## 3. Integraciones y flujo real
+## 3. Integraciones y flujo real ✅
 
-### 1. Extensión navegador / Hotkey
-- Capturar selección y abrir diccionario con query prellenada.
+### 1. Extensión navegador / Hotkey ✅
+- Carpeta `integrations/browser-extension/` con manifest V3, `background.js`, `options.html/js` y README.
+- Atajo `Ctrl+Shift+D` / `⌘+Shift+D` + menú contextual “Buscar en Diccionario Dev”.
+- Usa `chrome.storage.sync` para definir la URL base (prod o local). Mapea selección → query + context/mode (code/question/list).
+- Zero build: se carga descomprimida desde `chrome://extensions`.
 
-### 2. VSCode helper
-- Comando para traducir/explicar el texto seleccionado en el editor.
+### 2. VSCode helper ✅
+- Carpeta `integrations/vscode-helper/` con `package.json`, `extension.js` (sin dependencias externas) y README.
+- Comando `Diccionario Dev: Traducir o explicar selección` (`diccionarioDev.translateSelection`).
+- Detecta si la selección es código y llama a `/api/translate` mostrando el resultado en un panel + editor temporal.
+- Para términos/preguntas usa `/api/terms`, QuickPick para elegir coincidencia y renderiza significado/snippet/caso en el canal “Diccionario Dev”.
+- Configurable vía `diccionarioDev.baseUrl` + `diccionarioDev.defaultContext`.
 
-### 3. Portapapeles inteligente
-- Auto detectar bloque pegado y sugerir traducción estructural.
+### 3. Portapapeles inteligente ✅
+- `SearchBox` ahora intercepta `paste` y, si detecta bloque (≥60 chars, multilínea o símbolos de código), cambia automáticamente a contexto “Traducción”, fija el texto y lanza `/api/translate`.
+- Muestra hint “Detecté un bloque...” para indicar que se activó la traducción estructural.
+- Se apoya en `shouldTriggerStructuralTranslation` para mantener heurísticas en un único helper.
 
 ## 4. Comunidad y colaboración
 

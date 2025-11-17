@@ -1,0 +1,47 @@
+{
+  "name": "diccionario-dev-helper",
+  "displayName": "Diccionario Dev Helper",
+  "description": "Traducir código o explicar conceptos seleccionados en VSCode usando la API de Diccionario Dev.",
+  "version": "0.1.0",
+  "publisher": "omar-hernandez-rey",
+  "engines": {
+    "vscode": "^1.85.0"
+  },
+  "categories": [
+    "Other"
+  ],
+  "main": "./extension.js",
+  "activationEvents": [
+    "onCommand:diccionarioDev.translateSelection"
+  ],
+  "contributes": {
+    "commands": [
+      {
+        "command": "diccionarioDev.translateSelection",
+        "title": "Diccionario Dev: Traducir o explicar selección",
+        "category": "Diccionario Dev"
+      }
+    ],
+    "configuration": {
+      "title": "Diccionario Dev Helper",
+      "properties": {
+        "diccionarioDev.baseUrl": {
+          "type": "string",
+          "default": "http://localhost:3000",
+          "description": "URL base de la instancia de Diccionario Dev (ej. https://diccionario.dev)."
+        },
+        "diccionarioDev.defaultContext": {
+          "type": "string",
+          "enum": [
+            "dictionary",
+            "interview",
+            "bug",
+            "translate"
+          ],
+          "default": "dictionary",
+          "description": "Contexto preferido para consultas semánticas."
+        }
+      }
+    }
+  }
+}
