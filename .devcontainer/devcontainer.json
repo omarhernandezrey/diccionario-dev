@@ -2,9 +2,6 @@
   "name": "Diccionario DevContainer",
   "image": "mcr.microsoft.com/vscode/devcontainers/typescript-node:20",
   "remoteUser": "node",
-  "features": {
-    "ghcr.io/devcontainers/features/eslint:1": {}
-  },
   "forwardPorts": [3000, 6379],
   "postCreateCommand": "npm install && npm run dev:init",
   "mounts": [

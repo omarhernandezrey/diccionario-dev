@@ -1,7 +1,8 @@
 # See https://help.github.com/articles/ignoring-files/ for more about ignoring files.
 
 # dependencies
-/node_modules
+# Ignora node_modules en cualquier subcarpeta del repo
+node_modules/
 /.pnp
 .pnp.*
 .yarn/*
@@ -12,6 +13,9 @@
 
 # testing
 /coverage
+
+# paquetes de extensiones y artefactos empaquetados
+*.vsix
 
 # next.js
 /.next/

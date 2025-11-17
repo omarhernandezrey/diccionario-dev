@@ -14,9 +14,6 @@
   "scripts": {
     "package": "vsce package -o diccionario-dev-helper.vsix --allow-missing-repository"
   },
-  "activationEvents": [
-    "onCommand:diccionarioDev.translateSelection"
-  ],
   "contributes": {
     "commands": [
       {

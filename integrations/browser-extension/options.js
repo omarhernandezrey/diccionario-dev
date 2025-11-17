@@ -1,4 +1,4 @@
-# Registration with admin token (out of bootstrap)ightio aún no apuntado
+1. ✨ flex (flexible design) ← Exact has greater weighttio not yet pointed
 const DEFAULT_BASE_URL = "http://localhost:3000";
 
 const form = document.getElementById("options-form");
