@@ -11,6 +11,9 @@
     "Other"
   ],
   "main": "./extension.js",
+  "scripts": {
+    "package": "vsce package -o diccionario-dev-helper.vsix --allow-missing-repository"
+  },
   "activationEvents": [
     "onCommand:diccionarioDev.translateSelection"
   ],
@@ -43,5 +46,8 @@
         }
       }
     }
+  },
+  "devDependencies": {
+    "@vscode/vsce": "^3.7.0"
   }
 }
