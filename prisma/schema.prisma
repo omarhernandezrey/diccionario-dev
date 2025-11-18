@@ -81,6 +81,7 @@ model User {
   reviewedExercises  Exercise[]          @relation("ExercisesReviewed")
   contributorProfile ContributorProfile?
   contributions      Contribution[]
+  quizAttempts       QuizAttempt[]
 }
 
 model TermVariant {
@@ -326,6 +327,64 @@ model InsightMetric {
 
   @@index([termId])
   @@index([kind, recordedAt])
+}
+
+model SoftSkillTemplate {
+  id              Int                  @id @default(autoincrement())
+  slug            String               @unique
+  title           String
+  questionEs      String
+  questionEn      String
+  scenario        String?
+  tags            Json                 @default("[]")
+  answerStructure Json                 @default("[]")
+  sampleAnswerEs  String
+  sampleAnswerEn  String
+  tipsEs          String?
+  tipsEn          String?
+  createdAt       DateTime             @default(now())
+  updatedAt       DateTime             @updatedAt
+  responses       SoftSkillResponse[]
+}
+
+model SoftSkillResponse {
+  id          Int               @id @default(autoincrement())
+  templateId  Int
+  language    String            @default("es")
+  tone        String            @default("professional")
+  answer      String
+  createdAt   DateTime          @default(now())
+  template    SoftSkillTemplate @relation(fields: [templateId], references: [id], onDelete: Cascade)
+
+  @@index([templateId])
+}
+
+model QuizTemplate {
+  id          Int            @id @default(autoincrement())
+  slug        String         @unique
+  title       String
+  description String?
+  difficulty  Difficulty     @default(medium)
+  tags        Json           @default("[]")
+  items       Json           @default("[]")
+  createdAt   DateTime       @default(now())
+  updatedAt   DateTime       @updatedAt
+  attempts    QuizAttempt[]
+}
+
+model QuizAttempt {
+  id             Int           @id @default(autoincrement())
+  templateId     Int
+  userId         Int?
+  score          Int
+  totalQuestions Int
+  answers        Json          @default("[]")
+  createdAt      DateTime      @default(now())
+  template       QuizTemplate  @relation(fields: [templateId], references: [id], onDelete: Cascade)
+  user           User?         @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@index([templateId])
+  @@index([userId])
 }
 
 enum ReviewStatus {

@@ -6,6 +6,7 @@ import { dracula } from "react-syntax-highlighter/dist/cjs/styles/prism";
 import { useI18n } from "@/lib/i18n";
 import type { TermDTO, TermVariantDTO } from "@/types/term";
 import type { StructuralTranslationResult } from "@/types/translate";
+import SoftSkillsPanel from "@/components/SoftSkillsPanel";
 
 const quickTerms = ["fetch", "useState", "REST", "JOIN", "JWT", "Docker"];
 const contexts = [
@@ -652,6 +653,8 @@ function ResultPreview({ term, activeContext }: { term: TermDTO; activeContext: 
             </div>
           </section>
         ) : null}
+
+        {activeContext === "interview" ? <SoftSkillsPanel tags={tags} /> : null}
       </aside>
       <CheatSheetOverlay
         open={cheatSheetOpen}

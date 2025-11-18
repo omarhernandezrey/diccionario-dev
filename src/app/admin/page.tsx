@@ -1165,64 +1165,6 @@ function LeaderboardPanel() {
   );
 }
 
-function LeaderboardPanel() {
-  const [entries, setEntries] = useState<LeaderboardEntry[] | null>(null);
-  const [error, setError] = useState<string | null>(null);
-
-  useEffect(() => {
-    let cancelled = false;
-    fetch("/api/leaderboard", { cache: "no-store" })
-      .then(async (res) => {
-        if (!res.ok) throw new Error(`HTTP ${res.status}`);
-        return res.json();
-      })
-      .then((payload) => {
-        if (cancelled) return;
-        setEntries(payload?.items ?? []);
-        setError(null);
-      })
-      .catch((err) => {
-        if (cancelled) return;
-        setError(err?.message || "No se pudo cargar el ranking");
-        setEntries([]);
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, []);
-
-  return (
-    <section className="rounded-3xl border border-white/10 bg-white/5 p-6 shadow-glow-card">
-      <header className="flex items-center justify-between">
-        <div>
-          <p className="text-xs uppercase tracking-wide text-white/60">Gamificación</p>
-          <h2 className="text-lg font-semibold text-white">Ranking de contribuidores</h2>
-        </div>
-        {error ? <span className="text-xs text-accent-danger">{error}</span> : null}
-      </header>
-      {entries === null ? (
-        <p className="mt-4 text-xs text-white/60">Calculando aportes…</p>
-      ) : entries.length ? (
-        <ul className="mt-4 space-y-3">
-          {entries.map((entry, index) => (
-            <li key={entry.id} className="flex items-center justify-between rounded-2xl border border-white/10 bg-ink-900/60 px-4 py-3">
-              <div>
-                <p className="text-sm font-semibold text-white">
-                  #{index + 1} {entry.username}
-                </p>
-                {entry.email ? <p className="text-xs text-white/50">{entry.email}</p> : null}
-              </div>
-              <span className="text-xs font-semibold text-white/70">{entry.points} pts</span>
-            </li>
-          ))}
-        </ul>
-      ) : (
-        <p className="mt-4 text-xs text-white/60">Aún no hay contribuciones registradas.</p>
-      )}
-    </section>
-  );
-}
-
 type EditorSheetProps = {
   term: Term;
   onCancel: () => void;

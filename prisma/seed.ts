@@ -12,151 +12,19 @@ import {
 } from "@prisma/client";
 import bcrypt from "bcryptjs";
 import { getMetricsSnapshot, incrementMetric, logger } from "@/lib/logger";
-import type { SeedTerm, ExampleSnippet, VariantSeed, UseCaseSeed, FaqSeed, ExerciseSeed } from "./dictionary-types";
-import { cssTerms } from "./data/cssTerms";
+import type {
+  SeedTerm,
+  ExampleSnippet,
+  VariantSeed,
+  UseCaseSeed,
+  FaqSeed,
+  ExerciseSeed,
+  SeedTermInput,
+} from "./dictionary-types";
+import { cssCuratedTerms } from "./data/cssTerms";
+import { curatedTerms } from "./data/curatedTerms";
 
 const prisma = new PrismaClient();
-
-type RawTerm = {
-  term: string;
-  translation: string;
-  explanation: string;
-  category: Category;
-  aliases?: string[];
-};
-
-const rawTerms: RawTerm[] = [
-  { term: "abstract", translation: "abstracto", explanation: "concepto general, no concreto", category: Category.general },
-  { term: "API", translation: "interfaz para comunicar sistemas", explanation: "interfaz para comunicar sistemas", category: Category.backend, aliases: ["application programming interface"] },
-  { term: "array", translation: "lista de datos", explanation: "lista de datos", category: Category.general },
-  { term: "arrow function", translation: "función con ⇒", explanation: "función con ⇒", category: Category.frontend, aliases: ["arrow"] },
-  { term: "async", translation: "función que espera procesos", explanation: "función que espera procesos", category: Category.general },
-  { term: "await", translation: "esperar una operación", explanation: "esperar una operación", category: Category.general },
-  { term: "backend", translation: "lógica del servidor", explanation: "lógica del servidor", category: Category.backend },
-  { term: "boolean", translation: "verdadero o falso", explanation: "valor verdadero o falso", category: Category.general },
-  { term: "bug", translation: "error en el código", explanation: "error en el código", category: Category.general },
-  { term: "build", translation: "versión final del proyecto", explanation: "construcción final lista para entregar", category: Category.devops },
-  { term: "bundle", translation: "archivo empacado", explanation: "archivo empacado con dependencias", category: Category.devops },
-  { term: "callback", translation: "función que se ejecuta después", explanation: "función que se ejecuta después", category: Category.general },
-  { term: "class", translation: "plantilla para crear objetos", explanation: "plantilla para crear objetos", category: Category.general },
-  { term: "client", translation: "navegador o aplicación", explanation: "navegador o aplicación que consume tu API", category: Category.frontend },
-  { term: "clone", translation: "copiar un proyecto", explanation: "copiar un proyecto", category: Category.devops },
-  { term: "component", translation: "bloque reutilizable de UI", explanation: "bloque reutilizable de interface", category: Category.frontend },
-  { term: "console", translation: "terminal o mensajes de depuración", explanation: "terminal o mensajes de depuración", category: Category.frontend },
-  { term: "const", translation: "variable que no cambia", explanation: "variable que no cambia su referencia", category: Category.general },
-  { term: "constructor", translation: "función que crea objetos en clases", explanation: "inicializador dentro de una clase", category: Category.general },
-  { term: "CSS", translation: "estilos", explanation: "estilos para la web", category: Category.frontend },
-  { term: "current", translation: "actual", explanation: "valor actual", category: Category.general },
-  { term: "custom", translation: "personalizado", explanation: "hecho a medida", category: Category.general },
-  { term: "data", translation: "datos", explanation: "datos en general", category: Category.general },
-  { term: "database", translation: "base de datos", explanation: "sistema que almacena datos", category: Category.database },
-  { term: "debug", translation: "encontrar y corregir errores", explanation: "proceso para encontrar y corregir errores", category: Category.general },
-  { term: "default", translation: "por defecto", explanation: "valor inicial usado automáticamente", category: Category.general },
-  { term: "deploy", translation: "publicar tu proyecto", explanation: "publicar tu proyecto", category: Category.devops },
-  { term: "deprecation", translation: "algo que ya no se recomienda usar", explanation: "característica marcada para retiro", category: Category.general },
-  { term: "design", translation: "diseño", explanation: "diseño visual o UX", category: Category.frontend },
-  { term: "directory", translation: "carpeta", explanation: "carpeta del proyecto", category: Category.general },
-  { term: "DOM", translation: "estructura del HTML", explanation: "estructura del HTML", category: Category.frontend, aliases: ["document object model"] },
-  { term: "element", translation: "parte del DOM", explanation: "nodo específico del DOM", category: Category.frontend },
-  { term: "error", translation: "fallo", explanation: "fallo dentro del código o ejecución", category: Category.general },
-  { term: "event", translation: "acción de usuario", explanation: "acción (click, input, etc.)", category: Category.frontend },
-  { term: "export", translation: "enviar código para usarlo en otro archivo", explanation: "exponer código a otros módulos", category: Category.frontend },
-  { term: "fetch", translation: "traer datos del servidor", explanation: "traer datos del servidor", category: Category.frontend },
-  { term: "field", translation: "campo", explanation: "campo individual dentro de un registro", category: Category.database },
-  { term: "file", translation: "archivo", explanation: "archivo físico o lógico", category: Category.general },
-  { term: "filter", translation: "filtrar valores", explanation: "filtrar valores dentro de una colección", category: Category.frontend },
-  { term: "flex", translation: "diseño flexible en CSS", explanation: "diseño flexible en CSS", category: Category.frontend, aliases: ["flexbox"] },
-  { term: "frontend", translation: "lo que ve el usuario", explanation: "capa visible para el usuario", category: Category.frontend },
-  { term: "function", translation: "bloque de código reutilizable", explanation: "bloque reutilizable que recibe parámetros", category: Category.general },
-  { term: "Git", translation: "sistema para guardar versiones", explanation: "sistema distribuido de control de versiones", category: Category.devops },
-  { term: "GitHub", translation: "plataforma para proyectos con Git", explanation: "plataforma para repositorios Git", category: Category.devops },
-  { term: "global", translation: "disponible en todo el proyecto", explanation: "alcance global dentro del código", category: Category.general },
-  { term: "handler", translation: "función que maneja un evento", explanation: "función que maneja un evento", category: Category.frontend },
-  { term: "hover", translation: "pasar el mouse por encima", explanation: "estado hover en UI", category: Category.frontend },
-  { term: "HTML", translation: "estructura del sitio", explanation: "lenguaje de marcado base", category: Category.frontend },
-  { term: "HTTP request", translation: "solicitud al servidor", explanation: "solicitud al servidor", category: Category.backend },
-  { term: "HTTP response", translation: "respuesta del servidor", explanation: "respuesta del servidor", category: Category.backend },
-  { term: "if", translation: "condición", explanation: "condicional que evalúa expresiones", category: Category.general },
-  { term: "import", translation: "traer funciones o código", explanation: "traer código de otro módulo", category: Category.frontend },
-  { term: "index", translation: "archivo principal", explanation: "archivo principal o raíz", category: Category.frontend },
-  { term: "input", translation: "entrada del usuario", explanation: "dato introducido por el usuario", category: Category.frontend },
-  { term: "instance", translation: "objeto creado desde una clase", explanation: "instancia de una clase", category: Category.general },
-  { term: "iterator", translation: "recorrer elementos", explanation: "mecanismo para recorrer elementos", category: Category.general },
-  { term: "JSON", translation: "formato de datos", explanation: "formato de datos basado en texto", category: Category.backend },
-  { term: "JSX", translation: "HTML dentro de JavaScript (React)", explanation: "sintaxis de React que mezcla JS y HTML", category: Category.frontend },
-  { term: "key", translation: "clave", explanation: "clave única", category: Category.general },
-  { term: "keyword", translation: "palabra reservada", explanation: "palabra reservada del lenguaje", category: Category.general },
-  { term: "layout", translation: "organización de la página", explanation: "organización visual de la página", category: Category.frontend },
-  { term: "library", translation: "librería", explanation: "colección de código prehecho", category: Category.general },
-  { term: "listener", translation: "escucha de eventos", explanation: "suscriptor de eventos", category: Category.frontend },
-  { term: "link", translation: "enlace", explanation: "enlace a otra ruta o recurso", category: Category.frontend },
-  { term: "list", translation: "lista", explanation: "colección ordenada", category: Category.general },
-  { term: "local", translation: "dentro de un bloque o función", explanation: "alcance limitado", category: Category.general },
-  { term: "login", translation: "iniciar sesión", explanation: "proceso de autenticación", category: Category.backend },
-  { term: "logout", translation: "cerrar sesión", explanation: "cerrar sesión", category: Category.backend },
-  { term: "loop", translation: "ciclo", explanation: "ciclo repetitivo", category: Category.general },
-  { term: "map", translation: "recorrer y transformar una lista", explanation: "recorrer y transformar una lista", category: Category.general },
-  { term: "method", translation: "función dentro de una clase", explanation: "función declarada en una clase", category: Category.general },
-  { term: "module", translation: "archivo que exporta código", explanation: "archivo que exporta código", category: Category.general },
-  { term: "navigate", translation: "navegar entre páginas", explanation: "moverse entre rutas", category: Category.frontend },
-  { term: "node", translation: "elemento del DOM", explanation: "nodo del DOM", category: Category.frontend },
-  { term: "npm", translation: "gestor de paquetes de JS", explanation: "gestor de paquetes de JavaScript", category: Category.devops },
-  { term: "object", translation: "estructura con clave:valor", explanation: "estructura con clave:valor", category: Category.general },
-  { term: "optional", translation: "opcional", explanation: "valor opcional", category: Category.general },
-  { term: "output", translation: "salida", explanation: "resultado o salida de un proceso", category: Category.general },
-  { term: "override", translation: "sobrescribir", explanation: "sobrescribir comportamiento existente", category: Category.general },
-  { term: "package", translation: "conjunto de archivos o librerías", explanation: "conjunto de archivos o librerías", category: Category.devops },
-  { term: "param", translation: "parámetro", explanation: "parámetro de función", category: Category.general },
-  { term: "parent", translation: "elemento padre", explanation: "elemento padre en DOM o árbol", category: Category.frontend },
-  { term: "parse", translation: "convertir un dato", explanation: "convertir un dato de un formato a otro", category: Category.general },
-  { term: "path", translation: "ruta", explanation: "ruta de archivos o URLs", category: Category.general },
-  { term: "perform", translation: "ejecutar", explanation: "realizar una operación", category: Category.general },
-  { term: "props", translation: "datos que recibe un componente", explanation: "datos que recibe un componente", category: Category.frontend },
-  { term: "push", translation: "enviar cambios (Git)", explanation: "enviar cambios (Git)", category: Category.devops },
-  { term: "query", translation: "consulta", explanation: "consulta a datos o APIs", category: Category.database },
-  { term: "React", translation: "librería para interfaces", explanation: "librería para interfaces", category: Category.frontend },
-  { term: "ref", translation: "referencia a un elemento", explanation: "referencia a un elemento/valor mutable", category: Category.frontend },
-  { term: "render", translation: "mostrar en pantalla", explanation: "mostrar en pantalla", category: Category.frontend },
-  { term: "repository", translation: "repositorio", explanation: "repositorio de código", category: Category.devops },
-  { term: "request", translation: "solicitud", explanation: "solicitud HTTP o RPC", category: Category.backend },
-  { term: "response", translation: "respuesta", explanation: "respuesta HTTP o RPC", category: Category.backend },
-  { term: "return", translation: "devolver un valor", explanation: "devolver un valor", category: Category.general },
-  { term: "route", translation: "ruta o sección de una web", explanation: "definición de ruta", category: Category.frontend },
-  { term: "runtime", translation: "mientras se ejecuta", explanation: "contexto de ejecución", category: Category.general },
-  { term: "scope", translation: "alcance de una variable", explanation: "alcance de una variable", category: Category.general },
-  { term: "server", translation: "servidor", explanation: "servidor que atiende peticiones", category: Category.backend },
-  { term: "service", translation: "servicio", explanation: "servicio reutilizable del backend", category: Category.backend },
-  { term: "session", translation: "sesión", explanation: "estado asociado a un usuario autenticado", category: Category.backend },
-  { term: "shadow DOM", translation: "DOM encapsulado", explanation: "DOM encapsulado", category: Category.frontend },
-  { term: "state", translation: "estado de un componente (React)", explanation: "estado de un componente (React)", category: Category.frontend },
-  { term: "string", translation: "texto", explanation: "tipo de dato textual", category: Category.general },
-  { term: "submit", translation: "enviar formulario", explanation: "enviar formulario", category: Category.frontend },
-  { term: "sync", translation: "sincronizar", explanation: "mantener datos sincronizados", category: Category.backend },
-  { term: "testing", translation: "pruebas", explanation: "pruebas automatizadas", category: Category.devops },
-  { term: "token", translation: "clave de autenticación", explanation: "clave de autenticación", category: Category.backend },
-  { term: "try/catch", translation: "intentar / capturar error", explanation: "mecanismo para manejar errores", category: Category.general },
-  { term: "UI", translation: "interfaz de usuario", explanation: "interfaz de usuario", category: Category.frontend },
-  { term: "update", translation: "actualizar", explanation: "actualizar datos o UI", category: Category.general },
-  { term: "URL", translation: "dirección web", explanation: "dirección web única", category: Category.general },
-  { term: "useEffect", translation: "efecto secundario (React)", explanation: "efecto secundario (React)", category: Category.frontend },
-  { term: "useState", translation: "manejar estado (React)", explanation: "hook para manejar estado (React)", category: Category.frontend },
-  { term: "user", translation: "usuario", explanation: "usuario final de la plataforma", category: Category.backend },
-  { term: "utility", translation: "función de utilidad", explanation: "función de utilidad general", category: Category.general },
-  { term: "variable", translation: "dato que cambia", explanation: "dato que cambia", category: Category.general },
-  { term: "version", translation: "versión de un software", explanation: "release o versión del software", category: Category.devops },
-  { term: "viewport", translation: "área visible de la pantalla", explanation: "área visible de la pantalla", category: Category.frontend },
-  { term: "virtual DOM", translation: "DOM virtual usado por React", explanation: "DOM virtual usado por React", category: Category.frontend },
-  { term: "visual", translation: "visual o gráfico", explanation: "aspecto visual", category: Category.frontend },
-  { term: "warning", translation: "advertencia", explanation: "advertencia", category: Category.general },
-  { term: "webpack", translation: "empacador de JavaScript", explanation: "empacador de JavaScript", category: Category.devops },
-  { term: "wrapper", translation: "contenedor", explanation: "contenedor que envuelve otro elemento", category: Category.frontend },
-  { term: "REST", translation: "transferencia de estado representacional", explanation: "estilo de arquitectura para APIs", category: Category.backend },
-  { term: "JOIN", translation: "unión", explanation: "operación SQL para unir tablas", category: Category.database },
-  { term: "Docker", translation: "contenedor", explanation: "plataforma de contenedores para empaquetar apps", category: Category.devops },
-  { term: "JWT", translation: "token web JSON", explanation: "token firmado para autenticación sin estado", category: Category.backend },
-  { term: "CORS", translation: "uso compartido de recursos de origen cruzado", explanation: "política de seguridad de navegadores", category: Category.backend },
-  { term: "Promise", translation: "promesa", explanation: "objeto que representa una operación asíncrona", category: Category.general },
-];
 
 const categoryContextEs: Record<Category, string> = {
   frontend: "la capa visual y de interacción",
@@ -198,100 +66,169 @@ const variantLanguageByCategory: Record<Category, Language> = {
   general: Language.ts,
 };
 
-const exampleByCategory: Record<Category, (term: string, explanation: string) => ExampleSnippet> = {
-  frontend: (term, explanation) => ({
-    titleEs: `Componente ${term}`,
-    titleEn: `${term} component`,
-    code: `const Demo${toPascal(term)} = () => (\n  <section className="card">\n    <strong>${term}</strong>\n    <p>${explanation}</p>\n  </section>\n);\nexport default Demo${toPascal(term)};`,
-    noteEs: "Se aplica dentro de la interfaz usando React.",
-    noteEn: "Use it inside your React UI.",
-  }),
-  backend: (term, explanation) => ({
-    titleEs: `Endpoint ${term}`,
-    titleEn: `${term} endpoint`,
-    code: `app.get("/api/${toSlug(term)}", (req, res) => {\n  res.json({ term: "${term}", detail: "${explanation}" });\n});`,
-    noteEs: "Se integra en tus controladores o rutas.",
-    noteEn: "Add it to your controllers or routes.",
-  }),
-  database: (term, explanation) => ({
-    titleEs: `Consulta ${term}`,
-    titleEn: `${term} query`,
-    code: `await prisma.term.findMany({\n  where: { term: "${term}" },\n  select: { term: true, translation: true }\n});`,
-    noteEs: "Consulta el concepto dentro de Prisma/SQL.",
-    noteEn: "Query the concept in Prisma/SQL.",
-  }),
-  devops: (term, explanation) => ({
-    titleEs: `CLI ${term}`,
-    titleEn: `${term} CLI`,
-    code: `#!/bin/bash\n# ${term}: ${explanation}\necho "${term} listo para el pipeline"\n`,
-    noteEs: "Úsalo en scripts o pipelines de automatización.",
-    noteEn: "Use it in scripts or automation pipelines.",
-  }),
-  general: (term, explanation) => ({
-    titleEs: `Utilidad ${term}`,
-    titleEn: `${term} helper`,
-    code: `function explain${toPascal(term)}(){\n  return "${term}: ${explanation}";\n}\nconsole.log(explain${toPascal(term)}());`,
-    noteEs: "Sirve como helper educativo en cualquier capa.",
-    noteEn: "Works as an educational helper anywhere.",
-  }),
+const curatedSeedTerms: SeedTerm[] = curatedTerms.map((item) => createSeedTerm(item));
+const cssSeedTerms: SeedTerm[] = cssCuratedTerms.map((item) => createSeedTerm(item));
+const dictionary: SeedTerm[] = dedupeTerms([...curatedSeedTerms, ...cssSeedTerms]);
+
+type SoftSkillTemplateSeed = {
+  slug: string;
+  title: string;
+  questionEs: string;
+  questionEn: string;
+  scenario?: string;
+  tags: string[];
+  answerStructure: Array<{ title: string; es: string; en: string }>;
+  sampleAnswerEs: string;
+  sampleAnswerEn: string;
+  tipsEs?: string;
+  tipsEn?: string;
 };
 
-const generatedTerms: SeedTerm[] = rawTerms.map(item => {
-  const example = exampleByCategory[item.category](item.term, item.explanation);
-  return createSeedTerm({
-    term: item.term,
-    translation: item.translation,
-    category: item.category,
-    descriptionEs: item.explanation,
-    descriptionEn: buildMeaningEn(item.term, item.translation),
-    aliases: item.aliases ?? [],
-    example,
-  });
-});
+const softSkillTemplatesSeed: SoftSkillTemplateSeed[] = [
+  {
+    slug: "team-conflict-resolution",
+    title: "Resolución de conflictos",
+    questionEs: "Cuéntame de una ocasión en la que tuviste que resolver un conflicto dentro del equipo.",
+    questionEn: "Tell me about a time you had to resolve conflict inside your team.",
+    scenario: "HR",
+    tags: ["teamwork", "leadership", "hr"],
+    answerStructure: [
+      { title: "Situación", es: "Describe el contexto y por qué el conflicto era relevante.", en: "Set the context and why the conflict mattered." },
+      { title: "Acción", es: "Explica cómo facilitaste la conversación y qué decisiones tomaste.", en: "Explain how you facilitated the conversation and the decisions you made." },
+      { title: "Resultado", es: "Comparte métricas o aprendizajes que evitaron que se repita.", en: "Share metrics or learnings that prevented future issues." },
+    ],
+    sampleAnswerEs:
+      "Durante el rediseño del diccionario dos squads discutían por prioridades. Organicé una retro con reglas claras, mapeamos dependencias y acordamos lanzar primero el buscador mientras la otra célula terminaba el seed. Con eso mantuvimos el release y el NPS del equipo subió 14 puntos al siguiente sprint.",
+    sampleAnswerEn:
+      "During the dictionary redesign two squads were clashing over priorities. I ran a structured retro, mapped dependencies on a mural board and we agreed to ship the search revamp while the second squad finalized the seed. The release stayed on track and team NPS went up 14 points the following sprint.",
+    tipsEs: "Usa método STAR y menciona impacto en negocio o clima.",
+    tipsEn: "Lean on STAR and tie the ending to business impact or team health.",
+  },
+  {
+    slug: "feedback-dificil",
+    title: "Feedback difícil",
+    questionEs: "¿Cómo das feedback cuando alguien del equipo no está cumpliendo las expectativas?",
+    questionEn: "How do you deliver feedback when someone is underperforming?",
+    scenario: "One-on-one",
+    tags: ["feedback", "communication", "coaching"],
+    answerStructure: [
+      { title: "Empatía", es: "Reconoce el contexto y valida el esfuerzo.", en: "Recognize context and validate the effort." },
+      { title: "Hechos", es: "Describe ejemplos observables sin juicios personales.", en: "Describe observable examples without personal judgement." },
+      { title: "Plan", es: "Propón acciones, métricas y seguimiento concreto.", en: "Co-create next steps, metrics and follow-up." },
+    ],
+    sampleAnswerEs:
+      "En mi última retrospectiva noté que un dev llegaba tarde a las revisiones de código. En la 1:1 agradecí lo que sí aportaba, compartí tres ejemplos donde el retraso bloqueó despliegues y acordamos pair sessions dos veces por semana. A las tres semanas la cola de PR bajó 35% y documentamos el acuerdo en Notion.",
+    sampleAnswerEn:
+      "I noticed a dev constantly joining code reviews late. In the 1:1 I acknowledged his impact, walked through three concrete PRs that blocked the release and we agreed on two weekly pairing blocks. Three weeks later the PR queue dropped by 35% and we documented the new expectation in Notion.",
+    tipsEs: "Cierra con seguimiento claro y ofrece ayuda.",
+    tipsEn: "Close with a clear follow-up and offer support.",
+  },
+];
 
-const cssSeedTerms: SeedTerm[] = cssTerms.map(item => {
-  const example: ExampleSnippet = {
-    titleEs: item.example.title,
-    titleEn: `${item.example.title} snippet`,
-    code: item.example.code,
-    noteEs: item.example.note,
-    noteEn: item.example.note,
-  };
-  return createSeedTerm({
-    term: item.term,
-    translation: item.translation,
-    category: Category.frontend,
-    descriptionEs: item.description,
-    descriptionEn: `In CSS, "${item.term}" helps you control layout and presentation.`,
-    aliases: item.aliases ?? [],
-    example,
-    whatEs: item.what ?? `Lo empleamos para ${item.description} dentro de interfaces frontend.`,
-    whatEn: item.what ? `We use it to ${item.description}.` : `We use it to keep the UI consistent.`,
-    howEs:
-      item.how ??
-      `Declara "${item.term}" en tus estilos o utilidades para ${item.description} y prueba el resultado en distintos breakpoints.`,
-    howEn: item.how ? `Declare "${item.term}" to ${item.description}.` : `Declare "${item.term}" and test it across breakpoints.`,
-    languageOverride: Language.css,
-  });
-});
-
-const dictionary: SeedTerm[] = dedupeTerms([...generatedTerms, ...cssSeedTerms]);
-
-type SeedTermInput = {
-  term: string;
-  translation: string;
-  category: Category;
-  descriptionEs: string;
-  descriptionEn?: string;
-  aliases?: string[];
-  tags?: string[];
-  example: ExampleSnippet;
-  whatEs?: string;
-  whatEn?: string;
-  howEs?: string;
-  howEn?: string;
-  languageOverride?: Language;
+type QuizTemplateSeed = {
+  slug: string;
+  title: string;
+  description: string;
+  difficulty: Difficulty;
+  tags: string[];
+  items: Array<{
+    questionEs: string;
+    questionEn: string;
+    options: string[];
+    answerIndex: number;
+    explanationEs: string;
+    explanationEn: string;
+  }>;
 };
+
+const quizTemplatesSeed: QuizTemplateSeed[] = [
+  {
+    slug: "frontend-basics",
+    title: "Fundamentos Frontend",
+    description: "Repaso rápido de conceptos clave en React y CSS.",
+    difficulty: Difficulty.easy,
+    tags: ["frontend", "react", "css"],
+    items: [
+      {
+        questionEs: "¿Qué hace el hook useMemo?",
+        questionEn: "What does the useMemo hook do?",
+        options: [
+          "Memoriza un valor derivado para evitar cálculos costosos",
+          "Dispara efectos secundarios al montar",
+          "Actualiza refs sincronamente",
+        ],
+        answerIndex: 0,
+        explanationEs: "useMemo memoriza operaciones pesadas basadas en dependencias.",
+        explanationEn: "useMemo caches expensive computations based on dependencies.",
+      },
+      {
+        questionEs: "¿Qué valor retorna grid-template-columns: repeat(auto-fit, minmax(240px, 1fr))?",
+        questionEn: "What does grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)) achieve?",
+        options: [
+          "Columnas fijas de 240px",
+          "Columnas fluidas que se adaptan al ancho disponible",
+          "Oculta columnas cuando no hay espacio",
+        ],
+        answerIndex: 1,
+        explanationEs: "repeat auto-fit crea columnas que crecen hasta 1fr manteniendo 240px mínimos.",
+        explanationEn: "auto-fit with minmax creates fluid columns that grow up to 1fr keeping 240px as the floor.",
+      },
+      {
+        questionEs: "¿Cuál es la diferencia entre estado local y global en React?",
+        questionEn: "What's the difference between local and global state in React?",
+        options: [
+          "Ninguna, ambos viven en useState",
+          "El local pertenece al componente y el global se comparte vía context/store",
+          "El global sólo se puede mutar con Redux",
+        ],
+        answerIndex: 1,
+        explanationEs: "El estado local vive en un componente, el global se comparte con context o stores externos.",
+        explanationEn: "Local state belongs to a component, global state is shared via context or state libraries.",
+      },
+    ],
+  },
+  {
+    slug: "api-design",
+    title: "Diseño de APIs",
+    description: "Escenarios sobre seguridad y contratos en APIs modernas.",
+    difficulty: Difficulty.medium,
+    tags: ["backend", "api", "security"],
+    items: [
+      {
+        questionEs: "¿Qué ventaja aporta GraphQL frente a REST en clientes móviles?",
+        questionEn: "Which benefit does GraphQL bring to mobile clients versus REST?",
+        options: [
+          "Evita overfetching al pedir exactamente los campos necesarios",
+          "Usa HTTP/3 por defecto",
+          "Impide que existan errores 500",
+        ],
+        answerIndex: 0,
+        explanationEs: "GraphQL permite definir exactamente los campos, reduciendo overfetching.",
+        explanationEn: "GraphQL lets clients request exactly the fields they need, reducing overfetching.",
+      },
+      {
+        questionEs: "¿Qué claim mínimo debes incluir en un JWT?",
+        questionEn: "Which minimal claim should you include in a JWT?",
+        options: ["sub (identificador del sujeto)", "color favorito", "URL del repositorio"],
+        answerIndex: 0,
+        explanationEs: "El claim sub identifica al usuario y es la base para validar permisos.",
+        explanationEn: "The sub claim identifies the user and is required to validate permissions.",
+      },
+      {
+        questionEs: "¿Qué estrategia reduce el riesgo de exponer tokens en un SPA?",
+        questionEn: "Which strategy reduces the risk of leaking tokens in a SPA?",
+        options: [
+          "Almacenar el JWT en cookies httpOnly con SameSite strict",
+          "Guardar tokens en localStorage",
+          "Incluir el token en la URL",
+        ],
+        answerIndex: 0,
+        explanationEs: "Cookies httpOnly con SameSite strict mitigan XSS y CSRF.",
+        explanationEn: "httpOnly + SameSite strict cookies help mitigate XSS/CSRF.",
+      },
+    ],
+  },
+];
 
 function buildMeaningEn(term: string, translation: string) {
   if (!translation) {
@@ -492,6 +429,10 @@ async function main() {
   }));
 
   // Limpieza total de tablas relacionadas
+  await prisma.quizAttempt.deleteMany({});
+  await prisma.quizTemplate.deleteMany({});
+  await prisma.softSkillResponse.deleteMany({});
+  await prisma.softSkillTemplate.deleteMany({});
   await prisma.contributorBadge.deleteMany({});
   await prisma.contribution.deleteMany({});
   await prisma.badge.deleteMany({});
@@ -517,6 +458,10 @@ async function main() {
     "Exercise",
     "TermStats",
     "InsightMetric",
+    "SoftSkillTemplate",
+    "SoftSkillResponse",
+    "QuizTemplate",
+    "QuizAttempt",
     "ContributorProfile",
     "Contribution",
     "Badge",
@@ -664,6 +609,8 @@ async function main() {
   }
   incrementMetric("seed.terms.created", createdTerms.length);
 
+  await seedSoftSkills(admin.id);
+  await seedQuizzes(admin.id);
   await seedBadges(contributor.id);
 
   incrementMetric("seed.admin.upserted");
@@ -709,6 +656,75 @@ async function resetSequences(tableNames: string[]) {
   } catch (error) {
     logger.warn({ err: error, tables: tableNames }, "seed.reset_sequences_failed");
   }
+}
+
+async function seedSoftSkills(adminId: number) {
+  for (const template of softSkillTemplatesSeed) {
+    const created = await prisma.softSkillTemplate.create({
+      data: {
+        slug: template.slug,
+        title: template.title,
+        questionEs: template.questionEs,
+        questionEn: template.questionEn,
+        scenario: template.scenario,
+        tags: template.tags,
+        answerStructure: template.answerStructure,
+        sampleAnswerEs: template.sampleAnswerEs,
+        sampleAnswerEn: template.sampleAnswerEn,
+        tipsEs: template.tipsEs,
+        tipsEn: template.tipsEn,
+      },
+    });
+    await prisma.softSkillResponse.createMany({
+      data: [
+        {
+          templateId: created.id,
+          language: "es",
+          tone: "storytelling",
+          answer: template.sampleAnswerEs,
+        },
+        {
+          templateId: created.id,
+          language: "en",
+          tone: "concise",
+          answer: template.sampleAnswerEn,
+        },
+      ],
+    });
+  }
+  incrementMetric("seed.soft_skills.created", softSkillTemplatesSeed.length);
+}
+
+async function seedQuizzes(adminId: number) {
+  for (const template of quizTemplatesSeed) {
+    const created = await prisma.quizTemplate.create({
+      data: {
+        slug: template.slug,
+        title: template.title,
+        description: template.description,
+        difficulty: template.difficulty,
+        tags: template.tags,
+        items: template.items,
+      },
+    });
+    const answers = template.items.map((item, index) => ({
+      question: item.questionEs,
+      option: item.options[item.answerIndex],
+      selectedIndex: item.answerIndex,
+      correct: true,
+      order: index + 1,
+    }));
+    await prisma.quizAttempt.create({
+      data: {
+        templateId: created.id,
+        userId: adminId,
+        score: template.items.length,
+        totalQuestions: template.items.length,
+        answers,
+      },
+    });
+  }
+  incrementMetric("seed.quizzes.created", quizTemplatesSeed.length);
 }
 
 async function seedBadges(contributorId: number) {

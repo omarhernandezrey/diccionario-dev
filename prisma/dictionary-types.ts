@@ -72,3 +72,19 @@ export type SeedTerm = {
   faqs?: FaqSeed[];
   exercises?: ExerciseSeed[];
 };
+
+export type SeedTermInput = {
+  term: string;
+  translation: string;
+  category: Category;
+  descriptionEs: string;
+  descriptionEn?: string;
+  aliases?: string[];
+  tags?: string[];
+  example: ExampleSnippet;
+  whatEs?: string;
+  whatEn?: string;
+  howEs?: string;
+  howEn?: string;
+  languageOverride?: Language;
+};
