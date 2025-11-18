@@ -16,6 +16,7 @@ const sampleTerms: TermDTO[] = [
     what: "Distribuye columnas y filas mediante grid-template.",
     how: "Define contenedores grid y asigna áreas.",
     examples: [],
+    status: "approved",
   },
   {
     id: 2,
@@ -28,6 +29,7 @@ const sampleTerms: TermDTO[] = [
     what: "Mantiene una conexión persistente cliente-servidor.",
     how: "Negocia handshake y envía frames.",
     examples: [],
+    status: "approved",
   },
   {
     id: 3,
@@ -40,6 +42,7 @@ const sampleTerms: TermDTO[] = [
     what: "Comparte dependencias y herramientas.",
     how: "Usa workspaces (npm, pnpm, Turborepo).",
     examples: [],
+    status: "approved",
   },
 ];
 

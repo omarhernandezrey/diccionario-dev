@@ -45,7 +45,7 @@ export async function GET(req: NextRequest) {
   try {
     const quizzes = await prisma.quizTemplate.findMany({ orderBy: { createdAt: "desc" } });
     const filtered = tags.length
-      ? quizzes.filter((quiz) => {
+      ? quizzes.filter((quiz: QuizRecord) => {
           const normalized = normalizeArray(quiz.tags).map((tag) => tag.toLowerCase());
           return tags.some((tag) => normalized.includes(tag));
         })

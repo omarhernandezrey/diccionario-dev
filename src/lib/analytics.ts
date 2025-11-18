@@ -13,27 +13,19 @@ export async function getAnalyticsSummary(limit = 10): Promise<AnalyticsSummary>
       by: ["termId"],
       where: { termId: { not: null } },
       _count: { _all: true },
-      orderBy: { _count: { _all: "desc" } },
-      take: limit,
     }),
     prisma.searchLog.groupBy({
       by: ["language"],
       _count: { _all: true },
-      orderBy: { _count: { _all: "desc" } },
-      take: limit,
     }),
     prisma.searchLog.groupBy({
       by: ["context"],
       _count: { _all: true },
-      orderBy: { _count: { _all: "desc" } },
-      take: limit,
     }),
     prisma.searchLog.groupBy({
       by: ["query"],
       where: { termId: null },
       _count: { _all: true },
-      orderBy: { _count: { _all: "desc" } },
-      take: limit,
     }),
   ]);
 
@@ -43,16 +35,29 @@ export async function getAnalyticsSummary(limit = 10): Promise<AnalyticsSummary>
     : [];
   const lookup = new Map(terms.map((term) => [term.id, term.term]));
 
-  return {
-    topTerms: topTermsGroup
-      .filter((entry): entry is typeof entry & { termId: number } => entry.termId !== null)
-      .map((entry) => ({
-        termId: entry.termId,
-        term: lookup.get(entry.termId) ?? "Desconocido",
-        hits: entry._count._all,
-      })),
-    languages: languageUsage.map((entry) => ({ language: entry.language, count: entry._count._all })),
-    contexts: contextUsage.map((entry) => ({ context: entry.context, count: entry._count._all })),
-    emptyQueries: emptyQueries.map((entry) => ({ query: entry.query, attempts: entry._count._all })),
-  };
+  const sortByCountDesc = <T extends { _count?: { _all?: number } | null }>(arr: T[]) =>
+    [...arr].sort((a, b) => (b._count?._all ?? 0) - (a._count?._all ?? 0));
+
+  const topTerms = sortByCountDesc(topTermsGroup)
+    .filter((entry): entry is typeof entry & { termId: number } => entry.termId !== null)
+    .slice(0, limit)
+    .map((entry) => ({
+      termId: entry.termId,
+      term: lookup.get(entry.termId) ?? "Desconocido",
+      hits: entry._count?._all ?? 0,
+    }));
+
+  const languages = sortByCountDesc(languageUsage)
+    .slice(0, limit)
+    .map((entry) => ({ language: entry.language, count: entry._count?._all ?? 0 }));
+
+  const contexts = sortByCountDesc(contextUsage)
+    .slice(0, limit)
+    .map((entry) => ({ context: entry.context, count: entry._count?._all ?? 0 }));
+
+  const empty = sortByCountDesc(emptyQueries)
+    .slice(0, limit)
+    .map((entry) => ({ query: entry.query, attempts: entry._count?._all ?? 0 }));
+
+  return { topTerms, languages, contexts, emptyQueries: empty };
 }

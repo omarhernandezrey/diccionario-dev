@@ -1,4 +1,4 @@
-import { ContributionAction, ContributionEntity, Language } from "@prisma/client";
+import { Prisma, ContributionAction, ContributionEntity, Language } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { logger } from "@/lib/logger";
 
@@ -41,7 +41,7 @@ export async function recordContributionEvent(event: ContributionEvent) {
         entityType: event.entityType,
         action: event.action,
         points,
-        metadata: event.metadata ?? {},
+        metadata: (event.metadata as Prisma.InputJsonValue | undefined) ?? Prisma.JsonNull,
       },
     });
     await prisma.contributorProfile.update({

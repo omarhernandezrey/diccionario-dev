@@ -10,7 +10,7 @@ import {
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { termSchema, type TermInput } from "@/lib/validation";
-import { serializeTerm, type PrismaTermWithRelations } from "../route";
+import { serializeTerm, type PrismaTermWithRelations } from "@/lib/term-serializer";
 import { requireAdmin, type AuthTokenPayload } from "@/lib/auth";
 import { rateLimit } from "@/lib/rate-limit";
 import { incrementMetric, logger } from "@/lib/logger";

@@ -5,7 +5,16 @@ import type { QuizAttemptDTO } from "@/types/quiz";
 
 const noStore = { "Cache-Control": "no-store" } as const;
 
-function serializeAttempt(attempt: Awaited<ReturnType<typeof prisma.quizAttempt.findMany>>[number]): QuizAttemptDTO {
+type AttemptWithTemplate = {
+  id: number;
+  templateId: number;
+  score: number;
+  totalQuestions: number;
+  createdAt: Date;
+  template: { slug: string; title: string };
+};
+
+function serializeAttempt(attempt: AttemptWithTemplate): QuizAttemptDTO {
   return {
     id: attempt.id,
     templateId: attempt.templateId,

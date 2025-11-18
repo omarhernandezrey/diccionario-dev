@@ -372,7 +372,7 @@ function ResultPreview({ term, activeContext }: { term: TermDTO; activeContext: 
   const [variantLang, setVariantLang] = useState<string | null>(term.variants?.[0]?.language ?? null);
   const [cheatSheetOpen, setCheatSheetOpen] = useState(false);
   const [actionHint, setActionHint] = useState<string | null>(null);
-  const hintTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const hintTimeout = useRef<number | null>(null);
   const useCases = useMemo(() => term.useCases ?? [], [term.useCases]);
   const availableUseCaseContexts = useMemo(
     () => Array.from(new Set(useCases.map((useCase) => useCase.context))),
@@ -411,7 +411,7 @@ function ResultPreview({ term, activeContext }: { term: TermDTO; activeContext: 
   useEffect(() => {
     return () => {
       if (hintTimeout.current) {
-        clearTimeout(hintTimeout.current);
+        window.clearTimeout(hintTimeout.current);
       }
     };
   }, []);
@@ -419,7 +419,7 @@ function ResultPreview({ term, activeContext }: { term: TermDTO; activeContext: 
   const showActionHint = (message: string) => {
     setActionHint(message);
     if (hintTimeout.current) {
-      clearTimeout(hintTimeout.current);
+      window.clearTimeout(hintTimeout.current);
     }
     hintTimeout.current = window.setTimeout(() => setActionHint(null), 1800);
   };

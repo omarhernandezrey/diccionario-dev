@@ -71,7 +71,7 @@ export async function GET(req: NextRequest) {
   try {
     const templates = await prisma.softSkillTemplate.findMany({ orderBy: { createdAt: "desc" } });
     const list = requestedTags.length
-      ? templates.filter((entry) => {
+      ? templates.filter((entry: TemplateRecord) => {
           const tags = normalizeArrayValue(entry.tags).map((tag) => tag.toLowerCase());
           return requestedTags.some((tag) => tags.includes(tag));
         })
