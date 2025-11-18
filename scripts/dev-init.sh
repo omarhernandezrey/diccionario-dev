@@ -6,8 +6,8 @@ export DATABASE_URL="${DATABASE_URL:-file:./prisma/dev.db}"
 
 echo "[dev-init] Using DATABASE_URL=$DATABASE_URL"
 
-# Ensure node modules
-if [ ! -d node_modules ]; then
+# Ensure node modules (fresh containers mount vacíos)
+if [ ! -d node_modules ] || [ ! -f node_modules/.bin/next ]; then
   echo "[dev-init] Installing dependencies..."
   npm install
 fi
