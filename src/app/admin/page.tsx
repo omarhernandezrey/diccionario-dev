@@ -3,7 +3,53 @@
 import Image from "next/image";
 import { useCallback, useEffect, useMemo, useState } from "react";
 
+type ReviewStatus = "pending" | "in_review" | "approved" | "rejected";
+
 type TermExample = { title: string; code: string; note?: string };
+type TermVariantForm = {
+  id?: number;
+  language: string;
+  snippet: string;
+  notes?: string;
+  level?: string;
+  status?: ReviewStatus;
+};
+type UseCaseStepForm = { es?: string; en?: string };
+type TermUseCaseForm = {
+  id?: number;
+  context: string;
+  summary: string;
+  steps: UseCaseStepForm[];
+  tips?: string;
+  status?: ReviewStatus;
+};
+type TermFaqForm = {
+  id?: number;
+  questionEs: string;
+  questionEn?: string;
+  answerEs: string;
+  answerEn?: string;
+  snippet?: string;
+  category?: string;
+  howToExplain?: string;
+  status?: ReviewStatus;
+};
+type TermExerciseSolutionForm = {
+  language: string;
+  code: string;
+  explainEs: string;
+  explainEn?: string;
+};
+type TermExerciseForm = {
+  id?: number;
+  titleEs: string;
+  titleEn?: string;
+  promptEs: string;
+  promptEn?: string;
+  difficulty: string;
+  solutions: TermExerciseSolutionForm[];
+  status?: ReviewStatus;
+};
 
 type Term = {
   id: number;
@@ -16,6 +62,11 @@ type Term = {
   what: string;
   how: string;
   examples: TermExample[];
+  status: ReviewStatus;
+  variants: TermVariantForm[];
+  useCases: TermUseCaseForm[];
+  faqs: TermFaqForm[];
+  exercises: TermExerciseForm[];
 };
 
 type SessionUser = {
@@ -34,6 +85,10 @@ type DeleteDialogState = {
 };
 
 const CATS = ["frontend", "backend", "database", "devops", "general"] as const;
+const STATUS_OPTIONS: ReviewStatus[] = ["pending", "in_review", "approved", "rejected"];
+const LANGUAGE_OPTIONS = ["js", "ts", "css", "py", "java", "csharp", "go", "php", "ruby", "rust", "cpp", "swift", "kotlin"];
+const LEVEL_OPTIONS = ["beginner", "intermediate", "advanced"];
+const DIFFICULTY_OPTIONS = ["easy", "medium", "hard"];
 
 type TermsResponse = {
   ok?: boolean;
@@ -41,6 +96,21 @@ type TermsResponse = {
 };
 
 type UnknownRecord = Record<string, unknown>;
+
+type AnalyticsSummary = {
+  topTerms: Array<{ termId: number; term: string; hits: number }>;
+  languages: Array<{ language: string; count: number }>;
+  contexts: Array<{ context: string; count: number }>;
+  emptyQueries: Array<{ query: string; attempts: number }>;
+};
+
+type LeaderboardEntry = {
+  id: number;
+  username: string;
+  email?: string | null;
+  points: number;
+  displayName?: string;
+};
 
 const isRecord = (value: unknown): value is UnknownRecord =>
   typeof value === "object" && value !== null && !Array.isArray(value);
@@ -99,6 +169,7 @@ export default function AdminPage() {
   const [deleteDialog, setDeleteDialog] = useState<DeleteDialogState | null>(null);
   const [deleteLoading, setDeleteLoading] = useState(false);
   const [refreshIndex, setRefreshIndex] = useState(0);
+  const [statusFilter, setStatusFilter] = useState<ReviewStatus | "all">("all");
 
   const empty: Term = useMemo(
     () => ({
@@ -112,12 +183,18 @@ export default function AdminPage() {
       what: "",
       how: "",
       examples: [],
+      status: "pending",
+      variants: [],
+      useCases: [],
+      faqs: [],
+      exercises: [],
     }),
     [],
   );
 
   const categoriesCount = useMemo(() => new Set(items.map((item) => item.category)).size, [items]);
   const exampleCount = useMemo(() => items.reduce((sum, item) => sum + (item.examples?.length || 0), 0), [items]);
+  const pendingCount = useMemo(() => items.filter((item) => item.status !== "approved").length, [items]);
 
   const canEdit = session?.role === "admin";
   const selectedCount = selectedIds.length;
@@ -130,8 +207,14 @@ export default function AdminPage() {
       { label: "Términos visibles", value: items.length },
       { label: "Categorías activas", value: categoriesCount },
       { label: "Snippets guardados", value: exampleCount },
+      { label: "Pendientes", value: pendingCount },
     ],
-    [items.length, categoriesCount, exampleCount],
+    [items.length, categoriesCount, exampleCount, pendingCount],
+  );
+
+  const filteredItems = useMemo(
+    () => (statusFilter === "all" ? items : items.filter((item) => item.status === statusFilter)),
+    [items, statusFilter],
   );
 
   const fetchTerms = useCallback(async (query: string) => {
@@ -155,14 +238,23 @@ export default function AdminPage() {
       const message = extractErrorMessage(data) || (textFallback?.trim() || res.statusText || "Error cargando términos");
       throw new Error(message);
     }
-    const normalized = (Array.isArray(data?.items) ? data.items : []).map(
-      (item: Term): Term => ({
-        ...item,
-        aliases: item.aliases ?? [],
-        tags: item.tags ?? [],
-        examples: item.examples ?? [],
-      }),
-    );
+    const normalized = (Array.isArray(data?.items) ? data.items : []).map((item: UnknownRecord): Term => ({
+      id: Number(item.id) || 0,
+      term: String(item.term || ""),
+      translation: String(item.translation || ""),
+      aliases: Array.isArray(item.aliases) ? (item.aliases as string[]) : [],
+      tags: Array.isArray(item.tags) ? (item.tags as string[]) : [],
+      category: (item.category as Term["category"]) || "general",
+      meaning: String(item.meaning || ""),
+      what: String(item.what || ""),
+      how: String(item.how || ""),
+      examples: Array.isArray(item.examples) ? (item.examples as TermExample[]) : [],
+      status: (item.status as ReviewStatus) || "pending",
+      variants: Array.isArray(item.variants) ? (item.variants as TermVariantForm[]) : [],
+      useCases: Array.isArray(item.useCases) ? (item.useCases as TermUseCaseForm[]) : [],
+      faqs: Array.isArray(item.faqs) ? (item.faqs as TermFaqForm[]) : [],
+      exercises: Array.isArray(item.exercises) ? (item.exercises as TermExerciseForm[]) : [],
+    }));
     return [...normalized].sort((a, b) => Number(a.id) - Number(b.id));
   }, []);
 
@@ -505,6 +597,8 @@ export default function AdminPage() {
             />
           )}
         </div>
+        <AnalyticsPanel />
+        <LeaderboardPanel />
         <SelectionToolbar
           count={selectedCount}
           allSelected={allSelected}
@@ -514,13 +608,15 @@ export default function AdminPage() {
           onBulkDelete={() => requestDeletion(selectedIds, "bulk")}
         />
         <TermsTable
-          items={items}
+          items={filteredItems}
           selectedIds={selectedIds}
           allSelected={allSelected}
           selectionDisabled={selectionDisabled}
           canEdit={canEdit}
           search={q}
           onSearchChange={setQ}
+          statusFilter={statusFilter}
+          onStatusFilterChange={setStatusFilter}
           onToggleItem={toggleItemSelection}
           onToggleAll={toggleSelectAll}
           onEdit={setEditing}
@@ -732,6 +828,8 @@ type TermsTableProps = {
   canEdit: boolean;
   search: string;
   onSearchChange: (value: string) => void;
+  statusFilter: ReviewStatus | "all";
+  onStatusFilterChange: (value: ReviewStatus | "all") => void;
   onToggleItem: (id: number) => void;
   onToggleAll: () => void;
   onEdit: (term: Term) => void;
@@ -747,6 +845,8 @@ function TermsTable({
   canEdit,
   search,
   onSearchChange,
+  statusFilter,
+  onStatusFilterChange,
   onToggleItem,
   onToggleAll,
   onEdit,
@@ -775,6 +875,21 @@ function TermsTable({
               />
             </div>
           </label>
+          <label className="text-sm text-white/70">
+            Estado
+            <select
+              className="mt-1 rounded-2xl border border-white/10 bg-ink-900/50 px-3 py-2 text-white focus:border-accent-secondary focus:outline-none"
+              value={statusFilter}
+              onChange={(event) => onStatusFilterChange(event.target.value as ReviewStatus | "all")}
+            >
+              <option value="all">Todos</option>
+              {STATUS_OPTIONS.map((status) => (
+                <option key={status} value={status}>
+                  {status}
+                </option>
+              ))}
+            </select>
+          </label>
           <button className="btn-primary" type="button" onClick={onCreate} disabled={!canEdit}>
             Crear término
           </button>
@@ -797,6 +912,7 @@ function TermsTable({
               <th className="px-4 py-3">#</th>
               <th className="px-4 py-3">Traducción</th>
               <th className="px-4 py-3">Término</th>
+              <th className="px-4 py-3">Estado</th>
               <th className="px-4 py-3">Categoría</th>
               <th className="px-4 py-3">Acciones</th>
             </tr>
@@ -818,6 +934,11 @@ function TermsTable({
                   <td className="px-4 py-3 text-white/70">{item.id}</td>
                   <td className="px-4 py-3 font-semibold text-white">{item.translation}</td>
                   <td className="px-4 py-3 text-white/80">{item.term}</td>
+                  <td className="px-4 py-3">
+                    <span className={`rounded-full px-2 py-1 text-xs font-semibold ${statusBadgeClass(item.status)}`}>
+                      {item.status}
+                    </span>
+                  </td>
                   <td className="px-4 py-3">
                     <span className="rounded-full bg-white/10 px-2 py-1 text-xs capitalize text-white/70">{item.category}</span>
                   </td>
@@ -849,6 +970,255 @@ function TermsTable({
           </tbody>
         </table>
       </div>
+    </section>
+  );
+}
+
+function statusBadgeClass(status: ReviewStatus) {
+  switch (status) {
+    case "approved":
+      return "bg-accent-emerald/20 text-accent-emerald";
+    case "rejected":
+      return "bg-accent-danger/20 text-accent-danger";
+    case "in_review":
+      return "bg-amber-200/20 text-amber-200";
+    default:
+      return "bg-white/10 text-white/70";
+  }
+}
+
+function AnalyticsPanel() {
+  const [summary, setSummary] = useState<AnalyticsSummary | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    setLoading(true);
+    setError(null);
+    fetch("/api/analytics", { cache: "no-store" })
+      .then(async (res) => {
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        return res.json();
+      })
+      .then((payload) => {
+        if (cancelled) return;
+        if (payload?.ok !== false && payload?.summary) {
+          setSummary(payload.summary as AnalyticsSummary);
+        } else {
+          throw new Error(payload?.error || "Sin datos");
+        }
+        setLoading(false);
+      })
+      .catch((err) => {
+        if (cancelled) return;
+        setError(err?.message || "No se pudo cargar la analítica");
+        setLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  return (
+    <section className="rounded-3xl border border-white/10 bg-ink-900/70 p-6 text-white shadow-glow-card">
+      <header className="flex flex-wrap items-center justify-between gap-3">
+        <div>
+          <p className="text-xs uppercase tracking-wide text-white/50">Observabilidad</p>
+          <h2 className="text-lg font-semibold">Consultas y huecos</h2>
+        </div>
+        {loading ? (
+          <span className="text-xs text-white/60">Actualizando…</span>
+        ) : error ? (
+          <span className="text-xs text-accent-danger">{error}</span>
+        ) : null}
+      </header>
+      {summary ? (
+        <div className="mt-4 grid gap-4 lg:grid-cols-[2fr_1fr]">
+          <div className="rounded-2xl border border-white/10 bg-white/5 p-4">
+            <p className="text-xs uppercase tracking-wide text-white/60">Consultas resueltas</p>
+            {summary.topTerms.length ? (
+              <ul className="mt-3 space-y-2 text-sm text-white/80">
+                {summary.topTerms.slice(0, 6).map((entry) => (
+                  <li key={entry.termId} className="flex items-center justify-between rounded-xl border border-white/10 bg-ink-900/40 px-3 py-2">
+                    <span>{entry.term}</span>
+                    <span className="text-white/60">{entry.hits} hits</span>
+                  </li>
+                ))}
+              </ul>
+            ) : (
+              <p className="mt-3 text-xs text-white/60">Aún no hay datos.</p>
+            )}
+          </div>
+          <div className="space-y-4">
+            <div className="rounded-2xl border border-white/10 bg-ink-900/50 p-4">
+              <p className="text-xs uppercase tracking-wide text-white/60">Consultas sin resultados</p>
+              {summary.emptyQueries.length ? (
+                <ul className="mt-3 space-y-1 text-xs text-white/80">
+                  {summary.emptyQueries.slice(0, 4).map((entry) => (
+                    <li key={entry.query} className="flex items-center justify-between">
+                      <span className="truncate" title={entry.query}>
+                        {entry.query}
+                      </span>
+                      <span className="text-white/50">{entry.attempts}</span>
+                    </li>
+                  ))}
+                </ul>
+              ) : (
+                <p className="mt-3 text-xs text-white/60">Todo tiene coincidencias.</p>
+              )}
+            </div>
+            <div className="rounded-2xl border border-white/10 bg-ink-900/50 p-4 text-xs text-white/80">
+              <div className="grid gap-3">
+                <div>
+                  <p className="text-white/60">Idiomas</p>
+                  <ul className="mt-1 space-y-1">
+                    {summary.languages.slice(0, 3).map((entry) => (
+                      <li key={entry.language} className="flex items-center justify-between">
+                        <span>{entry.language.toUpperCase()}</span>
+                        <span>{entry.count}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+                <div>
+                  <p className="text-white/60">Contextos</p>
+                  <ul className="mt-1 space-y-1">
+                    {summary.contexts.slice(0, 3).map((entry) => (
+                      <li key={entry.context} className="flex items-center justify-between">
+                        <span>{entry.context}</span>
+                        <span>{entry.count}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      ) : loading ? (
+        <p className="mt-4 text-xs text-white/60">Recolectando métricas…</p>
+      ) : error ? (
+        <p className="mt-4 text-xs text-accent-danger">{error}</p>
+      ) : (
+        <p className="mt-4 text-xs text-white/60">Sin datos aún.</p>
+      )}
+    </section>
+  );
+}
+
+function LeaderboardPanel() {
+  const [entries, setEntries] = useState<LeaderboardEntry[] | null>(null);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    fetch("/api/leaderboard", { cache: "no-store" })
+      .then(async (res) => {
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        return res.json();
+      })
+      .then((payload) => {
+        if (cancelled) return;
+        setEntries(Array.isArray(payload?.items) ? (payload.items as LeaderboardEntry[]) : []);
+        setError(null);
+      })
+      .catch((err) => {
+        if (cancelled) return;
+        setError(err?.message || "No se pudo cargar el ranking");
+        setEntries([]);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  return (
+    <section className="rounded-3xl border border-white/10 bg-white/5 p-6 shadow-glow-card">
+      <header className="flex items-center justify-between">
+        <div>
+          <p className="text-xs uppercase tracking-wide text-white/60">Gamificación</p>
+          <h2 className="text-lg font-semibold text-white">Ranking de contribuidores</h2>
+        </div>
+        {error ? <span className="text-xs text-accent-danger">{error}</span> : null}
+      </header>
+      {entries === null ? (
+        <p className="mt-4 text-xs text-white/60">Calculando aportes…</p>
+      ) : entries.length ? (
+        <ul className="mt-4 space-y-3">
+          {entries.map((entry, index) => (
+            <li key={entry.id} className="flex items-center justify-between rounded-2xl border border-white/10 bg-ink-900/60 px-4 py-3">
+              <div>
+                <p className="text-sm font-semibold text-white">
+                  #{index + 1} {entry.username || entry.displayName || entry.id}
+                </p>
+                {entry.email ? <p className="text-xs text-white/50">{entry.email}</p> : null}
+              </div>
+              <span className="text-xs font-semibold text-white/70">{entry.points} pts</span>
+            </li>
+          ))}
+        </ul>
+      ) : (
+        <p className="mt-4 text-xs text-white/60">Aún no hay contribuciones registradas.</p>
+      )}
+    </section>
+  );
+}
+
+function LeaderboardPanel() {
+  const [entries, setEntries] = useState<LeaderboardEntry[] | null>(null);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    fetch("/api/leaderboard", { cache: "no-store" })
+      .then(async (res) => {
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        return res.json();
+      })
+      .then((payload) => {
+        if (cancelled) return;
+        setEntries(payload?.items ?? []);
+        setError(null);
+      })
+      .catch((err) => {
+        if (cancelled) return;
+        setError(err?.message || "No se pudo cargar el ranking");
+        setEntries([]);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  return (
+    <section className="rounded-3xl border border-white/10 bg-white/5 p-6 shadow-glow-card">
+      <header className="flex items-center justify-between">
+        <div>
+          <p className="text-xs uppercase tracking-wide text-white/60">Gamificación</p>
+          <h2 className="text-lg font-semibold text-white">Ranking de contribuidores</h2>
+        </div>
+        {error ? <span className="text-xs text-accent-danger">{error}</span> : null}
+      </header>
+      {entries === null ? (
+        <p className="mt-4 text-xs text-white/60">Calculando aportes…</p>
+      ) : entries.length ? (
+        <ul className="mt-4 space-y-3">
+          {entries.map((entry, index) => (
+            <li key={entry.id} className="flex items-center justify-between rounded-2xl border border-white/10 bg-ink-900/60 px-4 py-3">
+              <div>
+                <p className="text-sm font-semibold text-white">
+                  #{index + 1} {entry.username}
+                </p>
+                {entry.email ? <p className="text-xs text-white/50">{entry.email}</p> : null}
+              </div>
+              <span className="text-xs font-semibold text-white/70">{entry.points} pts</span>
+            </li>
+          ))}
+        </ul>
+      ) : (
+        <p className="mt-4 text-xs text-white/60">Aún no hay contribuciones registradas.</p>
+      )}
     </section>
   );
 }
@@ -915,7 +1285,20 @@ function EditorSheet({ term, onCancel, onSave }: EditorSheetProps) {
               ))}
             </select>
           </label>
-          <div className="hidden md:block" />
+          <label className="text-sm text-white/70">
+            Estado
+            <select
+              className={`${baseFieldClasses} bg-ink-800`}
+              value={val.status}
+              onChange={(event) => setVal({ ...val, status: event.target.value as ReviewStatus })}
+            >
+              {STATUS_OPTIONS.map((status) => (
+                <option key={status} value={status} className="bg-ink-900 text-white">
+                  {status}
+                </option>
+              ))}
+            </select>
+          </label>
         </div>
         <div className="mt-4 grid gap-4 md:grid-cols-2">
           <label className="text-sm text-white/70">
@@ -973,6 +1356,12 @@ function EditorSheet({ term, onCancel, onSave }: EditorSheetProps) {
               })
             }
           />
+        </div>
+        <div className="mt-6 space-y-6">
+          <VariantsEditor value={val.variants} onChange={(variants) => setVal({ ...val, variants })} />
+          <UseCasesEditor value={val.useCases} onChange={(useCases) => setVal({ ...val, useCases })} />
+          <FaqsEditor value={val.faqs} onChange={(faqs) => setVal({ ...val, faqs })} />
+          <ExercisesEditor value={val.exercises} onChange={(exercises) => setVal({ ...val, exercises })} />
         </div>
         {!requiredFilled && <p className="mt-3 text-sm text-accent-danger">Completa traducción, término, significado, qué hace y cómo se usa.</p>}
         <div className="mt-6 flex flex-wrap justify-end gap-3">
@@ -1142,6 +1531,584 @@ function ExamplesEditor({ value, onChange }: ExamplesEditorProps) {
       ) : (
         <p className="rounded-2xl border border-dashed border-white/10 px-4 py-6 text-center text-sm text-white/60">Sin ejemplos.</p>
       )}
+    </div>
+  );
+}
+
+type VariantsEditorProps = {
+  value: TermVariantForm[];
+  onChange: (variants: TermVariantForm[]) => void;
+};
+
+function VariantsEditor({ value, onChange }: VariantsEditorProps) {
+  const [list, setList] = useState<TermVariantForm[]>(value);
+  useEffect(() => {
+    setList(value);
+  }, [value]);
+
+  const sync = (next: TermVariantForm[]) => {
+    setList(next);
+    onChange(next);
+  };
+
+  const update = (index: number, patch: Partial<TermVariantForm>) => {
+    sync(list.map((item, idx) => (idx === index ? { ...item, ...patch } : item)));
+  };
+
+  const remove = (index: number) => {
+    sync(list.filter((_, idx) => idx !== index));
+  };
+
+  const add = () => {
+    sync([...list, { language: "js", snippet: "", level: "intermediate", status: "pending" }]);
+  };
+
+  return (
+    <section className="space-y-4">
+      <div className="flex items-center justify-between">
+        <p className="text-sm text-white/70">Variantes por lenguaje</p>
+        <button className="btn-ghost" type="button" onClick={add}>
+          + Añadir variante
+        </button>
+      </div>
+      {list.length ? (
+        <div className="space-y-3">
+          {list.map((variant, index) => (
+            <div key={`variant-${index}`} className="rounded-2xl border border-white/15 bg-[#050915] p-4 shadow-inner">
+              <div className="flex flex-wrap items-center justify-between gap-3">
+                <p className="text-xs uppercase tracking-wide text-white/50">Variante #{index + 1}</p>
+                <button className="btn-ghost" type="button" onClick={() => remove(index)}>
+                  Eliminar
+                </button>
+              </div>
+              <div className="mt-3 grid gap-3 md:grid-cols-3">
+                <label className="text-xs text-white/60">
+                  Lenguaje
+                  <select
+                    className="mt-1 w-full rounded-2xl border border-white/15 bg-ink-900 px-3 py-2 text-sm text-white focus:outline-none"
+                    value={variant.language}
+                    onChange={(event) => update(index, { language: event.target.value })}
+                  >
+                    {LANGUAGE_OPTIONS.map((lang) => (
+                      <option key={lang} value={lang}>
+                        {lang}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+                <label className="text-xs text-white/60">
+                  Nivel
+                  <select
+                    className="mt-1 w-full rounded-2xl border border-white/15 bg-ink-900 px-3 py-2 text-sm text-white focus:outline-none"
+                    value={variant.level || "intermediate"}
+                    onChange={(event) => update(index, { level: event.target.value })}
+                  >
+                    {LEVEL_OPTIONS.map((level) => (
+                      <option key={level} value={level}>
+                        {level}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+                <label className="text-xs text-white/60">
+                  Estado
+                  <select
+                    className="mt-1 w-full rounded-2xl border border-white/15 bg-ink-900 px-3 py-2 text-sm text-white focus:outline-none"
+                    value={variant.status || "pending"}
+                    onChange={(event) => update(index, { status: event.target.value as ReviewStatus })}
+                  >
+                    {STATUS_OPTIONS.map((status) => (
+                      <option key={status} value={status}>
+                        {status}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+              </div>
+              <label className="mt-3 block text-xs text-white/60">
+                Snippet
+                <textarea
+                  className="mt-1 w-full rounded-2xl border border-white/15 bg-[#050915] px-3 py-2 font-mono text-xs text-white focus:outline-none"
+                  rows={3}
+                  value={variant.snippet}
+                  onChange={(event) => update(index, { snippet: event.target.value })}
+                />
+              </label>
+              <label className="mt-3 block text-xs text-white/60">
+                Notas
+                <input
+                  className="mt-1 w-full rounded-2xl border border-white/15 bg-[#0d1424] px-3 py-2 text-sm text-white focus:outline-none"
+                  value={variant.notes || ""}
+                  onChange={(event) => update(index, { notes: event.target.value })}
+                />
+              </label>
+            </div>
+          ))}
+        </div>
+      ) : (
+        <p className="rounded-2xl border border-dashed border-white/10 px-4 py-6 text-center text-sm text-white/60">Sin variantes aún.</p>
+      )}
+    </section>
+  );
+}
+
+type UseCasesEditorProps = {
+  value: TermUseCaseForm[];
+  onChange: (useCases: TermUseCaseForm[]) => void;
+};
+
+function UseCasesEditor({ value, onChange }: UseCasesEditorProps) {
+  const [list, setList] = useState<TermUseCaseForm[]>(value);
+  useEffect(() => setList(value), [value]);
+  const sync = (next: TermUseCaseForm[]) => {
+    setList(next);
+    onChange(next);
+  };
+  const update = (index: number, patch: Partial<TermUseCaseForm>) => {
+    sync(list.map((item, idx) => (idx === index ? { ...item, ...patch } : item)));
+  };
+  const updateStep = (index: number, stepIndex: number, patch: Partial<UseCaseStepForm>) => {
+    const steps = [...(list[index].steps || [])];
+    steps[stepIndex] = { ...steps[stepIndex], ...patch };
+    update(index, { steps });
+  };
+  const addStep = (index: number) => {
+    update(index, { steps: [...(list[index].steps || []), { es: "", en: "" }] });
+  };
+  const removeStep = (index: number, stepIndex: number) => {
+    const steps = (list[index].steps || []).filter((_, idx) => idx !== stepIndex);
+    update(index, { steps });
+  };
+  const remove = (index: number) => sync(list.filter((_, idx) => idx !== index));
+  const add = () => sync([...list, { context: "project", summary: "", steps: [{ es: "" }], status: "pending" }]);
+
+  return (
+    <section className="space-y-4">
+      <div className="flex items-center justify-between">
+        <p className="text-sm text-white/70">Casos de uso</p>
+        <button className="btn-ghost" type="button" onClick={add}>
+          + Añadir caso
+        </button>
+      </div>
+      {list.length ? (
+        <div className="space-y-3">
+          {list.map((useCase, index) => (
+            <div key={`usecase-${index}`} className="rounded-2xl border border-white/15 bg-[#050915] p-4 shadow-inner">
+              <div className="flex flex-wrap items-center justify-between gap-3">
+                <p className="text-xs uppercase tracking-wide text-white/50">Caso #{index + 1}</p>
+                <button className="btn-ghost" type="button" onClick={() => remove(index)}>
+                  Eliminar
+                </button>
+              </div>
+              <div className="mt-3 grid gap-3 md:grid-cols-3">
+                <label className="text-xs text-white/60">
+                  Contexto
+                  <select
+                    className="mt-1 w-full rounded-2xl border border-white/15 bg-ink-900 px-3 py-2 text-sm text-white focus:outline-none"
+                    value={useCase.context}
+                    onChange={(event) => update(index, { context: event.target.value })}
+                  >
+                    {(["interview", "project", "bug"] as const).map((ctx) => (
+                      <option key={ctx} value={ctx}>
+                        {ctx}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+                <label className="text-xs text-white/60">
+                  Estado
+                  <select
+                    className="mt-1 w-full rounded-2xl border border-white/15 bg-ink-900 px-3 py-2 text-sm text-white focus:outline-none"
+                    value={useCase.status || "pending"}
+                    onChange={(event) => update(index, { status: event.target.value as ReviewStatus })}
+                  >
+                    {STATUS_OPTIONS.map((status) => (
+                      <option key={status} value={status}>
+                        {status}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+                <label className="text-xs text-white/60">
+                  Tips
+                  <input
+                    className="mt-1 w-full rounded-2xl border border-white/15 bg-[#0d1424] px-3 py-2 text-sm text-white focus:outline-none"
+                    value={useCase.tips || ""}
+                    onChange={(event) => update(index, { tips: event.target.value })}
+                  />
+                </label>
+              </div>
+              <label className="mt-3 block text-xs text-white/60">
+                Resumen
+                <textarea
+                  className="mt-1 w-full rounded-2xl border border-white/15 bg-[#050915] px-3 py-2 text-sm text-white focus:outline-none"
+                  rows={3}
+                  value={useCase.summary}
+                  onChange={(event) => update(index, { summary: event.target.value })}
+                />
+              </label>
+              <div className="mt-3 space-y-2">
+                <div className="flex items-center justify-between">
+                  <p className="text-xs text-white/60">Pasos</p>
+                  <button className="btn-ghost" type="button" onClick={() => addStep(index)}>
+                    + Paso
+                  </button>
+                </div>
+                {(useCase.steps || []).map((step, stepIndex) => (
+                  <div key={`step-${stepIndex}`} className="grid gap-2 md:grid-cols-2">
+                    <label className="text-xs text-white/60">
+                      ES
+                      <input
+                        className="mt-1 w-full rounded-2xl border border-white/15 bg-[#0d1424] px-3 py-2 text-sm text-white focus:outline-none"
+                        value={step.es || ""}
+                        onChange={(event) => updateStep(index, stepIndex, { es: event.target.value })}
+                      />
+                    </label>
+                    <div className="flex gap-2">
+                      <label className="flex-1 text-xs text-white/60">
+                        EN
+                        <input
+                          className="mt-1 w-full rounded-2xl border border-white/15 bg-[#0d1424] px-3 py-2 text-sm text-white focus:outline-none"
+                          value={step.en || ""}
+                          onChange={(event) => updateStep(index, stepIndex, { en: event.target.value })}
+                        />
+                      </label>
+                      <button className="btn-ghost mt-5" type="button" onClick={() => removeStep(index, stepIndex)}>
+                        ×
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          ))}
+        </div>
+      ) : (
+        <p className="rounded-2xl border border-dashed border-white/10 px-4 py-6 text-center text-sm text-white/60">Sin casos de uso todavía.</p>
+      )}
+    </section>
+  );
+}
+
+type FaqsEditorProps = {
+  value: TermFaqForm[];
+  onChange: (faqs: TermFaqForm[]) => void;
+};
+
+function FaqsEditor({ value, onChange }: FaqsEditorProps) {
+  const [list, setList] = useState<TermFaqForm[]>(value);
+  useEffect(() => setList(value), [value]);
+  const sync = (next: TermFaqForm[]) => {
+    setList(next);
+    onChange(next);
+  };
+  const update = (index: number, patch: Partial<TermFaqForm>) => {
+    sync(list.map((item, idx) => (idx === index ? { ...item, ...patch } : item)));
+  };
+  const remove = (index: number) => sync(list.filter((_, idx) => idx !== index));
+  const add = () => sync([...list, { questionEs: "", answerEs: "", status: "pending" }]);
+
+  return (
+    <section className="space-y-4">
+      <div className="flex items-center justify-between">
+        <p className="text-sm text-white/70">FAQs</p>
+        <button className="btn-ghost" type="button" onClick={add}>
+          + Añadir FAQ
+        </button>
+      </div>
+      {list.length ? (
+        <div className="space-y-3">
+          {list.map((faq, index) => (
+            <div key={`faq-${index}`} className="rounded-2xl border border-white/15 bg-[#050915] p-4 shadow-inner">
+              <div className="flex flex-wrap items-center justify-between gap-3">
+                <p className="text-xs uppercase tracking-wide text-white/50">FAQ #{index + 1}</p>
+                <button className="btn-ghost" type="button" onClick={() => remove(index)}>
+                  Eliminar
+                </button>
+              </div>
+              <div className="mt-3 grid gap-3 md:grid-cols-2">
+                <label className="text-xs text-white/60">
+                  Pregunta (ES)
+                  <input
+                    className="mt-1 w-full rounded-2xl border border-white/15 bg-[#0d1424] px-3 py-2 text-sm text-white focus:outline-none"
+                    value={faq.questionEs}
+                    onChange={(event) => update(index, { questionEs: event.target.value })}
+                  />
+                </label>
+                <label className="text-xs text-white/60">
+                  Pregunta (EN)
+                  <input
+                    className="mt-1 w-full rounded-2xl border border-white/15 bg-[#0d1424] px-3 py-2 text-sm text-white focus:outline-none"
+                    value={faq.questionEn || ""}
+                    onChange={(event) => update(index, { questionEn: event.target.value })}
+                  />
+                </label>
+              </div>
+              <div className="mt-3 grid gap-3 md:grid-cols-2">
+                <label className="text-xs text-white/60">
+                  Respuesta (ES)
+                  <textarea
+                    className="mt-1 w-full rounded-2xl border border-white/15 bg-[#050915] px-3 py-2 text-sm text-white focus:outline-none"
+                    rows={3}
+                    value={faq.answerEs}
+                    onChange={(event) => update(index, { answerEs: event.target.value })}
+                  />
+                </label>
+                <label className="text-xs text-white/60">
+                  Respuesta (EN)
+                  <textarea
+                    className="mt-1 w-full rounded-2xl border border-white/15 bg-[#050915] px-3 py-2 text-sm text-white focus:outline-none"
+                    rows={3}
+                    value={faq.answerEn || ""}
+                    onChange={(event) => update(index, { answerEn: event.target.value })}
+                  />
+                </label>
+              </div>
+              <div className="mt-3 grid gap-3 md:grid-cols-3">
+                <label className="text-xs text-white/60">
+                  Snippet
+                  <input
+                    className="mt-1 w-full rounded-2xl border border-white/15 bg-[#0d1424] px-3 py-2 text-sm text-white focus:outline-none"
+                    value={faq.snippet || ""}
+                    onChange={(event) => update(index, { snippet: event.target.value })}
+                  />
+                </label>
+                <label className="text-xs text-white/60">
+                  Categoría
+                  <input
+                    className="mt-1 w-full rounded-2xl border border-white/15 bg-[#0d1424] px-3 py-2 text-sm text-white focus:outline-none"
+                    value={faq.category || ""}
+                    onChange={(event) => update(index, { category: event.target.value })}
+                  />
+                </label>
+                <label className="text-xs text-white/60">
+                  Estado
+                  <select
+                    className="mt-1 w-full rounded-2xl border border-white/15 bg-ink-900 px-3 py-2 text-sm text-white focus:outline-none"
+                    value={faq.status || "pending"}
+                    onChange={(event) => update(index, { status: event.target.value as ReviewStatus })}
+                  >
+                    {STATUS_OPTIONS.map((status) => (
+                      <option key={status} value={status}>
+                        {status}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+              </div>
+              <label className="mt-3 block text-xs text-white/60">
+                Cómo explicarlo
+                <textarea
+                  className="mt-1 w-full rounded-2xl border border-white/15 bg-[#050915] px-3 py-2 text-sm text-white focus:outline-none"
+                  rows={2}
+                  value={faq.howToExplain || ""}
+                  onChange={(event) => update(index, { howToExplain: event.target.value })}
+                />
+              </label>
+            </div>
+          ))}
+        </div>
+      ) : (
+        <p className="rounded-2xl border border-dashed border-white/10 px-4 py-6 text-center text-sm text-white/60">Sin FAQs.</p>
+      )}
+    </section>
+  );
+}
+
+type ExercisesEditorProps = {
+  value: TermExerciseForm[];
+  onChange: (exercises: TermExerciseForm[]) => void;
+};
+
+function ExercisesEditor({ value, onChange }: ExercisesEditorProps) {
+  const [list, setList] = useState<TermExerciseForm[]>(value);
+  useEffect(() => setList(value), [value]);
+  const sync = (next: TermExerciseForm[]) => {
+    setList(next);
+    onChange(next);
+  };
+  const update = (index: number, patch: Partial<TermExerciseForm>) => {
+    sync(list.map((item, idx) => (idx === index ? { ...item, ...patch } : item)));
+  };
+  const updateSolutions = (index: number, solutions: TermExerciseSolutionForm[]) => {
+    update(index, { solutions });
+  };
+  const remove = (index: number) => sync(list.filter((_, idx) => idx !== index));
+  const add = () => sync([...list, { titleEs: "", promptEs: "", difficulty: "medium", solutions: [{ language: "js", code: "", explainEs: "" }], status: "pending" }]);
+
+  return (
+    <section className="space-y-4">
+      <div className="flex items-center justify-between">
+        <p className="text-sm text-white/70">Ejercicios</p>
+        <button className="btn-ghost" type="button" onClick={add}>
+          + Añadir ejercicio
+        </button>
+      </div>
+      {list.length ? (
+        <div className="space-y-3">
+          {list.map((exercise, index) => (
+            <div key={`exercise-${index}`} className="rounded-2xl border border-white/15 bg-[#050915] p-4 shadow-inner">
+              <div className="flex flex-wrap items-center justify-between gap-3">
+                <p className="text-xs uppercase tracking-wide text-white/50">Ejercicio #{index + 1}</p>
+                <button className="btn-ghost" type="button" onClick={() => remove(index)}>
+                  Eliminar
+                </button>
+              </div>
+              <div className="mt-3 grid gap-3 md:grid-cols-2">
+                <label className="text-xs text-white/60">
+                  Título (ES)
+                  <input
+                    className="mt-1 w-full rounded-2xl border border-white/15 bg-[#0d1424] px-3 py-2 text-sm text-white focus:outline-none"
+                    value={exercise.titleEs}
+                    onChange={(event) => update(index, { titleEs: event.target.value })}
+                  />
+                </label>
+                <label className="text-xs text-white/60">
+                  Título (EN)
+                  <input
+                    className="mt-1 w-full rounded-2xl border border-white/15 bg-[#0d1424] px-3 py-2 text-sm text-white focus:outline-none"
+                    value={exercise.titleEn || ""}
+                    onChange={(event) => update(index, { titleEn: event.target.value })}
+                  />
+                </label>
+              </div>
+              <div className="mt-3 grid gap-3 md:grid-cols-2">
+                <label className="text-xs text-white/60">
+                  Prompt (ES)
+                  <textarea
+                    className="mt-1 w-full rounded-2xl border border-white/15 bg-[#050915] px-3 py-2 text-sm text-white focus:outline-none"
+                    rows={2}
+                    value={exercise.promptEs}
+                    onChange={(event) => update(index, { promptEs: event.target.value })}
+                  />
+                </label>
+                <label className="text-xs text-white/60">
+                  Prompt (EN)
+                  <textarea
+                    className="mt-1 w-full rounded-2xl border border-white/15 bg-[#050915] px-3 py-2 text-sm text-white focus:outline-none"
+                    rows={2}
+                    value={exercise.promptEn || ""}
+                    onChange={(event) => update(index, { promptEn: event.target.value })}
+                  />
+                </label>
+              </div>
+              <div className="mt-3 grid gap-3 md:grid-cols-2">
+                <label className="text-xs text-white/60">
+                  Dificultad
+                  <select
+                    className="mt-1 w-full rounded-2xl border border-white/15 bg-ink-900 px-3 py-2 text-sm text-white focus:outline-none"
+                    value={exercise.difficulty}
+                    onChange={(event) => update(index, { difficulty: event.target.value })}
+                  >
+                    {DIFFICULTY_OPTIONS.map((option) => (
+                      <option key={option} value={option}>
+                        {option}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+                <label className="text-xs text-white/60">
+                  Estado
+                  <select
+                    className="mt-1 w-full rounded-2xl border border-white/15 bg-ink-900 px-3 py-2 text-sm text-white focus:outline-none"
+                    value={exercise.status || "pending"}
+                    onChange={(event) => update(index, { status: event.target.value as ReviewStatus })}
+                  >
+                    {STATUS_OPTIONS.map((status) => (
+                      <option key={status} value={status}>
+                        {status}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+              </div>
+              <SolutionsEditor value={exercise.solutions || []} onChange={(solutions) => updateSolutions(index, solutions)} />
+            </div>
+          ))}
+        </div>
+      ) : (
+        <p className="rounded-2xl border border-dashed border-white/10 px-4 py-6 text-center text-sm text-white/60">Sin ejercicios.</p>
+      )}
+    </section>
+  );
+}
+
+type SolutionsEditorProps = {
+  value: TermExerciseSolutionForm[];
+  onChange: (solutions: TermExerciseSolutionForm[]) => void;
+};
+
+function SolutionsEditor({ value, onChange }: SolutionsEditorProps) {
+  const [list, setList] = useState<TermExerciseSolutionForm[]>(value.length ? value : [{ language: "js", code: "", explainEs: "" }]);
+  useEffect(() => setList(value.length ? value : [{ language: "js", code: "", explainEs: "" }]), [value]);
+  const sync = (next: TermExerciseSolutionForm[]) => {
+    setList(next);
+    onChange(next);
+  };
+  const update = (index: number, patch: Partial<TermExerciseSolutionForm>) => {
+    sync(list.map((item, idx) => (idx === index ? { ...item, ...patch } : item)));
+  };
+  const remove = (index: number) => sync(list.filter((_, idx) => idx !== index));
+  const add = () => sync([...list, { language: "js", code: "", explainEs: "" }]);
+
+  return (
+    <div className="mt-3 space-y-2">
+      <div className="flex items-center justify-between">
+        <p className="text-xs uppercase tracking-wide text-white/60">Soluciones</p>
+        <button className="btn-ghost" type="button" onClick={add}>
+          + Añadir solución
+        </button>
+      </div>
+      {list.map((solution, index) => (
+        <div key={`solution-${index}`} className="rounded-2xl border border-white/10 bg-ink-900/50 p-3">
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <label className="text-xs text-white/60">
+              Lenguaje
+              <select
+                className="mt-1 rounded-2xl border border-white/10 bg-ink-900 px-2 py-1 text-xs text-white focus:outline-none"
+                value={solution.language}
+                onChange={(event) => update(index, { language: event.target.value })}
+              >
+                {LANGUAGE_OPTIONS.map((lang) => (
+                  <option key={lang} value={lang}>
+                    {lang}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <button className="btn-ghost" type="button" onClick={() => remove(index)}>
+              Eliminar
+            </button>
+          </div>
+          <label className="mt-2 block text-xs text-white/60">
+            Código
+            <textarea
+              className="mt-1 w-full rounded-2xl border border-white/15 bg-[#050915] px-3 py-2 font-mono text-xs text-white focus:outline-none"
+              rows={3}
+              value={solution.code}
+              onChange={(event) => update(index, { code: event.target.value })}
+            />
+          </label>
+          <label className="mt-2 block text-xs text-white/60">
+            Explicación (ES)
+            <textarea
+              className="mt-1 w-full rounded-2xl border border-white/15 bg-[#0d1424] px-3 py-2 text-xs text-white focus:outline-none"
+              rows={2}
+              value={solution.explainEs}
+              onChange={(event) => update(index, { explainEs: event.target.value })}
+            />
+          </label>
+          <label className="mt-2 block text-xs text-white/60">
+            Explicación (EN)
+            <textarea
+              className="mt-1 w-full rounded-2xl border border-white/15 bg-[#0d1424] px-3 py-2 text-xs text-white focus:outline-none"
+              rows={2}
+              value={solution.explainEn || ""}
+              onChange={(event) => update(index, { explainEn: event.target.value })}
+            />
+          </label>
+        </div>
+      ))}
     </div>
   );
 }

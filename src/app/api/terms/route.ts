@@ -1,10 +1,19 @@
-import { HistoryAction, Prisma, Language, SkillLevel } from "@prisma/client";
+import {
+  HistoryAction,
+  Prisma,
+  Language,
+  SkillLevel,
+  ReviewStatus,
+  ContributionEntity,
+  ContributionAction,
+} from "@prisma/client";
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { termSchema, termsQuerySchema, type TermsQueryInput } from "@/lib/validation";
 import { requireAdmin, type AuthTokenPayload } from "@/lib/auth";
 import { rateLimit } from "@/lib/rate-limit";
 import { incrementMetric, logger } from "@/lib/logger";
+import { recordContributionEvent } from "@/lib/contributors";
 import type {
   TermDTO,
   TermExampleDTO,
@@ -80,14 +89,32 @@ function sanitizeSnapshot<T>(payload: T) {
   }
 }
 
+const REVIEW_STATUSES: ReviewStatus[] = ["pending", "in_review", "approved", "rejected"];
+
+function normalizeReviewStatus(value?: string | null): ReviewStatus {
+  if (value && REVIEW_STATUSES.includes(value as ReviewStatus)) {
+    return value as ReviewStatus;
+  }
+  return ReviewStatus.pending;
+}
+
+function buildReviewMetadata(status: ReviewStatus, reviewerId: number) {
+  if (status === ReviewStatus.pending) {
+    return {};
+  }
+  return { reviewedAt: new Date(), reviewedById: reviewerId };
+}
+
 async function recordSearchEvent(event: {
   query: string;
   language: string;
   context: string;
   mode: string;
   termId?: number | null;
+  resultCount?: number;
+  hadResults?: boolean;
 }) {
-  const { query, language, context, mode, termId = null } = event;
+  const { query, language, context, mode, termId = null, resultCount = 0, hadResults = false } = event;
   try {
     await prisma.searchLog.create({
       data: {
@@ -96,6 +123,8 @@ async function recordSearchEvent(event: {
         context,
         mode,
         termId,
+        resultCount,
+        hadResults,
       },
     });
   } catch (error) {
@@ -120,7 +149,7 @@ export async function GET(req: NextRequest) {
   if (!rate.ok) {
     incrementMetric("terms.list.rate_limited");
     logger.warn({ route: "/api/terms", ip }, "terms.list.rate_limited");
-    void recordSearchEvent({ query: rawQuery, language, context, mode, termId: null });
+    void recordSearchEvent({ query: rawQuery, language, context, mode, termId: null, resultCount: 0, hadResults: false });
     return NextResponse.json(
       {
         ok: false,
@@ -137,7 +166,7 @@ export async function GET(req: NextRequest) {
   if (!parsed.success) {
     incrementMetric("terms.list.invalid");
     logger.warn({ route: "/api/terms", reason: "invalid_query", details: parsed.error.flatten() }, "terms.list.invalid");
-    void recordSearchEvent({ query: rawQuery, language, context, mode, termId: null });
+    void recordSearchEvent({ query: rawQuery, language, context, mode, termId: null, resultCount: 0, hadResults: false });
     return jsonError(parsed.error.flatten(), 400);
   }
 
@@ -156,13 +185,21 @@ export async function GET(req: NextRequest) {
       { route: "/api/terms", total: meta.total, page: meta.page, filtered: Boolean(query.q) },
       "terms.list.success",
     );
-    const primaryTermId = items.length === 1 ? items[0]?.id ?? null : null;
-    void recordSearchEvent({ query: rawQuery, language, context, mode, termId: primaryTermId });
+    const primaryTermId = items.length ? items[0]?.id ?? null : null;
+    void recordSearchEvent({
+      query: rawQuery,
+      language,
+      context,
+      mode,
+      termId: primaryTermId,
+      resultCount: items.length,
+      hadResults: items.length > 0,
+    });
     return NextResponse.json({ ok: true, items, meta }, { headers: noStoreHeaders });
   } catch (error) {
     logger.error({ err: error, route: "/api/terms" }, "terms.list.error");
     incrementMetric("terms.list.error");
-    void recordSearchEvent({ query: rawQuery, language, context, mode, termId: null });
+    void recordSearchEvent({ query: rawQuery, language, context, mode, termId: null, resultCount: 0, hadResults: false });
     return jsonError("No se pudo obtener la lista de términos", 500);
   }
 }
@@ -184,6 +221,7 @@ export async function POST(req: NextRequest) {
   const t = parsed.data;
   try {
     incrementMetric("terms.create.attempt");
+    const termStatus = normalizeReviewStatus(t.status as string);
     const created = await prisma.term.create({
       data: {
         term: t.term,
@@ -195,42 +233,107 @@ export async function POST(req: NextRequest) {
         what: t.what,
         how: t.how,
         examples: t.examples as Prisma.JsonArray,
+        status: termStatus,
+        ...buildReviewMetadata(termStatus, admin.id),
         createdById: admin.id,
         updatedById: admin.id,
+        variants: t.variants?.length
+          ? {
+              create: t.variants.map((variant) => {
+                const status = normalizeReviewStatus(variant.status as string);
+                return {
+                  language: variant.language as Language,
+                  snippet: variant.snippet,
+                  notes: variant.notes,
+                  level: (variant.level as SkillLevel) ?? SkillLevel.intermediate,
+                  status,
+                  ...buildReviewMetadata(status, admin.id),
+                };
+              }),
+            }
+          : undefined,
+        useCases: t.useCases?.length
+          ? {
+              create: t.useCases.map((useCase) => {
+                const status = normalizeReviewStatus(useCase.status as string);
+                return {
+                  context: useCase.context,
+                  summary: useCase.summary,
+                  steps: useCase.steps,
+                  tips: useCase.tips,
+                  status,
+                  ...buildReviewMetadata(status, admin.id),
+                };
+              }),
+            }
+          : undefined,
+        faqs: t.faqs?.length
+          ? {
+              create: t.faqs.map((faq) => {
+                const status = normalizeReviewStatus(faq.status as string);
+                return {
+                  questionEs: faq.questionEs,
+                  questionEn: faq.questionEn,
+                  answerEs: faq.answerEs,
+                  answerEn: faq.answerEn,
+                  snippet: faq.snippet,
+                  category: faq.category,
+                  howToExplain: faq.howToExplain,
+                  status,
+                  ...buildReviewMetadata(status, admin.id),
+                };
+              }),
+            }
+          : undefined,
+        exercises: t.exercises?.length
+          ? {
+              create: t.exercises.map((exercise) => {
+                const status = normalizeReviewStatus(exercise.status as string);
+                return {
+                  titleEs: exercise.titleEs,
+                  titleEn: exercise.titleEn,
+                  promptEs: exercise.promptEs,
+                  promptEn: exercise.promptEn,
+                  difficulty: exercise.difficulty,
+                  solutions: exercise.solutions,
+                  status,
+                  ...buildReviewMetadata(status, admin.id),
+                };
+              }),
+            }
+          : undefined,
       },
-    });
-
-    // Crear variantes si vienen en el payload
-    if (t.variants?.length) {
-      await prisma.termVariant.createMany({
-        data: t.variants.map(v => ({
-          termId: created.id,
-          language: v.language as Language,
-          snippet: v.snippet,
-          notes: v.notes,
-          level: (v.level as SkillLevel) || undefined,
-        })),
-      });
-    }
-
-    // Recargar término con relaciones para respuesta completa
-    const fullTerm = await prisma.term.findUnique({
-      where: { id: created.id },
       include: { variants: true, useCases: true, faqs: true, exercises: true },
     });
 
-    if (fullTerm) {
-      await recordHistory(fullTerm.id, fullTerm, HistoryAction.create, admin.id);
-    } else {
-      await recordHistory(created.id, created, HistoryAction.create, admin.id);
-    }
+    await recordHistory(created.id, created, HistoryAction.create, admin.id);
+    await prisma.termStats.create({ data: { termId: created.id } }).catch(() => undefined);
+
+    void recordContributionEvent({
+      userId: admin.id,
+      username: admin.username ?? `admin#${admin.id}`,
+      termId: created.id,
+      entityId: created.id,
+      entityType: ContributionEntity.term,
+      action: ContributionAction.create,
+      points: 25,
+      metadata: { category: created.category },
+    });
 
     // Registrar evento de búsqueda (modo create) para analítica básica
-    void recordSearchEvent({ query: t.term, language: "es", context: "dictionary", mode: "create", termId: created.id });
+    void recordSearchEvent({
+      query: t.term,
+      language: "es",
+      context: "dictionary",
+      mode: "create",
+      termId: created.id,
+      resultCount: 1,
+      hadResults: true,
+    });
 
     incrementMetric("terms.create.success");
     logger.info({ termId: created.id, route: "/api/terms" }, "terms.create.success");
-    const serialized = fullTerm ? serializeTerm(fullTerm as PrismaTermWithRelations) : created;
+    const serialized = serializeTerm(created as PrismaTermWithRelations);
     return NextResponse.json({ ok: true, item: serialized }, { status: 201, headers: noStoreHeaders });
   } catch (error) {
     if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2002") {
@@ -364,11 +467,11 @@ function resolveOrder(sort: TermsQueryInput["sort"], alias = '"Term"') {
   }
 }
 
-type PrismaTermWithRelations = Prisma.TermGetPayload<{
+export type PrismaTermWithRelations = Prisma.TermGetPayload<{
   include: { variants: true; useCases: true; faqs: true; exercises: true };
 }>;
 
-function serializeTerm(record: PrismaTermWithRelations): TermDTO {
+export function serializeTerm(record: PrismaTermWithRelations): TermDTO {
   const examples = parseExamples(record.examples);
   const aliases = toStringArray(record.aliases);
   const tags = toStringArray(record.tags);
@@ -398,6 +501,9 @@ function serializeTerm(record: PrismaTermWithRelations): TermDTO {
       snippet: variant.snippet,
       notes: variant.notes ?? undefined,
       level: variant.level,
+      status: variant.status,
+      reviewedAt: variant.reviewedAt?.toISOString?.() ?? null,
+      reviewedById: variant.reviewedById ?? undefined,
     })),
     useCases: record.useCases?.map(useCase => ({
       id: useCase.id,
@@ -405,16 +511,9 @@ function serializeTerm(record: PrismaTermWithRelations): TermDTO {
       summary: useCase.summary,
       steps: parseSteps(useCase.steps),
       tips: useCase.tips ?? undefined,
-    })),
-    faqs: record.faqs?.map(faq => ({
-      id: faq.id,
-      questionEs: faq.questionEs,
-      questionEn: faq.questionEn ?? undefined,
-      answerEs: faq.answerEs,
-      answerEn: faq.answerEn ?? undefined,
-      snippet: faq.snippet ?? undefined,
-      category: faq.category ?? undefined,
-      howToExplain: faq.howToExplain ?? undefined,
+      status: useCase.status,
+      reviewedAt: useCase.reviewedAt?.toISOString?.() ?? null,
+      reviewedById: useCase.reviewedById ?? undefined,
     })),
     exercises: record.exercises?.map(exercise => ({
       id: exercise.id,
@@ -424,7 +523,13 @@ function serializeTerm(record: PrismaTermWithRelations): TermDTO {
       promptEn: exercise.promptEn ?? undefined,
       difficulty: exercise.difficulty,
       solutions: parseSolutions(exercise.solutions),
+      status: exercise.status,
+      reviewedAt: exercise.reviewedAt?.toISOString?.() ?? null,
+      reviewedById: exercise.reviewedById ?? undefined,
     })),
+    status: record.status,
+    reviewedAt: record.reviewedAt?.toISOString?.() ?? null,
+    reviewedById: record.reviewedById ?? undefined,
   };
 }
 

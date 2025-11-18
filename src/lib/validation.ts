@@ -16,6 +16,85 @@ const normalizedStringArray = z
     return Array.from(unique);
   });
 
+const reviewStatusSchema = z.enum(["pending", "in_review", "approved", "rejected"]);
+
+const languageEnum = z.enum([
+  "js",
+  "ts",
+  "css",
+  "py",
+  "java",
+  "csharp",
+  "go",
+  "php",
+  "ruby",
+  "rust",
+  "cpp",
+  "swift",
+  "kotlin",
+]);
+
+const useCaseContextEnum = z.enum(["interview", "project", "bug"]);
+
+const exampleSchema = z.object({
+  title: z.string().min(1),
+  code: z.string().min(1),
+  note: z.string().optional(),
+});
+
+const variantSchema = z.object({
+  language: languageEnum,
+  snippet: z.string().min(1),
+  notes: z.string().optional(),
+  level: z.enum(["beginner", "intermediate", "advanced"]).optional(),
+  status: reviewStatusSchema.optional(),
+});
+
+const useCaseSchema = z.object({
+  context: useCaseContextEnum,
+  summary: z.string().min(1),
+  steps: z
+    .array(
+      z.object({
+        es: z.string().min(1),
+        en: z.string().optional(),
+      }),
+    )
+    .min(1),
+  tips: z.string().optional(),
+  status: reviewStatusSchema.optional(),
+});
+
+const faqSchema = z.object({
+  questionEs: z.string().min(1),
+  questionEn: z.string().optional(),
+  answerEs: z.string().min(1),
+  answerEn: z.string().optional(),
+  snippet: z.string().optional(),
+  category: z.string().optional(),
+  howToExplain: z.string().optional(),
+  status: reviewStatusSchema.optional(),
+});
+
+const exerciseSchema = z.object({
+  titleEs: z.string().min(1),
+  titleEn: z.string().optional(),
+  promptEs: z.string().min(1),
+  promptEn: z.string().optional(),
+  difficulty: z.enum(["easy", "medium", "hard"]),
+  solutions: z
+    .array(
+      z.object({
+        language: languageEnum,
+        code: z.string().min(1),
+        explainEs: z.string().min(1),
+        explainEn: z.string().optional(),
+      }),
+    )
+    .min(1),
+  status: reviewStatusSchema.optional(),
+});
+
 /**
  * Contrato de entrada para crear/actualizar un término completo del diccionario.
  * Mantiene consistencia con `prisma.term` y evita valores vacíos o incoherentes.
@@ -29,41 +108,12 @@ export const termSchema = z.object({
   meaning: z.string().min(1),
   what: z.string().min(1),
   how: z.string().min(1),
-  examples: z
-    .array(
-      z.object({
-        title: z.string().min(1),
-        code: z.string().min(1),
-        note: z.string().optional(),
-      }),
-    )
-    .optional()
-    .default([]),
-  variants: z
-    .array(
-      z.object({
-        language: z.enum([
-          "js",
-          "ts",
-          "css",
-          "py",
-          "java",
-          "csharp",
-          "go",
-          "php",
-          "ruby",
-          "rust",
-          "cpp",
-          "swift",
-          "kotlin",
-        ]),
-        snippet: z.string().min(1),
-        notes: z.string().optional(),
-        level: z.enum(["beginner", "intermediate", "advanced"]).optional(),
-      }),
-    )
-    .optional()
-    .default([]),
+  status: reviewStatusSchema.optional(),
+  examples: z.array(exampleSchema).optional().default([]),
+  variants: z.array(variantSchema).optional().default([]),
+  useCases: z.array(useCaseSchema).optional().default([]),
+  faqs: z.array(faqSchema).optional().default([]),
+  exercises: z.array(exerciseSchema).optional().default([]),
 });
 
 /**

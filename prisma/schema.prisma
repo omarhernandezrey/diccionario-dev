@@ -8,37 +8,44 @@ datasource db {
 }
 
 model Term {
-  id          Int           @id @default(autoincrement())
-  term        String        @unique
-  translation String        @default("")
-  titleEs     String?
-  titleEn     String?
-  slug        String?       @unique
-  aliases     Json          @default("[]")
-  tags        Json          @default("[]")
-  category    Category
-  meaning     String
-  meaningEs   String?
-  meaningEn   String?
-  what        String
-  whatEs      String?
-  whatEn      String?
-  how         String
-  howEs       String?
-  howEn       String?
-  examples    Json          @default("[]")
-  createdAt   DateTime      @default(now())
-  updatedAt   DateTime      @updatedAt
-  createdById Int?
-  updatedById Int?
-  createdBy   User?         @relation("TermsCreated", fields: [createdById], references: [id])
-  updatedBy   User?         @relation("TermsUpdated", fields: [updatedById], references: [id])
-  history     TermHistory[]
-  variants    TermVariant[]
-  useCases    UseCase[]
-  faqs        Faq[]
-  exercises   Exercise[]
-  searchLogs  SearchLog[]
+  id            Int             @id @default(autoincrement())
+  term          String          @unique
+  translation   String          @default("")
+  titleEs       String?
+  titleEn       String?
+  slug          String?         @unique
+  aliases       Json            @default("[]")
+  tags          Json            @default("[]")
+  category      Category
+  meaning       String
+  meaningEs     String?
+  meaningEn     String?
+  what          String
+  whatEs        String?
+  whatEn        String?
+  how           String
+  howEs         String?
+  howEn         String?
+  examples      Json            @default("[]")
+  createdAt     DateTime        @default(now())
+  updatedAt     DateTime        @updatedAt
+  createdById   Int?
+  updatedById   Int?
+  createdBy     User?           @relation("TermsCreated", fields: [createdById], references: [id])
+  updatedBy     User?           @relation("TermsUpdated", fields: [updatedById], references: [id])
+  history       TermHistory[]
+  variants      TermVariant[]
+  useCases      UseCase[]
+  faqs          Faq[]
+  exercises     Exercise[]
+  searchLogs    SearchLog[]
+  stats         TermStats?
+  insightLogs   InsightMetric[]
+  status        ReviewStatus    @default(pending)
+  reviewedAt    DateTime?
+  reviewedById  Int?
+  reviewer      User?           @relation("TermsReviewed", fields: [reviewedById], references: [id])
+  contributions Contribution[]
 
   @@index([term])
   @@index([slug])
@@ -57,25 +64,36 @@ enum Category {
 }
 
 model User {
-  id            Int           @id @default(autoincrement())
-  username      String        @unique
-  email         String?       @unique
-  password      String
-  role          String        @default("user")
-  createdAt     DateTime      @default(now())
-  updatedAt     DateTime      @updatedAt
-  createdTerms  Term[]        @relation("TermsCreated")
-  updatedTerms  Term[]        @relation("TermsUpdated")
-  historyEvents TermHistory[] @relation("HistoryAuthor")
+  id                 Int                 @id @default(autoincrement())
+  username           String              @unique
+  email              String?             @unique
+  password           String
+  role               String              @default("user")
+  createdAt          DateTime            @default(now())
+  updatedAt          DateTime            @updatedAt
+  createdTerms       Term[]              @relation("TermsCreated")
+  updatedTerms       Term[]              @relation("TermsUpdated")
+  historyEvents      TermHistory[]       @relation("HistoryAuthor")
+  reviewedTerms      Term[]              @relation("TermsReviewed")
+  reviewedVariants   TermVariant[]       @relation("TermVariantsReviewed")
+  reviewedUseCases   UseCase[]           @relation("UseCasesReviewed")
+  reviewedFaqs       Faq[]               @relation("FaqsReviewed")
+  reviewedExercises  Exercise[]          @relation("ExercisesReviewed")
+  contributorProfile ContributorProfile?
+  contributions      Contribution[]
 }
 
 model TermVariant {
-  id       Int        @id @default(autoincrement())
-  termId   Int
-  language Language
-  snippet  String
-  notes    String?
-  level    SkillLevel @default(intermediate)
+  id           Int          @id @default(autoincrement())
+  termId       Int
+  language     Language
+  snippet      String
+  notes        String?
+  level        SkillLevel   @default(intermediate)
+  status       ReviewStatus @default(pending)
+  reviewedAt   DateTime?
+  reviewedById Int?
+  reviewer     User?        @relation("TermVariantsReviewed", fields: [reviewedById], references: [id])
 
   term Term @relation(fields: [termId], references: [id], onDelete: Cascade)
 
@@ -106,12 +124,16 @@ enum SkillLevel {
 }
 
 model UseCase {
-  id      Int            @id @default(autoincrement())
-  termId  Int
-  context UseCaseContext
-  summary String
-  steps   Json           @default("[]")
-  tips    String?
+  id           Int            @id @default(autoincrement())
+  termId       Int
+  context      UseCaseContext
+  summary      String
+  steps        Json           @default("[]")
+  tips         String?
+  status       ReviewStatus   @default(pending)
+  reviewedAt   DateTime?
+  reviewedById Int?
+  reviewer     User?          @relation("UseCasesReviewed", fields: [reviewedById], references: [id])
 
   term Term @relation(fields: [termId], references: [id], onDelete: Cascade)
 
@@ -126,7 +148,7 @@ enum UseCaseContext {
 }
 
 model Faq {
-  id           Int     @id @default(autoincrement())
+  id           Int          @id @default(autoincrement())
   termId       Int?
   questionEs   String
   questionEn   String?
@@ -135,6 +157,10 @@ model Faq {
   snippet      String?
   category     String?
   howToExplain String?
+  status       ReviewStatus @default(pending)
+  reviewedAt   DateTime?
+  reviewedById Int?
+  reviewer     User?        @relation("FaqsReviewed", fields: [reviewedById], references: [id])
 
   term Term? @relation(fields: [termId], references: [id], onDelete: SetNull)
 
@@ -143,14 +169,18 @@ model Faq {
 }
 
 model Exercise {
-  id         Int        @id @default(autoincrement())
-  termId     Int?
-  titleEs    String
-  titleEn    String?
-  promptEs   String
-  promptEn   String?
-  difficulty Difficulty @default(medium)
-  solutions  Json       @default("[]")
+  id           Int          @id @default(autoincrement())
+  termId       Int?
+  titleEs      String
+  titleEn      String?
+  promptEs     String
+  promptEn     String?
+  difficulty   Difficulty   @default(medium)
+  solutions    Json         @default("[]")
+  status       ReviewStatus @default(pending)
+  reviewedAt   DateTime?
+  reviewedById Int?
+  reviewer     User?        @relation("ExercisesReviewed", fields: [reviewedById], references: [id])
 
   term Term? @relation(fields: [termId], references: [id], onDelete: SetNull)
 
@@ -165,13 +195,15 @@ enum Difficulty {
 }
 
 model SearchLog {
-  id        Int      @id @default(autoincrement())
-  termId    Int?
-  query     String
-  language  String   @default("es")
-  context   String   @default("dictionary")
-  mode      String   @default("list")
-  createdAt DateTime @default(now())
+  id          Int      @id @default(autoincrement())
+  termId      Int?
+  query       String
+  language    String   @default("es")
+  context     String   @default("dictionary")
+  mode        String   @default("list")
+  createdAt   DateTime @default(now())
+  resultCount Int      @default(0)
+  hadResults  Boolean  @default(false)
 
   term Term? @relation(fields: [termId], references: [id], onDelete: SetNull)
 
@@ -201,4 +233,128 @@ enum HistoryAction {
   update
   delete
   seed
+}
+
+model ContributorProfile {
+  id                 Int                @id @default(autoincrement())
+  userId             Int?               @unique
+  displayName        String
+  avatarUrl          String?
+  bio                String?            @default("")
+  totalPoints        Int                @default(0)
+  preferredLanguages Json               @default("[]")
+  createdAt          DateTime           @default(now())
+  updatedAt          DateTime           @updatedAt
+  user               User?              @relation(fields: [userId], references: [id], onDelete: SetNull)
+  badges             ContributorBadge[]
+  contributions      Contribution[]
+}
+
+model Contribution {
+  id            Int                @id @default(autoincrement())
+  contributorId Int
+  userId        Int?
+  termId        Int?
+  entityId      Int
+  entityType    ContributionEntity
+  action        ContributionAction
+  points        Int                @default(0)
+  metadata      Json               @default("{}")
+  createdAt     DateTime           @default(now())
+
+  contributor ContributorProfile @relation(fields: [contributorId], references: [id], onDelete: Cascade)
+  user        User?              @relation(fields: [userId], references: [id], onDelete: SetNull)
+  term        Term?              @relation(fields: [termId], references: [id], onDelete: SetNull)
+
+  @@index([termId])
+  @@index([entityType, action])
+  @@index([createdAt])
+}
+
+model Badge {
+  id          Int                @id @default(autoincrement())
+  slug        String             @unique
+  title       String
+  description String
+  icon        String?
+  category    String             @default("general")
+  language    Language?
+  criteria    Json               @default("{}")
+  createdAt   DateTime           @default(now())
+  updatedAt   DateTime           @updatedAt
+  awards      ContributorBadge[]
+}
+
+model ContributorBadge {
+  id            Int      @id @default(autoincrement())
+  badgeId       Int
+  contributorId Int
+  awardedAt     DateTime @default(now())
+  reason        String?
+
+  badge       Badge              @relation(fields: [badgeId], references: [id], onDelete: Cascade)
+  contributor ContributorProfile @relation(fields: [contributorId], references: [id], onDelete: Cascade)
+
+  @@unique([badgeId, contributorId])
+}
+
+model TermStats {
+  id           Int      @id @default(autoincrement())
+  termId       Int      @unique
+  views        Int      @default(0)
+  favorites    Int      @default(0)
+  searchHits   Int      @default(0)
+  copyActions  Int      @default(0)
+  contextHits  Json     @default("{}")
+  languageHits Json     @default("{}")
+  updatedAt    DateTime @updatedAt
+
+  term Term @relation(fields: [termId], references: [id], onDelete: Cascade)
+}
+
+model InsightMetric {
+  id         Int         @id @default(autoincrement())
+  termId     Int?
+  kind       InsightKind
+  language   String      @default("es")
+  context    String      @default("dictionary")
+  value      Int         @default(0)
+  metadata   Json        @default("{}")
+  recordedAt DateTime    @default(now())
+
+  term Term? @relation(fields: [termId], references: [id], onDelete: SetNull)
+
+  @@index([termId])
+  @@index([kind, recordedAt])
+}
+
+enum ReviewStatus {
+  pending
+  in_review
+  approved
+  rejected
+}
+
+enum ContributionEntity {
+  term
+  variant
+  useCase
+  faq
+  exercise
+}
+
+enum ContributionAction {
+  create
+  update
+  review
+  approve
+  reject
+}
+
+enum InsightKind {
+  top_search
+  language_usage
+  missing_term
+  empty_result
+  context_mix
 }

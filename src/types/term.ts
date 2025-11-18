@@ -4,6 +4,9 @@ export type TermVariantDTO = {
   snippet: string;
   notes?: string | null;
   level?: string | null;
+  status?: ReviewStatus;
+  reviewedAt?: string | null;
+  reviewedById?: number | null;
 };
 
 export type UseCaseStepDTO = {
@@ -17,6 +20,9 @@ export type TermUseCaseDTO = {
   summary: string;
   steps: UseCaseStepDTO[];
   tips?: string | null;
+  status?: ReviewStatus;
+  reviewedAt?: string | null;
+  reviewedById?: number | null;
 };
 
 export type TermFaqDTO = {
@@ -28,6 +34,9 @@ export type TermFaqDTO = {
   snippet?: string | null;
   category?: string | null;
   howToExplain?: string | null;
+  status?: ReviewStatus;
+  reviewedAt?: string | null;
+  reviewedById?: number | null;
 };
 
 export type TermExerciseSolutionDTO = {
@@ -45,6 +54,9 @@ export type TermExerciseDTO = {
   promptEn?: string | null;
   difficulty: string;
   solutions: TermExerciseSolutionDTO[];
+  status?: ReviewStatus;
+  reviewedAt?: string | null;
+  reviewedById?: number | null;
 };
 
 export type TermExampleDTO = {
@@ -81,4 +93,9 @@ export type TermDTO = {
   useCases?: TermUseCaseDTO[];
   faqs?: TermFaqDTO[];
   exercises?: TermExerciseDTO[];
+  status: ReviewStatus;
+  reviewedAt?: string | null;
+  reviewedById?: number | null;
 };
+
+export type ReviewStatus = "pending" | "in_review" | "approved" | "rejected";

@@ -129,6 +129,16 @@ Notas:
 
 ---
 
+### Integraciones y flujo real
+
+- **Extensión de navegador** (`integrations/browser-extension`): instala la carpeta como extensión sin empaquetar (Chrome → More Tools → Extensions → Load unpacked). Obtienes 2 gestos rápidos:
+  - Menú contextual sobre cualquier texto para “Buscar en Diccionario Dev”.
+  - Hotkey `Ctrl/Cmd + Shift + D` que envía la selección de la pestaña activa; si el fragmento parece código, abre la app directamente en modo traducción estructural.
+- **Helper de VS Code** (`integrations/vscode-helper`): ejecuta `F5` dentro de la carpeta o empaqueta como extensión local. El comando `Diccionario Dev: Translate Selection` detecta automáticamente si debe traducir un bloque de código o buscar un término. El resultado se refleja en el output channel y, si hay traducción estructural, abre un documento temporal con el snippet traducido.
+- **Portapapeles inteligente**: el buscador web detecta cuando pegas un bloque grande de código en el input principal. En cuanto identificamos llaves, imports o múltiples líneas, cambiamos el contexto a “Traducción”, activamos el modo `code` y mostramos un aviso para que sigas trabajando sin tener que mover switches manualmente.
+
+---
+
 ### 3. Variables de entorno
 
 Referencia rápida (`.env.example` tiene valores sugeridos):
@@ -395,4 +405,3 @@ Notas:
 
 - Next no escucha en la red del contenedor:
   - El comando ya usa `next dev -H 0.0.0.0`. Si cambias el script, asegúrate de mantener `-H 0.0.0.0` para exponer el puerto.
-

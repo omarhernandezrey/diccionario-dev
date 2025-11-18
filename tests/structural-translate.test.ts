@@ -12,7 +12,8 @@ const dictionary = [
 describe("translateStructural", () => {
   beforeEach(() => {
     resetTranslationCache();
-    vi.spyOn(prisma.term, "findMany").mockResolvedValue(dictionary as any);
+    const result = dictionary as unknown as Awaited<ReturnType<typeof prisma.term.findMany>>;
+    vi.spyOn(prisma.term, "findMany").mockResolvedValue(result);
   });
 
   afterEach(() => {

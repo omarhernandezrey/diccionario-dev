@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState, type ClipboardEvent } from "react";
+import { useEffect, useMemo, useRef, useState, type ClipboardEvent } from "react";
 import { Prism as SyntaxHighlighter } from "react-syntax-highlighter";
 import { dracula } from "react-syntax-highlighter/dist/cjs/styles/prism";
 import { useI18n } from "@/lib/i18n";
@@ -369,7 +369,10 @@ export default function SearchBox() {
 function ResultPreview({ term, activeContext }: { term: TermDTO; activeContext: string }) {
   const { t } = useI18n();
   const [variantLang, setVariantLang] = useState<string | null>(term.variants?.[0]?.language ?? null);
-  const useCases = term.useCases ?? [];
+  const [cheatSheetOpen, setCheatSheetOpen] = useState(false);
+  const [actionHint, setActionHint] = useState<string | null>(null);
+  const hintTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const useCases = useMemo(() => term.useCases ?? [], [term.useCases]);
   const availableUseCaseContexts = useMemo(
     () => Array.from(new Set(useCases.map((useCase) => useCase.context))),
     [useCases],
@@ -394,7 +397,7 @@ function ResultPreview({ term, activeContext }: { term: TermDTO; activeContext: 
   const meaningEn = term.meaningEn ?? term.meaning;
   const whatEs = term.whatEs ?? term.what;
   const whatEn = term.whatEn ?? term.what;
-  const snippetCode = activeVariant?.snippet ?? term.howEs ?? term.how;
+  const snippetCode = activeVariant?.snippet ?? term.howEs ?? term.how ?? "";
   const snippetLabel = activeVariant
     ? `${languageLabels[activeVariant.language] ?? activeVariant.language}`
     : t("terms.how");
@@ -403,6 +406,52 @@ function ResultPreview({ term, activeContext }: { term: TermDTO; activeContext: 
   const faqs = term.faqs ?? [];
   const exercises = term.exercises ?? [];
   const filteredUseCases = useCaseContext ? useCases.filter((useCase) => useCase.context === useCaseContext) : useCases;
+
+  useEffect(() => {
+    return () => {
+      if (hintTimeout.current) {
+        clearTimeout(hintTimeout.current);
+      }
+    };
+  }, []);
+
+  const showActionHint = (message: string) => {
+    setActionHint(message);
+    if (hintTimeout.current) {
+      clearTimeout(hintTimeout.current);
+    }
+    hintTimeout.current = window.setTimeout(() => setActionHint(null), 1800);
+  };
+
+  const handleCopyDefinition = async () => {
+    const text = `${term.term}: ${meaningEs}`;
+    try {
+      await navigator.clipboard.writeText(text);
+      showActionHint("Definición copiada al portapapeles");
+    } catch {
+      showActionHint("No se pudo copiar");
+    }
+  };
+
+  const handleCopySnippet = async () => {
+    try {
+      await navigator.clipboard.writeText(snippetCode);
+      showActionHint("Snippet copiado");
+    } catch {
+      showActionHint("No se pudo copiar");
+    }
+  };
+
+  const handleGenerateResponse = async (language: "es" | "en") => {
+    const text = buildInterviewResponse(term, { es: meaningEs, en: meaningEn }, { es: whatEs, en: whatEn }, language);
+    try {
+      await navigator.clipboard.writeText(text);
+      showActionHint(language === "es" ? "Respuesta en ES lista" : "Respuesta en EN lista");
+    } catch {
+      showActionHint("No se pudo copiar la respuesta");
+    }
+  };
+
   return (
     <article className="flex flex-col gap-6 lg:flex-row">
       <div className="flex-1 space-y-4">
@@ -437,6 +486,14 @@ function ResultPreview({ term, activeContext }: { term: TermDTO; activeContext: 
             </div>
           ) : null}
         </div>
+
+        <ActionToolbar
+          onCopyDefinition={handleCopyDefinition}
+          onCopySnippet={handleCopySnippet}
+          onOpenCheatSheet={() => setCheatSheetOpen(true)}
+          onGenerateResponse={handleGenerateResponse}
+          hint={actionHint}
+        />
 
         <div className="grid gap-3 md:grid-cols-2">
           <div className="rounded-2xl border border-white/10 bg-white/5 p-4">
@@ -596,6 +653,18 @@ function ResultPreview({ term, activeContext }: { term: TermDTO; activeContext: 
           </section>
         ) : null}
       </aside>
+      <CheatSheetOverlay
+        open={cheatSheetOpen}
+        onClose={() => setCheatSheetOpen(false)}
+        term={term}
+        meaningEs={meaningEs}
+        meaningEn={meaningEn}
+        whatEs={whatEs}
+        whatEn={whatEn}
+        snippet={snippetCode}
+        tags={tags}
+        aliases={aliasList}
+      />
     </article>
   );
 }
@@ -652,6 +721,107 @@ function SelectorPanel({
       {activeVariant?.notes ? <p className="mt-2 text-xs text-white/60">{activeVariant.notes}</p> : null}
     </div>
   );
+}
+
+type ActionToolbarProps = {
+  onCopyDefinition: () => void;
+  onCopySnippet: () => void;
+  onOpenCheatSheet: () => void;
+  onGenerateResponse: (lang: "es" | "en") => void;
+  hint?: string | null;
+};
+
+function ActionToolbar({ onCopyDefinition, onCopySnippet, onOpenCheatSheet, onGenerateResponse, hint }: ActionToolbarProps) {
+  return (
+    <div className="flex flex-col gap-2 rounded-2xl border border-white/10 bg-ink-900/60 p-4">
+      <div className="flex flex-wrap gap-2 text-xs font-semibold">
+        <button className="btn-ghost" type="button" onClick={onCopyDefinition}>
+          Copiar definición
+        </button>
+        <button className="btn-ghost" type="button" onClick={onCopySnippet}>
+          Copiar snippet
+        </button>
+        <button className="btn-ghost" type="button" onClick={onOpenCheatSheet}>
+          Abrir cheat sheet
+        </button>
+        <button className="btn-ghost" type="button" onClick={() => onGenerateResponse("es")}>
+          Respuesta ES
+        </button>
+        <button className="btn-ghost" type="button" onClick={() => onGenerateResponse("en")}>
+          Response EN
+        </button>
+      </div>
+      {hint ? <p className="text-[11px] text-accent-secondary">{hint}</p> : null}
+    </div>
+  );
+}
+
+type CheatSheetOverlayProps = {
+  open: boolean;
+  onClose: () => void;
+  term: TermDTO;
+  meaningEs: string;
+  meaningEn: string;
+  whatEs: string;
+  whatEn: string;
+  snippet: string;
+  tags: string[];
+  aliases: string[];
+};
+
+function CheatSheetOverlay({ open, onClose, term, meaningEs, meaningEn, whatEs, whatEn, snippet, tags, aliases }: CheatSheetOverlayProps) {
+  if (!open) return null;
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4">
+      <div className="w-full max-w-2xl rounded-3xl border border-white/10 bg-ink-900 p-6 shadow-2xl">
+        <header className="flex items-center justify-between">
+          <div>
+            <p className="text-xs uppercase tracking-wide text-white/60">Cheat sheet</p>
+            <h3 className="text-xl font-semibold text-white">{term.term}</h3>
+          </div>
+          <button type="button" className="btn-ghost" onClick={onClose}>
+            Cerrar
+          </button>
+        </header>
+        <div className="mt-4 space-y-3 text-sm text-white/80">
+          <p>
+            <strong>ES:</strong> {meaningEs}
+          </p>
+          <p>
+            <strong>EN:</strong> {meaningEn}
+          </p>
+          <p>
+            <strong>Cómo explicarlo (ES):</strong> {whatEs}
+          </p>
+          <p>
+            <strong>How to pitch (EN):</strong> {whatEn}
+          </p>
+          <div className="rounded-2xl border border-white/10 bg-white/5 p-3">
+            <p className="text-xs uppercase tracking-wide text-white/60">Snippet base</p>
+            <CodeBlock code={snippet} label={term.translation ?? term.term} />
+          </div>
+          {aliases.length ? (
+            <p className="text-xs text-white/50">Aliases: {aliases.join(", ")}.</p>
+          ) : null}
+          {tags.length ? (
+            <p className="text-xs text-white/50">Tags: {tags.join(", ")}.</p>
+          ) : null}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function buildInterviewResponse(
+  term: TermDTO,
+  meaning: { es: string; en: string },
+  usage: { es: string; en: string },
+  language: "es" | "en",
+) {
+  if (language === "es") {
+    return `Cuando hablo de ${term.term} me refiero a ${meaning.es}. Lo uso así: ${usage.es}. Por lo general lo aplico en contextos de ${term.category}.`;
+  }
+  return `When I mention ${term.term}, I mean ${meaning.en}. I rely on it because ${usage.en}. It's part of my ${term.category} toolkit.`;
 }
 
 function Placeholder({ copy }: { copy: string }) {
