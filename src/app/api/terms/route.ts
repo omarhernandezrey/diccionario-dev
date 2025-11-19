@@ -9,6 +9,7 @@ import {
 } from "@prisma/client";
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { ensureDictionarySeeded } from "@/lib/bootstrap-dataset";
 import { termSchema, termsQuerySchema, type TermsQueryInput } from "@/lib/validation";
 import { requireAdmin, type AuthTokenPayload } from "@/lib/auth";
 import { rateLimit } from "@/lib/rate-limit";
@@ -133,6 +134,7 @@ async function recordSearchEvent(event: {
  * Lista términos con búsqueda FTS, filtros, paginación y rate limiting por IP.
  */
 export async function GET(req: NextRequest) {
+  await ensureDictionarySeeded();
   const url = new URL(req.url);
   const searchParams = url.searchParams;
   const context = searchParams.get("context") ?? "dictionary";

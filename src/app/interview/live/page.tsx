@@ -100,95 +100,103 @@ export default function InterviewLivePage() {
   }
 
   return (
-    <div className="min-h-screen bg-linear-to-br from-ink-950 via-ink-900 to-ink-950 p-6 text-white">
-      <div className="mx-auto w-full max-w-5xl rounded-3xl border border-white/10 bg-white/5 p-6 shadow-2xl">
+    <div className="min-h-screen bg-neo-bg p-6 text-neo-text-primary">
+      <div className="mx-auto w-full max-w-5xl rounded-3xl border border-neo-border bg-white p-6 shadow-2xl shadow-neo-primary/10">
         <header className="flex flex-wrap items-center justify-between gap-3">
           <div>
-            <p className="text-xs uppercase tracking-[0.3em] text-white/60">Modo entrevista en vivo</p>
-            <h1 className="text-3xl font-semibold">Respuestas instantáneas</h1>
+            <p className="text-xs uppercase tracking-[0.3em] text-neo-text-secondary">Modo entrevista en vivo</p>
+            <h1 className="text-3xl font-semibold text-neo-text-primary">Respuestas instantáneas</h1>
           </div>
-          <div className="text-right text-xs text-white/60">
+          <div className="text-right text-xs text-neo-text-secondary">
             <p>⌘/Ctrl + K · Enfocar</p>
             <p>⌘/Ctrl + 1 · Copiar ES</p>
             <p>⌘/Ctrl + 2 · Copy EN</p>
           </div>
         </header>
-        <div className="mt-6 rounded-2xl border border-white/10 bg-black/20 p-4">
+        <div className="mt-6 rounded-2xl border border-neo-border bg-neo-surface p-4">
           <input
             ref={inputRef}
-            className="w-full bg-transparent text-2xl font-semibold placeholder:text-white/40 focus:outline-none"
+            className="w-full bg-transparent text-2xl font-semibold text-neo-text-primary placeholder:text-neo-text-secondary focus:outline-none"
             placeholder="Busca un término o pega código"
             value={query}
             onChange={(event) => setQuery(event.target.value)}
           />
         </div>
         <section className="mt-6 grid gap-4 lg:grid-cols-[minmax(0,2fr)_minmax(0,1fr)]">
-          <article className="rounded-2xl border border-white/10 bg-ink-900/60 p-5">
+          <article className="rounded-2xl border border-neo-border bg-white/95 p-5 shadow-inner">
             {status === "idle" ? (
-              <p className="text-sm text-white/60">Escribe una palabra clave para preparar tu speech.</p>
+              <p className="text-sm text-neo-text-secondary">Escribe una palabra clave para preparar tu speech.</p>
             ) : status === "loading" ? (
-              <p className="text-sm text-white/60">Buscando…</p>
+              <p className="text-sm text-neo-text-secondary">Buscando…</p>
             ) : term ? (
               <div className="space-y-4">
                 <header className="flex flex-wrap items-center justify-between gap-2">
                   <div>
-                    <h2 className="text-2xl font-semibold">{term.term}</h2>
-                    <p className="text-sm text-white/60">{term.translation}</p>
+                    <h2 className="text-2xl font-semibold text-neo-text-primary">{term.term}</h2>
+                    <p className="text-sm text-neo-text-secondary">{term.translation}</p>
                   </div>
                   <div className="flex gap-2 text-xs">
-                    <button className="btn-ghost" type="button" onClick={() => copyResponse("es")}>
+                    <button
+                      className="rounded-2xl border border-neo-border bg-white px-4 py-2 font-semibold text-neo-text-primary transition hover:border-neo-primary hover:text-neo-primary"
+                      type="button"
+                      onClick={() => copyResponse("es")}
+                    >
                       Copiar ES
                     </button>
-                    <button className="btn-ghost" type="button" onClick={() => copyResponse("en")}>
+                    <button
+                      className="rounded-2xl border border-neo-border bg-white px-4 py-2 font-semibold text-neo-text-primary transition hover:border-neo-primary hover:text-neo-primary"
+                      type="button"
+                      onClick={() => copyResponse("en")}
+                    >
                       Copy EN
                     </button>
                   </div>
                 </header>
                 <div className="grid gap-3 lg:grid-cols-2">
-                  <div className="rounded-2xl border border-white/10 bg-white/5 p-3">
-                    <p className="text-xs uppercase tracking-wide text-white/60">Significado (ES)</p>
-                    <p className="text-sm text-white/80">{meaning.es}</p>
+                  <div className="rounded-2xl border border-neo-border bg-neo-surface p-3">
+                    <p className="text-xs uppercase tracking-wide text-neo-text-secondary">Significado (ES)</p>
+                    <p className="text-sm text-neo-text-primary/90">{meaning.es}</p>
                   </div>
-                  <div className="rounded-2xl border border-white/10 bg-white/5 p-3">
-                    <p className="text-xs uppercase tracking-wide text-white/60">Meaning (EN)</p>
-                    <p className="text-sm text-white/80">{meaning.en}</p>
+                  <div className="rounded-2xl border border-neo-border bg-neo-surface p-3">
+                    <p className="text-xs uppercase tracking-wide text-neo-text-secondary">Meaning (EN)</p>
+                    <p className="text-sm text-neo-text-primary/90">{meaning.en}</p>
                   </div>
                 </div>
                 <div className="grid gap-3 lg:grid-cols-2">
-                  <div className="rounded-2xl border border-white/10 bg-white/5 p-3">
-                    <p className="text-xs uppercase tracking-wide text-white/60">Cómo lo usé</p>
-                    <p className="text-sm text-white/80">{usage.es}</p>
+                  <div className="rounded-2xl border border-neo-border bg-neo-surface p-3">
+                    <p className="text-xs uppercase tracking-wide text-neo-text-secondary">Cómo lo usé</p>
+                    <p className="text-sm text-neo-text-primary/90">{usage.es}</p>
                   </div>
-                  <div className="rounded-2xl border border-white/10 bg-white/5 p-3">
-                    <p className="text-xs uppercase tracking-wide text-white/60">How I pitch it</p>
-                    <p className="text-sm text-white/80">{usage.en}</p>
+                  <div className="rounded-2xl border border-neo-border bg-neo-surface p-3">
+                    <p className="text-xs uppercase tracking-wide text-neo-text-secondary">How I pitch it</p>
+                    <p className="text-sm text-neo-text-primary/90">{usage.en}</p>
                   </div>
                 </div>
-                <div className="rounded-2xl border border-white/10 bg-white/5 p-3 text-sm text-white/80">
+                <div className="rounded-2xl border border-neo-border bg-neo-surface/70 p-3 text-sm text-neo-text-primary/90">
                   <div className="flex items-center justify-between gap-2">
-                    <p className="text-xs uppercase tracking-wide text-white/60">Snippet base</p>
-                    <button type="button" className="text-[11px] underline-offset-2 hover:underline" onClick={copySnippet}>
+                    <p className="text-xs uppercase tracking-wide text-neo-text-secondary">Snippet base</p>
+                    <button type="button" className="text-[11px] text-neo-primary underline-offset-2 hover:underline" onClick={copySnippet}>
                       Copiar
                     </button>
                   </div>
                   <pre className="mt-2 max-h-40 overflow-auto whitespace-pre-wrap text-xs">{term.variants?.[0]?.snippet ?? term.examples?.[0]?.code ?? "// No hay snippet"}</pre>
                 </div>
-                {hint ? <p className="text-xs text-accent-secondary">{hint}</p> : null}
+                {hint ? <p className="text-xs text-neo-primary">{hint}</p> : null}
               </div>
             ) : (
-              <p className="text-sm text-white/60">No encontramos coincidencias. Ajusta la búsqueda.</p>
+              <p className="text-sm text-neo-text-secondary">No encontramos coincidencias. Ajusta la búsqueda.</p>
             )}
           </article>
           <aside className="space-y-4">
-            <section className="rounded-2xl border border-white/10 bg-white/5 p-4 text-xs text-white/70">
-              <p className="text-xs uppercase tracking-wide text-white/60">Atajos rápidos</p>
+            <section className="rounded-2xl border border-neo-border bg-neo-surface p-4 text-xs text-neo-text-secondary">
+              <p className="text-xs uppercase tracking-wide text-neo-text-secondary">Atajos rápidos</p>
               <ul className="mt-2 space-y-1">
                 <li>⌘/Ctrl + B · Copiar snippet</li>
                 <li>⌘/Ctrl + 1 · Copiar speech ES</li>
                 <li>⌘/Ctrl + 2 · Copy speech EN</li>
               </ul>
             </section>
-            {term ? <SoftSkillsPanel tags={term.tags ?? []} /> : null}
+            {term ? <SoftSkillsPanel tags={term.tags ?? []} variant="light" /> : null}
           </aside>
         </section>
       </div>

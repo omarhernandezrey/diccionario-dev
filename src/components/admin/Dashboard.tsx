@@ -7,25 +7,29 @@ import LineChartComponent from "@/components/admin/LineChart";
 import BarChartComponent from "@/components/admin/BarChart";
 import ChartCard from "@/components/admin/ChartCard";
 import { BookOpen, TrendingUp, Users, Zap } from "lucide-react";
+import type { AnalyticsSummary } from "@/lib/analytics";
 
-type AnalyticsSummary = {
-  topTerms: Array<{ termId: number; term: string; hits: number }>;
-  languages: Array<{ language: string; count: number }>;
-  contexts: Array<{ context: string; count: number }>;
-  emptyQueries: Array<{ query: string; attempts: number }>;
+const EMPTY_SUMMARY: AnalyticsSummary = {
+  topTerms: [],
+  languages: [],
+  contexts: [],
+  emptyQueries: [],
 };
 
 export default function AdminDashboard() {
-  const [analytics, setAnalytics] = useState<AnalyticsSummary | null>(null);
+  const [analytics, setAnalytics] = useState<AnalyticsSummary>(EMPTY_SUMMARY);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const fetchAnalytics = async () => {
       try {
         const res = await fetch("/api/analytics", { credentials: "include" });
-        if (res.ok) {
-          const data = (await res.json()) as AnalyticsSummary;
-          setAnalytics(data);
+        if (!res.ok) return;
+        const payload = await res.json();
+        if (payload?.summary) {
+          setAnalytics(payload.summary as AnalyticsSummary);
+        } else {
+          setAnalytics(EMPTY_SUMMARY);
         }
       } catch (error) {
         console.error("Error cargando analytics:", error);
@@ -37,7 +41,7 @@ export default function AdminDashboard() {
     fetchAnalytics();
   }, []);
 
-  if (loading || !analytics) {
+  if (loading) {
     return (
       <div className="space-y-8">
         <div className="h-20 rounded-xl bg-slate-800/20 animate-pulse" />

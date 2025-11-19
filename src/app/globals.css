@@ -1,11 +1,53 @@
 @import "tailwindcss";
 
 :root {
+  color-scheme: light;
+  --neo-bg: #f8f9fb;
+  --neo-card: #ffffff;
+  --neo-surface: #f2f4f7;
+  --neo-text-primary: #0a0a0c;
+  --neo-text-secondary: #6a6e76;
+  --neo-border: #e6e8ec;
+  --neo-primary: #1a73e8;
+  --neo-primary-dark: #0f55ae;
+  --neo-primary-light: #dcebfa;
+  --neo-accent-pink: #ff61d8;
+  --neo-accent-purple: #7c3aed;
+  --neo-accent-cyan: #00e1d4;
+  --neo-accent-lime: #c7f235;
+  --neo-accent-orange: #ffb347;
+  --bg-primary: var(--neo-bg);
+  --bg-secondary: var(--neo-surface);
+  --gradient-hero: radial-gradient(circle at 20% -10%, rgba(255, 97, 216, 0.18), transparent 55%),
+    radial-gradient(circle at 80% 0%, rgba(26, 115, 232, 0.12), transparent 60%);
+  --admin-layer-strong: color-mix(in srgb, var(--neo-card) 92%, transparent);
+  --admin-layer: color-mix(in srgb, var(--neo-card) 85%, transparent);
+  --admin-layer-soft: color-mix(in srgb, var(--neo-card) 75%, transparent);
+  --admin-layer-muted: color-mix(in srgb, var(--neo-card) 65%, transparent);
+  --admin-border-strong: color-mix(in srgb, var(--neo-border) 90%, transparent);
+  --admin-border-soft: color-mix(in srgb, var(--neo-border) 70%, transparent);
+  --admin-border-muted: color-mix(in srgb, var(--neo-border) 55%, transparent);
+  --admin-glass: color-mix(in srgb, var(--neo-card) 88%, transparent);
+  --admin-backdrop: color-mix(in srgb, var(--neo-bg) 35%, #050815 65%);
+}
+
+.dark,
+.theme-dark {
   color-scheme: dark;
-  --bg-primary: #04070f;
-  --bg-secondary: #060b16;
-  --gradient-hero: radial-gradient(circle at 20% -10%, rgba(124, 109, 255, 0.35), transparent 55%),
-    radial-gradient(circle at 80% 0%, rgba(82, 224, 255, 0.18), transparent 60%);
+  --neo-bg: #0b0c10;
+  --neo-card: #111217;
+  --neo-surface: #1a1c22;
+  --neo-text-primary: #f8f9fb;
+  --neo-text-secondary: #9ba0a8;
+  --neo-border: #2a2d33;
+  --neo-primary: #4d9aff;
+  --neo-primary-dark: #1a5fcc;
+  --neo-primary-light: #1e2a40;
+  --neo-accent-pink: #ff7ce7;
+  --neo-accent-purple: #a783ff;
+  --neo-accent-cyan: #39f5e2;
+  --neo-accent-lime: #dfff57;
+  --neo-accent-orange: #ffcc7a;
 }
 
 * {
@@ -20,10 +62,9 @@ body {
 body {
   margin: 0;
   font-family: "Inter", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-  background-color: var(--bg-primary);
-  background-image: var(--gradient-hero);
-  background-attachment: fixed;
-  color: #f5f7ff;
+  background-color: var(--neo-bg);
+  background-image: radial-gradient(circle at top, rgba(122, 58, 237, 0.08), transparent 65%);
+  color: var(--neo-text-primary);
 }
 
 a {
@@ -45,36 +86,85 @@ select:focus-visible {
 }
 
 ::-webkit-scrollbar-track {
-  background: rgba(255, 255, 255, 0.05);
+  background: rgba(10, 10, 12, 0.08);
 }
 
 ::-webkit-scrollbar-thumb {
-  background: linear-gradient(180deg, #7f81ff, #5ae0d8);
+  background: linear-gradient(180deg, var(--neo-primary), var(--neo-accent-purple));
   border-radius: 999px;
 }
 
 @layer components {
   .glass-panel {
-    @apply rounded-3xl border border-white/10 bg-white/5 p-6 backdrop-blur-xl;
-    box-shadow: 0 25px 50px -12px rgba(6, 11, 24, 0.55);
+    border-radius: 1.5rem;
+    border: 1px solid var(--neo-border);
+    background-color: rgba(255, 255, 255, 0.9);
+    padding: 1.5rem;
+    box-shadow: 0 30px 80px -40px rgba(10, 10, 12, 0.45);
   }
 
   .glass-card {
-    @apply rounded-2xl border border-white/10 bg-white/5 p-4 backdrop-blur;
+    border-radius: 1rem;
+    border: 1px solid var(--neo-border);
+    background-color: var(--neo-surface);
+    padding: 1rem;
   }
 
   .badge-pill {
-    @apply inline-flex items-center gap-1 rounded-full border border-white/20 bg-white/10 px-3 py-1 text-xs font-medium uppercase tracking-wide text-white/80;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.25rem;
+    border-radius: 9999px;
+    border: 1px solid var(--neo-border);
+    background-color: #ffffff;
+    padding: 0.25rem 0.75rem;
+    font-size: 0.75rem;
+    font-weight: 500;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--neo-text-secondary);
   }
 
   .btn-primary {
-    @apply inline-flex items-center justify-center rounded-2xl px-5 py-2.5 font-semibold text-white transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50;
-    background: linear-gradient(135deg, #6c63ff 0%, #80e0ff 100%);
-    box-shadow: 0 10px 25px -5px rgba(108, 99, 255, 0.4);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 1rem;
+    padding: 0.625rem 1.25rem;
+    font-weight: 600;
+    color: #ffffff;
+    transition: all 150ms ease;
+    background: linear-gradient(135deg, var(--neo-primary) 0%, var(--neo-accent-purple) 100%);
+    box-shadow: 0 12px 30px -8px rgba(26, 115, 232, 0.35);
+  }
+  .btn-primary:focus-visible {
+    outline: none;
+    box-shadow: 0 0 0 4px rgba(26, 115, 232, 0.18);
+  }
+  .btn-primary:disabled {
+    cursor: not-allowed;
+    opacity: 0.5;
   }
 
   .btn-ghost {
-    @apply inline-flex items-center justify-center rounded-2xl border border-white/30 bg-transparent px-4 py-2 text-sm font-medium text-white/80 transition hover:bg-white/10 disabled:cursor-not-allowed disabled:opacity-50;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 1rem;
+    border: 1px solid var(--neo-border);
+    background-color: #ffffff;
+    padding: 0.5rem 1rem;
+    font-size: 0.875rem;
+    font-weight: 500;
+    color: var(--neo-text-primary);
+    transition: all 150ms ease;
+  }
+  .btn-ghost:hover {
+    border-color: var(--neo-primary);
+    color: var(--neo-primary);
+  }
+  .btn-ghost:disabled {
+    opacity: 0.5;
   }
 }
 
@@ -85,4 +175,104 @@ select:focus-visible {
   .scroll-silent::-webkit-scrollbar {
     display: none;
   }
+}
+
+.admin-theme {
+  background-color: var(--neo-bg);
+  color: var(--neo-text-primary);
+}
+
+.admin-theme .text-ink-900 {
+  color: var(--neo-text-primary) !important;
+}
+
+.admin-theme .bg-white {
+  background-color: var(--neo-card) !important;
+}
+
+.admin-theme .bg-white\/20 {
+  background-color: var(--admin-layer-strong) !important;
+}
+
+.admin-theme .bg-white\/10 {
+  background-color: var(--admin-layer) !important;
+}
+
+.admin-theme .bg-white\/5 {
+  background-color: var(--admin-layer-soft) !important;
+}
+
+.admin-theme .bg-white\/2 {
+  background-color: var(--admin-layer-muted) !important;
+}
+
+.admin-theme .bg-white\/80 {
+  background-color: var(--admin-glass) !important;
+  backdrop-filter: blur(24px);
+}
+
+.admin-theme .border-white\/40 {
+  border-color: var(--admin-border-muted) !important;
+}
+
+.admin-theme .border-white\/30 {
+  border-color: var(--admin-border-soft) !important;
+}
+
+.admin-theme .border-white\/20 {
+  border-color: var(--admin-border-strong) !important;
+}
+
+.admin-theme .border-white\/15,
+.admin-theme .border-white\/10 {
+  border-color: var(--admin-border-soft) !important;
+}
+
+.admin-theme .bg-ink-950,
+.admin-theme .bg-ink-900,
+.admin-theme .bg-ink-800,
+.admin-theme .bg-ink-900\/80,
+.admin-theme .bg-ink-900\/70 {
+  background-color: var(--admin-layer-strong) !important;
+}
+
+.admin-theme .bg-ink-900\/60,
+.admin-theme .bg-ink-950\/60 {
+  background-color: var(--admin-layer) !important;
+}
+
+.admin-theme .bg-ink-900\/50,
+.admin-theme .bg-ink-900\/40 {
+  background-color: var(--admin-layer-soft) !important;
+}
+
+.admin-theme .bg-ink-950\/90 {
+  background-color: var(--admin-backdrop) !important;
+}
+
+.admin-theme [class*="bg-[#050915]"],
+.admin-theme [class*="bg-[#0d1424]"] {
+  background-color: var(--admin-layer) !important;
+}
+
+.admin-theme .bg-gradient-to-br {
+  background-color: var(--admin-layer-strong);
+}
+
+.admin-theme .from-ink-900 {
+  --tw-gradient-from: color-mix(in srgb, var(--neo-primary-light) 40%, var(--neo-bg) 60%) !important;
+  --tw-gradient-to: rgb(255 255 255 / 0);
+  --tw-gradient-stops: var(--tw-gradient-from), var(--tw-gradient-to);
+}
+
+.admin-theme .via-ink-800 {
+  --tw-gradient-stops: var(--tw-gradient-from), color-mix(in srgb, var(--neo-primary) 45%, var(--neo-accent-purple) 20%), var(--tw-gradient-to, rgb(255 255 255 / 0));
+}
+
+.admin-theme .via-ink-900 {
+  --tw-gradient-stops: var(--tw-gradient-from), color-mix(in srgb, var(--neo-primary) 60%, var(--neo-accent-purple) 25%), var(--tw-gradient-to, rgb(255 255 255 / 0));
+}
+
+.admin-theme .to-ink-900 {
+  --tw-gradient-to: color-mix(in srgb, var(--neo-primary) 55%, var(--neo-primary-light) 45%) !important;
 }

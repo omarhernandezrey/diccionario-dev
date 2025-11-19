@@ -1,7 +1,11 @@
 "use client";
 
-import Image from "next/image";
 import { useCallback, useEffect, useMemo, useState } from "react";
+import AdminDashboard from "@/components/admin/Dashboard";
+import type { LucideIcon } from "lucide-react";
+import { ActivitySquare, AlertTriangle, BookOpenCheck, Code2, Download, Layers, Link2, RefreshCcw, ShieldCheck, Signal, Users2 } from "lucide-react";
+import { useNotifications } from "@/components/admin/NotificationsProvider";
+import type { AdminNotification } from "@/components/admin/NotificationsProvider";
 
 type ReviewStatus = "pending" | "in_review" | "approved" | "rejected";
 
@@ -90,19 +94,27 @@ const LANGUAGE_OPTIONS = ["js", "ts", "css", "py", "java", "csharp", "go", "php"
 const LEVEL_OPTIONS = ["beginner", "intermediate", "advanced"];
 const DIFFICULTY_OPTIONS = ["easy", "medium", "hard"];
 
+const ADMIN_VIEWS = [
+  { id: "overview", label: "Inteligencia", description: "Analítica en vivo y tendencias", icon: ActivitySquare },
+  { id: "terms", label: "Colección", description: "Gestión total del glosario", icon: BookOpenCheck },
+  { id: "team", label: "Equipo", description: "Accesos, reputación y comunidad", icon: Users2 },
+] as const;
+
+type AdminView = (typeof ADMIN_VIEWS)[number]["id"];
+
+const HERO_STAT_ICONS: Record<string, LucideIcon> = {
+  "Términos visibles": BookOpenCheck,
+  "Categorías activas": Layers,
+  "Snippets guardados": Code2,
+  Pendientes: AlertTriangle,
+};
+
 type TermsResponse = {
   ok?: boolean;
   items?: Term[];
 };
 
 type UnknownRecord = Record<string, unknown>;
-
-type AnalyticsSummary = {
-  topTerms: Array<{ termId: number; term: string; hits: number }>;
-  languages: Array<{ language: string; count: number }>;
-  contexts: Array<{ context: string; count: number }>;
-  emptyQueries: Array<{ query: string; attempts: number }>;
-};
 
 type LeaderboardEntry = {
   id: number;
@@ -149,7 +161,11 @@ function extractErrorMessage(payload: unknown): string | null {
   return null;
 }
 
-export default function AdminPage() {
+type AdminConsoleProps = {
+  initialView?: AdminView;
+};
+
+export function AdminConsole({ initialView = "overview" }: AdminConsoleProps) {
   const [q, setQ] = useState("");
   const [items, setItems] = useState<Term[]>([]);
   const [editing, setEditing] = useState<Term | null>(null);
@@ -170,6 +186,15 @@ export default function AdminPage() {
   const [deleteLoading, setDeleteLoading] = useState(false);
   const [refreshIndex, setRefreshIndex] = useState(0);
   const [statusFilter, setStatusFilter] = useState<ReviewStatus | "all">("all");
+  const [activeView, setActiveView] = useState<AdminView>(initialView);
+  const [autoRefresh, setAutoRefresh] = useState(false);
+  const [lastAutoRefresh, setLastAutoRefresh] = useState<string | null>(null);
+  const [lastManualRefresh, setLastManualRefresh] = useState<string | null>(null);
+  const [lastExportedAt, setLastExportedAt] = useState<string | null>(null);
+  const [exporting, setExporting] = useState(false);
+  const [analyticsPulse, setAnalyticsPulse] = useState<"idle" | "loading" | "ok" | "error">("idle");
+  const [lastAnalyticsPing, setLastAnalyticsPing] = useState<string | null>(null);
+  const { notifications, unreadCount, refresh: refreshNotifications, loading: notificationsLoading } = useNotifications();
 
   const empty: Term = useMemo(
     () => ({
@@ -212,6 +237,28 @@ export default function AdminPage() {
     [items.length, categoriesCount, exampleCount, pendingCount],
   );
 
+  const statusSummary = useMemo(
+    () =>
+      items.reduce(
+        (acc, item) => {
+          acc[item.status] = (acc[item.status] || 0) + 1;
+          return acc;
+        },
+        { pending: 0, in_review: 0, approved: 0, rejected: 0 } as Record<ReviewStatus, number>,
+      ),
+    [items],
+  );
+
+  const categoryHighlights = useMemo(() => {
+    const buckets = new Map<Term["category"], number>();
+    items.forEach((item) => {
+      buckets.set(item.category, (buckets.get(item.category) || 0) + 1);
+    });
+    return [...buckets.entries()]
+      .map(([category, value]) => ({ category, value }))
+      .sort((a, b) => b.value - a.value);
+  }, [items]);
+
   const filteredItems = useMemo(
     () => (statusFilter === "all" ? items : items.filter((item) => item.status === statusFilter)),
     [items, statusFilter],
@@ -219,7 +266,7 @@ export default function AdminPage() {
 
   const fetchTerms = useCallback(async (query: string) => {
     const params = new URLSearchParams();
-    params.set("pageSize", "500");
+    params.set("pageSize", "100");
     if (query) params.set("q", query);
     const url = `/api/terms?${params.toString()}`;
     const res = await fetch(url, {
@@ -318,9 +365,85 @@ export default function AdminPage() {
     setSelectedIds(allSelected ? [] : items.map((item) => item.id));
   }
 
-  function scheduleRefresh() {
+  const scheduleRefresh = useCallback(() => {
     setRefreshIndex((prev) => prev + 1);
-  }
+  }, []);
+
+  useEffect(() => {
+    if (!autoRefresh) return undefined;
+    const interval = window.setInterval(() => {
+      scheduleRefresh();
+      setLastAutoRefresh(new Date().toLocaleTimeString("es-ES"));
+    }, 30_000);
+    return () => window.clearInterval(interval);
+  }, [autoRefresh, scheduleRefresh]);
+
+  const handleViewChange = useCallback((next: AdminView) => {
+    setActiveView(next);
+    if (next !== "terms") {
+      setEditing(null);
+    }
+  }, []);
+
+  const handleCreateTerm = useCallback(() => {
+    handleViewChange("terms");
+    setEditing(empty);
+  }, [empty, handleViewChange]);
+
+  const handleEditTerm = useCallback(
+    (term: Term) => {
+      handleViewChange("terms");
+      setEditing(term);
+    },
+    [handleViewChange],
+  );
+
+  const handleManualRefresh = useCallback(() => {
+    scheduleRefresh();
+    setLastManualRefresh(new Date().toLocaleTimeString("es-ES"));
+  }, [scheduleRefresh]);
+
+  const exportCatalog = useCallback(async () => {
+    if (exporting) return;
+    setExporting(true);
+    try {
+      const snapshot = await fetchTerms("");
+      const payload = JSON.stringify(snapshot, null, 2);
+      const blob = new Blob([payload], { type: "application/json" });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      const fileName = `diccionario-terms-${new Date().toISOString().replace(/[:]/g, "-")}.json`;
+      link.href = url;
+      link.download = fileName;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+      setMessage(`Exportados ${snapshot.length} términos`);
+      setLastExportedAt(new Date().toLocaleTimeString("es-ES"));
+    } catch (error) {
+      console.error("No se pudo exportar el catálogo", error);
+      setAuthError("No se pudo exportar el catálogo");
+    } finally {
+      setExporting(false);
+    }
+  }, [exporting, fetchTerms]);
+
+  const pingAnalytics = useCallback(async () => {
+    setAnalyticsPulse("loading");
+    try {
+      const res = await fetch("/api/analytics", { cache: "no-store" });
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      setAnalyticsPulse("ok");
+      setLastAnalyticsPing(new Date().toLocaleTimeString("es-ES"));
+    } catch (error) {
+      console.error("No se pudo sincronizar analytics manualmente", error);
+      setAnalyticsPulse("error");
+      setAuthError("No se pudo sincronizar analytics manualmente");
+    } finally {
+      setTimeout(() => setAnalyticsPulse("idle"), 2500);
+    }
+  }, []);
 
   async function login() {
     setAuthError(null);
@@ -520,111 +643,165 @@ export default function AdminPage() {
   const showRegisterCard = allowBootstrap || canEdit;
 
   return (
-    <div className="min-h-screen bg-ink-900 text-white">
-      <header className="border-b border-white/10 bg-linear-to-r from-ink-900 via-ink-800 to-ink-900">
-        <div className="mx-auto flex w-full max-w-7xl flex-col gap-8 px-4 py-10 sm:px-6 lg:px-10">
-          <div className="grid gap-10 lg:grid-cols-[1.2fr_0.8fr]">
-            <div className="space-y-6">
-              <div className="flex flex-wrap items-center gap-4">
-                <div className="rounded-3xl border border-white/20 bg-white/10 p-3">
-                  <Image src="/logo.png" alt="Diccionario Técnico Web" width={48} height={48} />
+    <div className="space-y-8 text-neo-text-primary">
+      <section className="relative overflow-hidden rounded-[32px] border border-white/10 bg-gradient-to-br from-ink-900 via-ink-800 to-ink-900 p-8 shadow-glow-card">
+        <div className="absolute inset-y-0 right-0 hidden w-1/3 bg-gradient-to-l from-accent-secondary/10 to-transparent blur-3xl lg:block" />
+        <div className="flex flex-wrap items-center gap-4">
+          <div className="rounded-3xl border border-white/20 bg-white/10 p-3 shadow-glow-card">
+            <BookOpenCheck className="h-7 w-7 text-neo-text-primary" />
+          </div>
+          <div>
+            <p className="text-xs uppercase tracking-[0.3em] text-neo-text-secondary">Panel de control</p>
+            <h1 className="text-3xl font-semibold">Diccionario Dev · Admin</h1>
+          </div>
+          <div className="ml-auto flex items-center gap-3 rounded-full border border-white/15 bg-ink-900/60 px-4 py-2 text-xs text-neo-text-secondary">
+            <ShieldCheck className={`h-4 w-4 ${session ? "text-accent-emerald" : "text-accent-danger"}`} />
+            <span>{session ? `Activo: ${session.username} (${session.role})` : "Acceso restringido"}</span>
+            <button type="button" className="text-accent-secondary underline-offset-2 hover:underline" onClick={() => handleViewChange("team")}>
+              Gestionar
+            </button>
+          </div>
+        </div>
+        <p className="mt-4 max-w-3xl text-sm text-neo-text-secondary">
+          Controla el glosario técnico, detecta huecos y administra accesos en un solo flujo operacional.
+        </p>
+        <dl className="mt-8 grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+          {adminHeroStats.map((stat) => {
+            const Icon = HERO_STAT_ICONS[stat.label] || ActivitySquare;
+            return (
+              <div key={stat.label} className="flex flex-col gap-3 rounded-3xl border border-white/10 bg-ink-900/60 p-4 shadow-inner">
+                <div className="inline-flex h-10 w-10 items-center justify-center rounded-2xl bg-white/10">
+                  <Icon className="h-5 w-5 text-accent-secondary" />
                 </div>
-                <div>
-                  <p className="text-xs uppercase tracking-wide text-white/60">Panel de control</p>
-                  <h1 className="text-3xl font-semibold">Admin · Diccionario</h1>
-                </div>
+                <dt className="text-xs uppercase tracking-wide text-neo-text-secondary">{stat.label}</dt>
+                <dd className="text-3xl font-semibold text-neo-text-primary">{stat.value}</dd>
               </div>
-              <p className="text-sm text-white/70">
-                Controla el glosario técnico, usuarios y sesiones con herramientas listas para producción.
-              </p>
-              <dl className="grid gap-4 sm:grid-cols-3">
-                {adminHeroStats.map((stat) => (
-                  <div key={stat.label} className="rounded-3xl border border-white/10 bg-white/5 p-4 shadow-glow-card">
-                    <dt className="text-xs uppercase tracking-wide text-white/60">{stat.label}</dt>
-                    <dd className="text-2xl font-semibold text-white">{stat.value}</dd>
-                  </div>
-                ))}
-              </dl>
-            </div>
-            <div className="rounded-3xl border border-white/10 bg-white/5 p-6 shadow-glow-card">
-              <span
-                className={`inline-flex items-center rounded-full px-3 py-1 text-xs font-semibold ${session ? "bg-accent-emerald/20 text-accent-emerald" : "bg-accent-danger/20 text-accent-danger"}`}
-              >
-                {session ? "Sesión activa" : "Sin sesión"}
-              </span>
-              <p className="mt-2 text-sm text-white/70">
-                {authLoading
-                  ? "Verificando sesión…"
-                  : session
-                    ? `Logueado como ${session.username} (${session.role})`
-                    : "Inicia sesión para desbloquear todas las herramientas."}
-              </p>
-              <p className="text-xs text-white/50">Última sincronización: {today}</p>
-              <div className="mt-6 flex flex-wrap gap-3">
-                {session ? (
-                  <button className="btn-ghost" type="button" onClick={logout}>
-                    Cerrar sesión
-                  </button>
-                ) : null}
-                <button className="btn-ghost" type="button" onClick={refreshSession}>
-                  Refrescar
-                </button>
-                <button className="btn-primary text-sm" type="button" onClick={() => setEditing(empty)} disabled={!canEdit}>
-                  Nuevo término
-                </button>
-              </div>
+            );
+          })}
+        </dl>
+        <div className="mt-8 flex flex-wrap gap-3">
+          <button className="btn-primary" type="button" onClick={handleCreateTerm} disabled={!canEdit}>
+            Nuevo término
+          </button>
+          <button className="btn-ghost" type="button" onClick={() => handleViewChange("terms")}>
+            Revisar catálogo
+          </button>
+          <button className="btn-ghost" type="button" onClick={refreshSession}>
+            Revalidar sesión
+          </button>
+        </div>
+        <p className="mt-4 text-xs text-neo-text-secondary">Última sincronización: {today}</p>
+      </section>
+
+      <ViewSwitcher
+        activeView={activeView}
+        onChange={handleViewChange}
+        itemsCount={items.length}
+        pendingCount={pendingCount}
+        session={session}
+        allowBootstrap={allowBootstrap}
+      />
+
+      <ToastStack
+        error={authError}
+        message={message}
+        onClearError={() => setAuthError(null)}
+        onClearMessage={() => setMessage(null)}
+      />
+
+      {activeView === "overview" ? (
+        <div className="space-y-6">
+          <AdminDashboard />
+          <TermPipelinePanel statusSummary={statusSummary} categories={categoryHighlights} />
+          <QuickActionsPanel
+            autoRefresh={autoRefresh}
+            lastAutoRefresh={lastAutoRefresh}
+            lastManualRefresh={lastManualRefresh}
+            lastExportedAt={lastExportedAt}
+            exporting={exporting}
+            analyticsStatus={analyticsPulse}
+            analyticsLabel={lastAnalyticsPing}
+            onToggleAutoRefresh={() => setAutoRefresh((prev) => !prev)}
+            onManualRefresh={handleManualRefresh}
+            onExport={exportCatalog}
+            onPingAnalytics={pingAnalytics}
+          />
+          <OpsTimelinePanel
+            items={items}
+            notifications={notifications}
+            lastManualRefresh={lastManualRefresh}
+            lastAutoRefresh={lastAutoRefresh}
+            lastExportedAt={lastExportedAt}
+          />
+          <IntegrationsStatusPanel
+            termsStatus={items.length ? "ok" : "warning"}
+            analyticsStatus={analyticsPulse}
+            notificationsStatus={notificationsLoading ? "loading" : unreadCount ? "warning" : "ok"}
+            authStatus={session ? "ok" : authLoading ? "loading" : "error"}
+            lastAnalyticsPing={lastAnalyticsPing}
+            lastAutoRefresh={lastAutoRefresh}
+            allowBootstrap={allowBootstrap}
+          />
+        </div>
+      ) : null}
+
+      {activeView === "terms" ? (
+        <div className="space-y-6">
+          <SelectionToolbar
+            count={selectedCount}
+            allSelected={allSelected}
+            selectionDisabled={selectionDisabled}
+            canEdit={canEdit}
+            onToggleAll={toggleSelectAll}
+            onBulkDelete={() => requestDeletion(selectedIds, "bulk")}
+          />
+          <TermsTable
+            items={filteredItems}
+            selectedIds={selectedIds}
+            allSelected={allSelected}
+            selectionDisabled={selectionDisabled}
+            canEdit={canEdit}
+            search={q}
+            onSearchChange={setQ}
+            statusFilter={statusFilter}
+            onStatusFilterChange={setStatusFilter}
+            onToggleItem={toggleItemSelection}
+            onToggleAll={toggleSelectAll}
+            onEdit={handleEditTerm}
+            onDelete={handleDeleteClick}
+            onCreate={handleCreateTerm}
+            autoRefreshEnabled={autoRefresh}
+            lastAutoRefreshTime={lastAutoRefresh}
+          />
+        </div>
+      ) : null}
+
+      {activeView === "team" ? (
+        <div className="space-y-6">
+          <TeamPlaybookPanel
+            session={session}
+            authLoading={authLoading}
+            allowBootstrap={allowBootstrap}
+            today={today}
+            onLogout={logout}
+            onRefresh={refreshSession}
+            alertCount={unreadCount}
+            alertsSyncing={notificationsLoading}
+            onSyncAlerts={refreshNotifications}
+          />
+          <div className="grid gap-6 lg:grid-cols-2">
+            {!session && <AuthCard form={loginForm} onChange={setLoginForm} onSubmit={login} />}
+            {showRegisterCard && (
+              <RegisterCard form={registerForm} onChange={setRegisterForm} onSubmit={register} allowBootstrap={allowBootstrap} />
+            )}
+            <div className="lg:col-span-2">
+              <LeaderboardPanel />
             </div>
           </div>
         </div>
-      </header>
-      <main className="mx-auto flex w-full max-w-7xl flex-col gap-8 px-4 py-10 sm:px-6 lg:px-10">
-        <ToastStack
-          error={authError}
-          message={message}
-          onClearError={() => setAuthError(null)}
-          onClearMessage={() => setMessage(null)}
-        />
-        <div className="grid gap-6 lg:grid-cols-2">
-          {!session && (
-            <AuthCard form={loginForm} onChange={setLoginForm} onSubmit={login} />
-          )}
-          {showRegisterCard && (
-            <RegisterCard
-              form={registerForm}
-              onChange={setRegisterForm}
-              onSubmit={register}
-              allowBootstrap={allowBootstrap}
-            />
-          )}
-        </div>
-        <AnalyticsPanel />
-        <LeaderboardPanel />
-        <SelectionToolbar
-          count={selectedCount}
-          allSelected={allSelected}
-          selectionDisabled={selectionDisabled}
-          canEdit={canEdit}
-          onToggleAll={toggleSelectAll}
-          onBulkDelete={() => requestDeletion(selectedIds, "bulk")}
-        />
-        <TermsTable
-          items={filteredItems}
-          selectedIds={selectedIds}
-          allSelected={allSelected}
-          selectionDisabled={selectionDisabled}
-          canEdit={canEdit}
-          search={q}
-          onSearchChange={setQ}
-          statusFilter={statusFilter}
-          onStatusFilterChange={setStatusFilter}
-          onToggleItem={toggleItemSelection}
-          onToggleAll={toggleSelectAll}
-          onEdit={setEditing}
-          onDelete={handleDeleteClick}
-          onCreate={() => setEditing(empty)}
-        />
-      </main>
-      {editing && canEdit && <EditorSheet term={editing} onCancel={() => setEditing(null)} onSave={save} />}
+      ) : null}
+
+      {editing && canEdit && activeView === "terms" && <EditorSheet term={editing} onCancel={() => setEditing(null)} onSave={save} />}
       {deleteDialog && (
         <ConfirmDialog
           title={deleteDialog.title}
@@ -655,7 +832,7 @@ function ToastStack({ error, message, onClearError, onClearMessage }: ToastStack
       {error ? (
         <div className="flex items-start justify-between gap-4 rounded-2xl border border-accent-danger/40 bg-accent-danger/10 px-4 py-3 text-sm text-accent-danger">
           <span>{error}</span>
-          <button type="button" onClick={onClearError} className="text-accent-danger/70 hover:text-white">
+          <button type="button" onClick={onClearError} className="text-accent-danger/70 hover:text-accent-danger">
             ✕
           </button>
         </div>
@@ -663,7 +840,7 @@ function ToastStack({ error, message, onClearError, onClearMessage }: ToastStack
       {message ? (
         <div className="flex items-start justify-between gap-4 rounded-2xl border border-accent-emerald/30 bg-accent-emerald/10 px-4 py-3 text-sm text-accent-emerald">
           <span>{message}</span>
-          <button type="button" onClick={onClearMessage} className="text-accent-emerald/70 hover:text-white">
+          <button type="button" onClick={onClearMessage} className="text-accent-emerald/70 hover:text-accent-emerald">
             ✕
           </button>
         </div>
@@ -683,24 +860,24 @@ function AuthCard({ form, onChange, onSubmit }: AuthCardProps) {
   return (
     <section className="glass-panel space-y-4">
       <header>
-        <p className="text-xs uppercase tracking-wide text-white/60">Acceso</p>
+        <p className="text-xs uppercase tracking-wide text-neo-text-secondary">Acceso</p>
         <h2 className="text-xl font-semibold">Iniciar sesión</h2>
-        <p className="text-sm text-white/60">Accede con tus credenciales de administrador.</p>
+        <p className="text-sm text-neo-text-secondary">Accede con tus credenciales de administrador.</p>
       </header>
       <div className="space-y-3">
-        <label className="text-sm text-white/70">
+        <label className="text-sm text-neo-text-secondary">
           Usuario
           <input
-            className="mt-1 w-full rounded-2xl border border-white/10 bg-transparent px-4 py-2 text-white focus:border-accent-secondary focus:outline-none"
+            className="mt-1 w-full rounded-2xl border border-white/10 bg-transparent px-4 py-2 text-neo-text-primary focus:border-accent-secondary focus:outline-none"
             value={form.username}
             onChange={(event) => onChange({ ...form, username: event.target.value })}
           />
         </label>
-        <label className="text-sm text-white/70">
+        <label className="text-sm text-neo-text-secondary">
           Contraseña
           <input
             type="password"
-            className="mt-1 w-full rounded-2xl border border-white/10 bg-transparent px-4 py-2 text-white focus:border-accent-secondary focus:outline-none"
+            className="mt-1 w-full rounded-2xl border border-white/10 bg-transparent px-4 py-2 text-neo-text-primary focus:border-accent-secondary focus:outline-none"
             value={form.password}
             onChange={(event) => onChange({ ...form, password: event.target.value })}
           />
@@ -725,47 +902,47 @@ function RegisterCard({ form, onChange, onSubmit, allowBootstrap }: RegisterCard
   return (
     <section className="glass-panel space-y-4">
       <header>
-        <p className="text-xs uppercase tracking-wide text-white/60">Usuarios</p>
+        <p className="text-xs uppercase tracking-wide text-neo-text-secondary">Usuarios</p>
         <h2 className="text-xl font-semibold">
           {allowBootstrap ? "Crear administrador inicial" : "Registrar usuario"}
         </h2>
-        <p className="text-sm text-white/60">
+        <p className="text-sm text-neo-text-secondary">
           {allowBootstrap
             ? "El primer usuario será administrador automáticamente."
             : "Solo los administradores autenticados pueden crear nuevas cuentas."}
         </p>
       </header>
       <div className="grid gap-3 md:grid-cols-2">
-        <label className="text-sm text-white/70">
+        <label className="text-sm text-neo-text-secondary">
           Usuario
           <input
-            className="mt-1 w-full rounded-2xl border border-white/10 bg-transparent px-4 py-2 text-white focus:border-accent-secondary focus:outline-none"
+            className="mt-1 w-full rounded-2xl border border-white/10 bg-transparent px-4 py-2 text-neo-text-primary focus:border-accent-secondary focus:outline-none"
             value={form.username}
             onChange={(event) => onChange({ ...form, username: event.target.value })}
           />
         </label>
-        <label className="text-sm text-white/70">
+        <label className="text-sm text-neo-text-secondary">
           Email (opcional)
           <input
-            className="mt-1 w-full rounded-2xl border border-white/10 bg-transparent px-4 py-2 text-white focus:border-accent-secondary focus:outline-none"
+            className="mt-1 w-full rounded-2xl border border-white/10 bg-transparent px-4 py-2 text-neo-text-primary focus:border-accent-secondary focus:outline-none"
             value={form.email}
             onChange={(event) => onChange({ ...form, email: event.target.value })}
           />
         </label>
-        <label className="text-sm text-white/70">
+        <label className="text-sm text-neo-text-secondary">
           Contraseña
           <input
             type="password"
-            className="mt-1 w-full rounded-2xl border border-white/10 bg-transparent px-4 py-2 text-white focus:border-accent-secondary focus:outline-none"
+            className="mt-1 w-full rounded-2xl border border-white/10 bg-transparent px-4 py-2 text-neo-text-primary focus:border-accent-secondary focus:outline-none"
             value={form.password}
             onChange={(event) => onChange({ ...form, password: event.target.value })}
           />
         </label>
         {!allowBootstrap && (
-          <label className="text-sm text-white/70">
+          <label className="text-sm text-neo-text-secondary">
             Rol
             <select
-              className="mt-1 w-full rounded-2xl border border-white/10 bg-ink-900/70 px-4 py-2 text-white focus:border-accent-secondary focus:outline-none"
+              className="mt-1 w-full rounded-2xl border border-white/10 bg-ink-900/70 px-4 py-2 text-neo-text-primary focus:border-accent-secondary focus:outline-none"
               value={form.role}
               onChange={(event) => onChange({ ...form, role: event.target.value as "admin" | "user" })}
             >
@@ -782,6 +959,142 @@ function RegisterCard({ form, onChange, onSubmit, allowBootstrap }: RegisterCard
   );
 }
 
+type TeamPlaybookPanelProps = {
+  session: SessionUser | null;
+  authLoading: boolean;
+  allowBootstrap: boolean;
+  today: string;
+  onLogout: () => void;
+  onRefresh: () => void;
+  alertCount: number;
+  alertsSyncing: boolean;
+  onSyncAlerts: () => void;
+};
+
+function TeamPlaybookPanel({
+  session,
+  authLoading,
+  allowBootstrap,
+  today,
+  onLogout,
+  onRefresh,
+  alertCount,
+  alertsSyncing,
+  onSyncAlerts,
+}: TeamPlaybookPanelProps) {
+  return (
+    <section className="rounded-3xl border border-white/10 bg-ink-900/60 p-6 shadow-glow-card">
+      <header className="flex flex-wrap items-center justify-between gap-3">
+        <div>
+          <p className="text-xs uppercase tracking-wide text-neo-text-secondary">Operaciones del equipo</p>
+          <h2 className="text-lg font-semibold">{session ? `Hola ${session.username}` : "Gestiona los accesos"}</h2>
+        </div>
+        <span
+          className={`inline-flex items-center rounded-full px-3 py-1 text-xs font-semibold ${
+            authLoading ? "bg-white/10 text-neo-text-secondary" : session ? "bg-accent-emerald/20 text-accent-emerald" : "bg-accent-danger/20 text-accent-danger"
+          }`}
+        >
+          {authLoading ? "Validando…" : session ? "Sesión activa" : "Sin sesión"}
+        </span>
+      </header>
+      <p className="mt-2 text-sm text-neo-text-secondary">
+        {session
+          ? "Invita nuevos editores, mantén tu sesión fresca y coordina la moderación."
+          : allowBootstrap
+            ? "Crea el primer administrador para levantar el panel completo."
+            : "Inicia sesión con tu usuario o solicita un acceso administrador."}
+      </p>
+      <dl className="mt-4 grid gap-4 sm:grid-cols-3">
+        <div className="rounded-2xl border border-white/10 bg-white/5 p-3">
+          <dt className="text-xs uppercase tracking-wide text-neo-text-secondary">Rol</dt>
+          <dd className="text-sm font-semibold text-neo-text-primary">{session ? session.role : "Invitado"}</dd>
+        </div>
+        <div className="rounded-2xl border border-white/10 bg-white/5 p-3">
+          <dt className="text-xs uppercase tracking-wide text-neo-text-secondary">Bootstrap</dt>
+          <dd className="text-sm font-semibold text-neo-text-primary">{allowBootstrap ? "Disponible" : "Cerrado"}</dd>
+        </div>
+        <div className="rounded-2xl border border-white/10 bg-white/5 p-3">
+          <dt className="text-xs uppercase tracking-wide text-neo-text-secondary">Sincronización</dt>
+          <dd className="text-sm font-semibold text-neo-text-primary">{today}</dd>
+        </div>
+        <div className="rounded-2xl border border-white/10 bg-white/5 p-3">
+          <dt className="text-xs uppercase tracking-wide text-neo-text-secondary">Alertas activas</dt>
+          <dd className="text-sm font-semibold text-neo-text-primary">{alertsSyncing ? "Sync…" : alertCount}</dd>
+        </div>
+      </dl>
+      <div className="mt-6 flex flex-wrap gap-3">
+        {session ? (
+          <button className="btn-ghost" type="button" onClick={onLogout}>
+            Cerrar sesión
+          </button>
+        ) : null}
+        <button className="btn-primary" type="button" onClick={onRefresh}>
+          {session ? "Refrescar sesión" : "Validar estado"}
+        </button>
+        <button className="btn-ghost" type="button" onClick={onSyncAlerts}>
+          {alertsSyncing ? "Cargando alertas…" : "Sincronizar alertas"}
+        </button>
+      </div>
+    </section>
+  );
+}
+
+type ViewSwitcherProps = {
+  activeView: AdminView;
+  onChange: (view: AdminView) => void;
+  itemsCount: number;
+  pendingCount: number;
+  session: SessionUser | null;
+  allowBootstrap: boolean;
+};
+
+function ViewSwitcher({ activeView, onChange, itemsCount, pendingCount, session, allowBootstrap }: ViewSwitcherProps) {
+  const meta: Record<AdminView, string> = {
+    overview: `${itemsCount} términos indexados`,
+    terms: pendingCount ? `${pendingCount} pendientes` : "Sin pendientes",
+    team: session ? `Activo: ${session.username}` : allowBootstrap ? "Bootstrap abierto" : "Requiere sesión",
+  };
+
+  return (
+    <div className="grid gap-4 lg:grid-cols-3">
+      {ADMIN_VIEWS.map((view) => {
+        const Icon = view.icon;
+        const isActive = view.id === activeView;
+        return (
+          <button
+            key={view.id}
+            type="button"
+            onClick={() => onChange(view.id)}
+            className={`flex flex-col gap-3 rounded-3xl border p-5 text-left transition-all ${
+              isActive
+                ? "border-accent-secondary/60 bg-gradient-to-br from-accent-secondary/20 via-ink-900/60 to-ink-900/60 shadow-lg shadow-accent-secondary/30"
+                : "border-white/10 bg-ink-900/40 hover:border-white/30"
+            }`}
+          >
+            <div className="flex items-center gap-3">
+              <span
+                className={`inline-flex h-10 w-10 items-center justify-center rounded-2xl ${
+                  isActive ? "bg-white text-ink-900" : "bg-white/10 text-neo-text-primary"
+                }`}
+              >
+                <Icon className="h-5 w-5" />
+              </span>
+              <div>
+                <p className="text-sm font-semibold">{view.label}</p>
+                <p className="text-xs text-neo-text-secondary">{view.description}</p>
+              </div>
+            </div>
+            <div className="flex items-center justify-between text-xs text-neo-text-secondary">
+              <span>{meta[view.id]}</span>
+              {isActive ? <span className="text-accent-secondary">Activo</span> : <span>Explorar</span>}
+            </div>
+          </button>
+        );
+      })}
+    </div>
+  );
+}
+
 type SelectionToolbarProps = {
   count: number;
   allSelected: boolean;
@@ -793,14 +1106,14 @@ type SelectionToolbarProps = {
 
 function SelectionToolbar({ count, allSelected, selectionDisabled, canEdit, onToggleAll, onBulkDelete }: SelectionToolbarProps) {
   return (
-    <section className="glass-panel flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+    <section className="flex flex-col gap-4 rounded-3xl border border-white/10 bg-gradient-to-br from-ink-900/80 via-ink-800/70 to-ink-900/70 p-6 shadow-glow-card md:flex-row md:items-center md:justify-between">
       <div>
-        <p className="text-xs uppercase tracking-wide text-white/60">Selección actual</p>
+        <p className="text-xs uppercase tracking-wide text-neo-text-secondary">Selección actual</p>
         <div className="flex items-baseline gap-2">
           <strong className="text-2xl">{count}</strong>
-          <span className="text-sm text-white/60">seleccionados</span>
+          <span className="text-sm text-neo-text-secondary">seleccionados</span>
         </div>
-        <p className="text-xs text-white/60">
+        <p className="text-xs text-neo-text-secondary">
           {count
             ? allSelected
               ? "Todos los términos visibles están marcados."
@@ -835,6 +1148,8 @@ type TermsTableProps = {
   onEdit: (term: Term) => void;
   onDelete: (id: number) => void;
   onCreate: () => void;
+  autoRefreshEnabled: boolean;
+  lastAutoRefreshTime: string | null;
 };
 
 function TermsTable({
@@ -852,22 +1167,33 @@ function TermsTable({
   onEdit,
   onDelete,
   onCreate,
+  autoRefreshEnabled,
+  lastAutoRefreshTime,
 }: TermsTableProps) {
   return (
-    <section className="glass-panel space-y-6">
+    <section className="space-y-6 rounded-3xl border border-white/10 bg-ink-900/60 p-6 shadow-glow-card">
       <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
         <div>
-          <p className="text-xs uppercase tracking-wide text-white/60">Catálogo</p>
+          <p className="text-xs uppercase tracking-wide text-neo-text-secondary">Catálogo</p>
           <h2 className="text-2xl font-semibold">Términos técnicos</h2>
-          <p className="text-sm text-white/60">Controla y sincroniza el glosario completo en tiempo real.</p>
+          <p className="text-sm text-neo-text-secondary">Controla y sincroniza el glosario completo en tiempo real.</p>
+          <p className="text-xs text-neo-text-secondary">
+            {autoRefreshEnabled ? (
+              <span className="text-accent-secondary">
+                Autorefresco cada 30s{lastAutoRefreshTime ? ` · último a las ${lastAutoRefreshTime}` : ""}
+              </span>
+            ) : (
+              "Autorefresco inactivo"
+            )}
+          </p>
         </div>
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
-          <label className="w-full text-sm text-white/70 sm:w-64">
+          <label className="w-full text-sm text-neo-text-secondary sm:w-64">
             <span className="sr-only">Buscar término</span>
             <div className="flex items-center gap-2 rounded-2xl border border-white/10 bg-ink-900/50 px-3 py-2">
               <span aria-hidden>🔍</span>
               <input
-                className="w-full bg-transparent text-sm text-white focus:outline-none"
+                className="w-full bg-transparent text-sm text-neo-text-primary focus:outline-none"
                 type="search"
                 value={search}
                 placeholder='Ej. "fetch", "JOIN", "JWT"...'
@@ -875,10 +1201,10 @@ function TermsTable({
               />
             </div>
           </label>
-          <label className="text-sm text-white/70">
+          <label className="text-sm text-neo-text-secondary">
             Estado
             <select
-              className="mt-1 rounded-2xl border border-white/10 bg-ink-900/50 px-3 py-2 text-white focus:border-accent-secondary focus:outline-none"
+              className="mt-1 rounded-2xl border border-white/10 bg-ink-900/50 px-3 py-2 text-neo-text-primary focus:border-accent-secondary focus:outline-none"
               value={statusFilter}
               onChange={(event) => onStatusFilterChange(event.target.value as ReviewStatus | "all")}
             >
@@ -895,9 +1221,9 @@ function TermsTable({
           </button>
         </div>
       </div>
-      <div className="overflow-x-auto rounded-3xl border border-white/10 bg-white/5">
+      <div className="overflow-x-auto rounded-3xl border border-white/10 bg-ink-900/80">
         <table className="min-w-[720px] divide-y divide-white/10 text-sm">
-          <thead className="bg-white/5 text-left text-xs uppercase tracking-wide text-white/60">
+          <thead className="bg-white/5 text-left text-xs uppercase tracking-wide text-neo-text-secondary">
             <tr>
               <th className="px-4 py-3">
                 <input
@@ -931,16 +1257,16 @@ function TermsTable({
                       className="h-4 w-4 rounded border-white/40 bg-transparent"
                     />
                   </td>
-                  <td className="px-4 py-3 text-white/70">{item.id}</td>
-                  <td className="px-4 py-3 font-semibold text-white">{item.translation}</td>
-                  <td className="px-4 py-3 text-white/80">{item.term}</td>
+                  <td className="px-4 py-3 text-neo-text-secondary">{item.id}</td>
+                  <td className="px-4 py-3 font-semibold text-neo-text-primary">{item.translation}</td>
+                  <td className="px-4 py-3 text-neo-text-secondary">{item.term}</td>
                   <td className="px-4 py-3">
                     <span className={`rounded-full px-2 py-1 text-xs font-semibold ${statusBadgeClass(item.status)}`}>
                       {item.status}
                     </span>
                   </td>
                   <td className="px-4 py-3">
-                    <span className="rounded-full bg-white/10 px-2 py-1 text-xs capitalize text-white/70">{item.category}</span>
+                    <span className="rounded-full bg-white/10 px-2 py-1 text-xs capitalize text-neo-text-secondary">{item.category}</span>
                   </td>
                   <td className="px-4 py-3">
                     <div className="flex flex-wrap gap-2">
@@ -957,7 +1283,7 @@ function TermsTable({
             ) : (
               <tr>
                 <td colSpan={6} className="px-4 py-10">
-                  <div className="flex flex-col items-center gap-3 text-center text-white/60">
+                  <div className="flex flex-col items-center gap-3 text-center text-neo-text-secondary">
                     <strong>Sin resultados</strong>
                     <span>Crea un término nuevo o ajusta la búsqueda para ver registros.</span>
                     <button className="btn-primary" type="button" onClick={onCreate} disabled={!canEdit}>
@@ -974,137 +1300,347 @@ function TermsTable({
   );
 }
 
-function statusBadgeClass(status: ReviewStatus) {
-  switch (status) {
-    case "approved":
-      return "bg-accent-emerald/20 text-accent-emerald";
-    case "rejected":
-      return "bg-accent-danger/20 text-accent-danger";
-    case "in_review":
-      return "bg-amber-200/20 text-amber-200";
-    default:
-      return "bg-white/10 text-white/70";
-  }
-}
+type TermPipelinePanelProps = {
+  statusSummary: Record<ReviewStatus, number>;
+  categories: Array<{ category: Term["category"]; value: number }>;
+};
 
-function AnalyticsPanel() {
-  const [summary, setSummary] = useState<AnalyticsSummary | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+function TermPipelinePanel({ statusSummary, categories }: TermPipelinePanelProps) {
+  const total = Object.values(statusSummary).reduce((sum, value) => sum + value, 0) || 1;
+  const statuses: Array<{ key: ReviewStatus; label: string; accent: string }> = [
+    { key: "pending", label: "Pendiente", accent: "from-accent-amber/50 to-accent-amber/20" },
+    { key: "in_review", label: "En revisión", accent: "from-accent-secondary/50 to-accent-secondary/20" },
+    { key: "approved", label: "Publicado", accent: "from-accent-emerald/50 to-accent-emerald/20" },
+    { key: "rejected", label: "Rechazado", accent: "from-accent-danger/50 to-accent-danger/20" },
+  ];
 
-  useEffect(() => {
-    let cancelled = false;
-    setLoading(true);
-    setError(null);
-    fetch("/api/analytics", { cache: "no-store" })
-      .then(async (res) => {
-        if (!res.ok) throw new Error(`HTTP ${res.status}`);
-        return res.json();
-      })
-      .then((payload) => {
-        if (cancelled) return;
-        if (payload?.ok !== false && payload?.summary) {
-          setSummary(payload.summary as AnalyticsSummary);
-        } else {
-          throw new Error(payload?.error || "Sin datos");
-        }
-        setLoading(false);
-      })
-      .catch((err) => {
-        if (cancelled) return;
-        setError(err?.message || "No se pudo cargar la analítica");
-        setLoading(false);
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, []);
+  const topCategories = categories.slice(0, 4);
 
   return (
-    <section className="rounded-3xl border border-white/10 bg-ink-900/70 p-6 text-white shadow-glow-card">
-      <header className="flex flex-wrap items-center justify-between gap-3">
+    <section className="rounded-3xl border border-white/10 bg-ink-900/60 p-6 shadow-glow-card">
+      <header className="flex items-center justify-between">
         <div>
-          <p className="text-xs uppercase tracking-wide text-white/50">Observabilidad</p>
-          <h2 className="text-lg font-semibold">Consultas y huecos</h2>
+          <p className="text-xs uppercase tracking-wide text-neo-text-secondary">Pipeline editorial</p>
+          <h2 className="text-lg font-semibold">Salud del catálogo</h2>
         </div>
-        {loading ? (
-          <span className="text-xs text-white/60">Actualizando…</span>
-        ) : error ? (
-          <span className="text-xs text-accent-danger">{error}</span>
-        ) : null}
+        <span className="text-xs text-neo-text-secondary">{total} registros</span>
       </header>
-      {summary ? (
-        <div className="mt-4 grid gap-4 lg:grid-cols-[2fr_1fr]">
-          <div className="rounded-2xl border border-white/10 bg-white/5 p-4">
-            <p className="text-xs uppercase tracking-wide text-white/60">Consultas resueltas</p>
-            {summary.topTerms.length ? (
-              <ul className="mt-3 space-y-2 text-sm text-white/80">
-                {summary.topTerms.slice(0, 6).map((entry) => (
-                  <li key={entry.termId} className="flex items-center justify-between rounded-xl border border-white/10 bg-ink-900/40 px-3 py-2">
-                    <span>{entry.term}</span>
-                    <span className="text-white/60">{entry.hits} hits</span>
-                  </li>
-                ))}
-              </ul>
-            ) : (
-              <p className="mt-3 text-xs text-white/60">Aún no hay datos.</p>
-            )}
-          </div>
-          <div className="space-y-4">
-            <div className="rounded-2xl border border-white/10 bg-ink-900/50 p-4">
-              <p className="text-xs uppercase tracking-wide text-white/60">Consultas sin resultados</p>
-              {summary.emptyQueries.length ? (
-                <ul className="mt-3 space-y-1 text-xs text-white/80">
-                  {summary.emptyQueries.slice(0, 4).map((entry) => (
-                    <li key={entry.query} className="flex items-center justify-between">
-                      <span className="truncate" title={entry.query}>
-                        {entry.query}
-                      </span>
-                      <span className="text-white/50">{entry.attempts}</span>
-                    </li>
-                  ))}
-                </ul>
-              ) : (
-                <p className="mt-3 text-xs text-white/60">Todo tiene coincidencias.</p>
-              )}
-            </div>
-            <div className="rounded-2xl border border-white/10 bg-ink-900/50 p-4 text-xs text-white/80">
-              <div className="grid gap-3">
-                <div>
-                  <p className="text-white/60">Idiomas</p>
-                  <ul className="mt-1 space-y-1">
-                    {summary.languages.slice(0, 3).map((entry) => (
-                      <li key={entry.language} className="flex items-center justify-between">
-                        <span>{entry.language.toUpperCase()}</span>
-                        <span>{entry.count}</span>
-                      </li>
-                    ))}
-                  </ul>
+      <div className="mt-6 grid gap-6 lg:grid-cols-2">
+        <div className="space-y-4">
+          {statuses.map((status) => {
+            const count = statusSummary[status.key] || 0;
+            const pct = Math.round((count / total) * 100);
+            return (
+              <div key={status.key}>
+                <div className="flex items-center justify-between text-xs text-neo-text-secondary">
+                  <span>{status.label}</span>
+                  <span>{count}</span>
                 </div>
-                <div>
-                  <p className="text-white/60">Contextos</p>
-                  <ul className="mt-1 space-y-1">
-                    {summary.contexts.slice(0, 3).map((entry) => (
-                      <li key={entry.context} className="flex items-center justify-between">
-                        <span>{entry.context}</span>
-                        <span>{entry.count}</span>
-                      </li>
-                    ))}
-                  </ul>
+                <div className="mt-2 h-2 w-full rounded-full bg-white/5">
+                  <div className={`h-full rounded-full bg-gradient-to-r ${status.accent}`} style={{ width: `${pct}%` }} />
                 </div>
               </div>
-            </div>
-          </div>
+            );
+          })}
         </div>
-      ) : loading ? (
-        <p className="mt-4 text-xs text-white/60">Recolectando métricas…</p>
-      ) : error ? (
-        <p className="mt-4 text-xs text-accent-danger">{error}</p>
-      ) : (
-        <p className="mt-4 text-xs text-white/60">Sin datos aún.</p>
-      )}
+        <div className="rounded-2xl border border-white/10 bg-ink-900/80 p-4">
+          <p className="text-xs uppercase tracking-wide text-neo-text-secondary">Categorías más consultadas</p>
+          {topCategories.length ? (
+            <ul className="mt-4 space-y-3 text-sm text-neo-text-secondary">
+              {topCategories.map((entry) => (
+                <li key={entry.category} className="flex items-center justify-between">
+                  <span className="capitalize">{entry.category}</span>
+                  <span className="inline-flex items-center rounded-full bg-white/10 px-2 py-0.5 text-xs text-neo-text-secondary">
+                    {entry.value}
+                  </span>
+                </li>
+              ))}
+            </ul>
+          ) : (
+            <p className="mt-4 text-xs text-neo-text-secondary">Aún no hay categorías registradas.</p>
+          )}
+        </div>
+      </div>
     </section>
   );
+}
+
+type QuickActionsPanelProps = {
+  autoRefresh: boolean;
+  lastAutoRefresh: string | null;
+  lastManualRefresh: string | null;
+  lastExportedAt: string | null;
+  exporting: boolean;
+  analyticsStatus: "idle" | "loading" | "ok" | "error";
+  analyticsLabel: string | null;
+  onToggleAutoRefresh: () => void;
+  onManualRefresh: () => void;
+  onExport: () => void;
+  onPingAnalytics: () => void;
+};
+
+function QuickActionsPanel({
+  autoRefresh,
+  lastAutoRefresh,
+  lastManualRefresh,
+  lastExportedAt,
+  exporting,
+  analyticsStatus,
+  analyticsLabel,
+  onToggleAutoRefresh,
+  onManualRefresh,
+  onExport,
+  onPingAnalytics,
+}: QuickActionsPanelProps) {
+  const analyticsBadge =
+    analyticsStatus === "ok"
+      ? "text-accent-emerald"
+      : analyticsStatus === "error"
+        ? "text-accent-danger"
+        : analyticsStatus === "loading"
+          ? "text-accent-secondary"
+          : "text-neo-text-secondary";
+
+  return (
+    <section className="rounded-3xl border border-white/10 bg-ink-900/60 p-6 shadow-glow-card">
+      <header className="flex items-center justify-between">
+        <div>
+          <p className="text-xs uppercase tracking-wide text-neo-text-secondary">Operaciones rápidas</p>
+          <h2 className="text-lg font-semibold">Automatiza y sincroniza</h2>
+        </div>
+      </header>
+      <div className="mt-6 grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+        <article className="rounded-2xl border border-white/10 bg-white/5 p-4">
+          <div className="flex items-center justify-between">
+            <p className="text-sm font-semibold">Autorefresco</p>
+            <button
+              type="button"
+              aria-pressed={autoRefresh}
+              onClick={onToggleAutoRefresh}
+              className={`relative h-6 w-12 rounded-full transition ${autoRefresh ? "bg-accent-secondary" : "bg-white/10"}`}
+            >
+              <span
+                className={`absolute top-1/2 h-4 w-4 -translate-y-1/2 rounded-full bg-white transition ${
+                  autoRefresh ? "right-1" : "left-1"
+                }`}
+              />
+            </button>
+          </div>
+          <p className="mt-3 text-xs text-neo-text-secondary">
+            {autoRefresh ? `Pulso cada 30s${lastAutoRefresh ? ` · último a las ${lastAutoRefresh}` : ""}` : "Pulse manual para evitar ruido"}
+          </p>
+        </article>
+        <article className="rounded-2xl border border-white/10 bg-white/5 p-4">
+          <div className="flex items-center justify-between">
+            <p className="text-sm font-semibold">Sincronizar catálogo</p>
+            <RefreshCcw className="h-4 w-4 text-accent-secondary" />
+          </div>
+          <p className="mt-2 text-xs text-neo-text-secondary">{lastManualRefresh ? `Última manual: ${lastManualRefresh}` : "Sin ejecutar hoy."}</p>
+          <button className="btn-ghost mt-3 w-full text-sm" type="button" onClick={onManualRefresh}>
+            Forzar refresco
+          </button>
+        </article>
+        <article className="rounded-2xl border border-white/10 bg-white/5 p-4">
+          <div className="flex items-center justify-between">
+            <p className="text-sm font-semibold">Exportar catálogo</p>
+            <Download className="h-4 w-4 text-accent-secondary" />
+          </div>
+          <p className="mt-2 text-xs text-neo-text-secondary">{lastExportedAt ? `Último export: ${lastExportedAt}` : "Aún sin exportar esta sesión."}</p>
+          <button className="btn-primary mt-3 w-full text-sm" type="button" onClick={onExport} disabled={exporting}>
+            {exporting ? "Generando..." : "Descargar JSON"}
+          </button>
+        </article>
+        <article className="rounded-2xl border border-white/10 bg-white/5 p-4">
+          <div className="flex items-center justify-between">
+            <p className="text-sm font-semibold">Validar analytics</p>
+            <span className={`text-xs font-semibold ${analyticsBadge}`}>
+              {analyticsStatus === "loading" ? "Sincronizando..." : analyticsLabel || "Idle"}
+            </span>
+          </div>
+          <p className="mt-2 text-xs text-neo-text-secondary">Recalcula el resumen para asegurar coherencia.</p>
+          <button className="btn-ghost mt-3 w-full text-sm" type="button" onClick={onPingAnalytics}>
+            Recalcular
+          </button>
+        </article>
+      </div>
+    </section>
+  );
+}
+
+type OpsTimelinePanelProps = {
+  items: Term[];
+  notifications: AdminNotification[];
+  lastManualRefresh: string | null;
+  lastAutoRefresh: string | null;
+  lastExportedAt: string | null;
+};
+
+function OpsTimelinePanel({ items, notifications, lastManualRefresh, lastAutoRefresh, lastExportedAt }: OpsTimelinePanelProps) {
+  const timeline = useMemo(() => {
+    const events: Array<{ title: string; detail: string; time: string; tone: "info" | "alert" | "success" }> = [];
+    if (lastManualRefresh) {
+      events.push({ title: "Sincronización manual", detail: "Forzaste un refresco del catálogo.", time: lastManualRefresh, tone: "success" });
+    }
+    if (lastAutoRefresh) {
+      events.push({ title: "Pulso automático", detail: "El monitor actualizó los datos.", time: lastAutoRefresh, tone: "info" });
+    }
+    if (lastExportedAt) {
+      events.push({ title: "Exportación JSON", detail: "Se generó un respaldo del catálogo.", time: lastExportedAt, tone: "info" });
+    }
+    items
+      .slice(-3)
+      .reverse()
+      .forEach((term) => {
+        events.push({
+          title: `Edición · ${term.term || "Sin título"}`,
+          detail: `Estado ${term.status} · ${term.translation}`,
+          time: `#${term.id}`,
+          tone: term.status === "approved" ? "success" : term.status === "rejected" ? "alert" : "info",
+        });
+      });
+    notifications.slice(0, 3).forEach((notif) => {
+      events.push({
+        title: notif.title,
+        detail: notif.detail,
+        time: new Date(notif.timestamp).toLocaleTimeString("es-ES"),
+        tone: notif.type === "alert" ? "alert" : "info",
+      });
+    });
+    return events.slice(0, 6);
+  }, [items, notifications, lastManualRefresh, lastAutoRefresh, lastExportedAt]);
+
+  return (
+    <section className="rounded-3xl border border-white/10 bg-ink-900/60 p-6 shadow-glow-card">
+      <header className="flex items-center justify-between">
+        <div>
+          <p className="text-xs uppercase tracking-wide text-neo-text-secondary">Timeline operativo</p>
+          <h2 className="text-lg font-semibold">Últimas acciones</h2>
+        </div>
+      </header>
+      <ul className="mt-4 space-y-3">
+        {timeline.length ? (
+          timeline.map((event, index) => (
+            <li key={`${event.title}-${index}`} className="flex items-center gap-3 rounded-2xl border border-white/10 bg-white/5 px-4 py-3">
+              <span
+                className={`h-2.5 w-2.5 rounded-full ${
+                  event.tone === "alert" ? "bg-accent-danger" : event.tone === "success" ? "bg-accent-emerald" : "bg-accent-secondary"
+                }`}
+              />
+              <div className="flex-1">
+                <p className="text-sm font-semibold text-neo-text-primary">{event.title}</p>
+                <p className="text-xs text-neo-text-secondary">{event.detail}</p>
+              </div>
+              <span className="text-xs text-neo-text-secondary">{event.time}</span>
+            </li>
+          ))
+        ) : (
+          <li className="rounded-2xl border border-white/10 bg-white/5 px-4 py-6 text-center text-xs text-neo-text-secondary">Sin eventos recientes.</li>
+        )}
+      </ul>
+    </section>
+  );
+}
+
+type IntegrationStatus = "ok" | "warning" | "error" | "loading";
+
+type IntegrationsStatusPanelProps = {
+  termsStatus: IntegrationStatus;
+  analyticsStatus: "idle" | "loading" | "ok" | "error";
+  notificationsStatus: IntegrationStatus;
+  authStatus: IntegrationStatus;
+  lastAnalyticsPing: string | null;
+  lastAutoRefresh: string | null;
+  allowBootstrap: boolean;
+};
+
+function IntegrationsStatusPanel({
+  termsStatus,
+  analyticsStatus,
+  notificationsStatus,
+  authStatus,
+  lastAnalyticsPing,
+  lastAutoRefresh,
+  allowBootstrap,
+}: IntegrationsStatusPanelProps) {
+  const analyticsTone: IntegrationStatus =
+    analyticsStatus === "loading" ? "loading" : analyticsStatus === "error" ? "error" : analyticsStatus === "ok" ? "ok" : "warning";
+
+  const cards: Array<{ label: string; detail: string; status: IntegrationStatus; icon: LucideIcon; meta?: string }> = [
+    { label: "API términos", detail: termsStatus === "ok" ? "Online" : "Sin datos recientes", status: termsStatus, icon: BookOpenCheck, meta: lastAutoRefresh || "—" },
+    {
+      label: "Analytics",
+      detail: analyticsStatus === "loading" ? "Sincronizando…" : analyticsStatus === "ok" ? "Coherente" : analyticsStatus === "error" ? "Fallo" : "En espera",
+      status: analyticsTone,
+      icon: Signal,
+      meta: lastAnalyticsPing || "—",
+    },
+    {
+      label: "Alertas",
+      detail: notificationsStatus === "ok" ? "Monitor activo" : notificationsStatus === "warning" ? "Alertas pendientes" : notificationsStatus === "loading" ? "Cargando" : "Fallo",
+      status: notificationsStatus,
+      icon: Link2,
+    },
+    {
+      label: "Autenticación",
+      detail: authStatus === "ok" ? "Sesión válida" : authStatus === "loading" ? "Validando…" : "No autenticado",
+      status: authStatus,
+      icon: ShieldCheck,
+      meta: allowBootstrap ? "Bootstrap abierto" : "Bootstrap cerrado",
+    },
+  ];
+
+  const badgeClass = (status: IntegrationStatus) => {
+    switch (status) {
+      case "ok":
+        return "text-accent-emerald";
+      case "warning":
+        return "text-accent-amber";
+      case "error":
+        return "text-accent-danger";
+      case "loading":
+        return "text-accent-secondary";
+      default:
+        return "text-neo-text-secondary";
+    }
+  };
+
+  return (
+    <section className="rounded-3xl border border-white/10 bg-ink-900/60 p-6 shadow-glow-card">
+      <header>
+        <p className="text-xs uppercase tracking-wide text-neo-text-secondary">Integraciones críticas</p>
+        <h2 className="text-lg font-semibold">Salud de servicios</h2>
+      </header>
+      <div className="mt-4 grid gap-4 md:grid-cols-2">
+        {cards.map((card) => (
+          <article key={card.label} className="rounded-2xl border border-white/10 bg-white/5 p-4">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2 text-sm font-semibold text-neo-text-primary">
+                <card.icon className="h-4 w-4 text-accent-secondary" />
+                {card.label}
+              </div>
+              <span className={`text-xs font-semibold ${badgeClass(card.status)}`}>{card.detail}</span>
+            </div>
+            {card.meta ? <p className="mt-1 text-xs text-neo-text-secondary">{card.meta}</p> : null}
+          </article>
+        ))}
+      </div>
+    </section>
+  );
+}
+
+function statusBadgeClass(status: ReviewStatus) {
+  switch (status) {
+    case "pending":
+      return "border border-accent-amber/40 bg-accent-amber/10 text-accent-amber";
+    case "in_review":
+      return "border border-accent-secondary/40 bg-accent-secondary/10 text-accent-secondary";
+    case "approved":
+      return "border border-accent-emerald/40 bg-accent-emerald/10 text-accent-emerald";
+    case "rejected":
+      return "border border-accent-danger/40 bg-accent-danger/10 text-accent-danger";
+    default:
+      return "border border-white/20 bg-white/10 text-neo-text-secondary";
+  }
 }
 
 function LeaderboardPanel() {
@@ -1134,35 +1670,39 @@ function LeaderboardPanel() {
   }, []);
 
   return (
-    <section className="rounded-3xl border border-white/10 bg-white/5 p-6 shadow-glow-card">
+    <section className="rounded-3xl border border-white/10 bg-ink-900/60 p-6 shadow-glow-card">
       <header className="flex items-center justify-between">
         <div>
-          <p className="text-xs uppercase tracking-wide text-white/60">Gamificación</p>
-          <h2 className="text-lg font-semibold text-white">Ranking de contribuidores</h2>
+          <p className="text-xs uppercase tracking-wide text-neo-text-secondary">Gamificación</p>
+          <h2 className="text-lg font-semibold text-neo-text-primary">Ranking de contribuidores</h2>
         </div>
         {error ? <span className="text-xs text-accent-danger">{error}</span> : null}
       </header>
       {entries === null ? (
-        <p className="mt-4 text-xs text-white/60">Calculando aportes…</p>
+        <p className="mt-4 text-xs text-neo-text-secondary">Calculando aportes…</p>
       ) : entries.length ? (
         <ul className="mt-4 space-y-3">
           {entries.map((entry, index) => (
             <li key={entry.id} className="flex items-center justify-between rounded-2xl border border-white/10 bg-ink-900/60 px-4 py-3">
               <div>
-                <p className="text-sm font-semibold text-white">
+                <p className="text-sm font-semibold text-neo-text-primary">
                   #{index + 1} {entry.username || entry.displayName || entry.id}
                 </p>
-                {entry.email ? <p className="text-xs text-white/50">{entry.email}</p> : null}
+                {entry.email ? <p className="text-xs text-neo-text-secondary">{entry.email}</p> : null}
               </div>
-              <span className="text-xs font-semibold text-white/70">{entry.points} pts</span>
+              <span className="text-xs font-semibold text-neo-text-secondary">{entry.points} pts</span>
             </li>
           ))}
         </ul>
       ) : (
-        <p className="mt-4 text-xs text-white/60">Aún no hay contribuciones registradas.</p>
+        <p className="mt-4 text-xs text-neo-text-secondary">Aún no hay contribuciones registradas.</p>
       )}
     </section>
   );
+}
+
+export default function AdminPage() {
+  return <AdminConsole initialView="overview" />;
 }
 
 type EditorSheetProps = {
@@ -1174,7 +1714,7 @@ type EditorSheetProps = {
 function EditorSheet({ term, onCancel, onSave }: EditorSheetProps) {
   const [val, setVal] = useState(term);
   const baseFieldClasses =
-    "mt-1 w-full rounded-2xl border border-white/15 bg-[#0d1424] px-4 py-2 text-white shadow-inner focus:border-accent-secondary focus:outline-none placeholder-white/50";
+    "mt-1 w-full rounded-2xl border border-white/15 bg-[#0d1424] px-4 py-2 text-neo-text-primary shadow-inner focus:border-accent-secondary focus:outline-none placeholder-neo-text-secondary";
 
   useEffect(() => {
     setVal(term);
@@ -1187,7 +1727,7 @@ function EditorSheet({ term, onCancel, onSave }: EditorSheetProps) {
       <section className="max-h-[90vh] w-full max-w-5xl overflow-y-auto rounded-3xl border border-white/15 bg-[#050915] p-6 shadow-glow-card">
         <header className="flex flex-wrap items-center justify-between gap-4">
           <div>
-            <p className="text-xs uppercase tracking-wide text-white/60">{val.id ? "Editar término" : "Nuevo término"}</p>
+            <p className="text-xs uppercase tracking-wide text-neo-text-secondary">{val.id ? "Editar término" : "Nuevo término"}</p>
             <h2 className="text-2xl font-semibold">{val.term || "Término sin título"}</h2>
           </div>
           <button className="btn-ghost" type="button" onClick={onCancel}>
@@ -1195,7 +1735,7 @@ function EditorSheet({ term, onCancel, onSave }: EditorSheetProps) {
           </button>
         </header>
         <div className="mt-6 grid gap-4 md:grid-cols-2">
-          <label className="text-sm text-white/70">
+          <label className="text-sm text-neo-text-secondary">
             Término
             <input
               className={baseFieldClasses}
@@ -1204,7 +1744,7 @@ function EditorSheet({ term, onCancel, onSave }: EditorSheetProps) {
               onChange={(event) => setVal({ ...val, term: event.target.value })}
             />
           </label>
-          <label className="text-sm text-white/70">
+          <label className="text-sm text-neo-text-secondary">
             Traducción
             <input
               className={baseFieldClasses}
@@ -1213,7 +1753,7 @@ function EditorSheet({ term, onCancel, onSave }: EditorSheetProps) {
               onChange={(event) => setVal({ ...val, translation: event.target.value })}
             />
           </label>
-          <label className="text-sm text-white/70">
+          <label className="text-sm text-neo-text-secondary">
             Categoría
             <select
               className={`${baseFieldClasses} bg-ink-800`}
@@ -1221,13 +1761,13 @@ function EditorSheet({ term, onCancel, onSave }: EditorSheetProps) {
               onChange={(event) => setVal({ ...val, category: event.target.value as Term["category"] })}
             >
               {CATS.map((category) => (
-                <option key={category} value={category} className="bg-ink-900 text-white">
+                <option key={category} value={category} className="bg-ink-900 text-neo-text-primary">
                   {category}
                 </option>
               ))}
             </select>
           </label>
-          <label className="text-sm text-white/70">
+          <label className="text-sm text-neo-text-secondary">
             Estado
             <select
               className={`${baseFieldClasses} bg-ink-800`}
@@ -1235,7 +1775,7 @@ function EditorSheet({ term, onCancel, onSave }: EditorSheetProps) {
               onChange={(event) => setVal({ ...val, status: event.target.value as ReviewStatus })}
             >
               {STATUS_OPTIONS.map((status) => (
-                <option key={status} value={status} className="bg-ink-900 text-white">
+                <option key={status} value={status} className="bg-ink-900 text-neo-text-primary">
                   {status}
                 </option>
               ))}
@@ -1243,7 +1783,7 @@ function EditorSheet({ term, onCancel, onSave }: EditorSheetProps) {
           </label>
         </div>
         <div className="mt-4 grid gap-4 md:grid-cols-2">
-          <label className="text-sm text-white/70">
+          <label className="text-sm text-neo-text-secondary">
             Significado
             <textarea
               className={`${baseFieldClasses} min-h-[96px] resize-none`}
@@ -1253,7 +1793,7 @@ function EditorSheet({ term, onCancel, onSave }: EditorSheetProps) {
               onChange={(event) => setVal({ ...val, meaning: event.target.value })}
             />
           </label>
-          <label className="text-sm text-white/70">
+          <label className="text-sm text-neo-text-secondary">
             Qué resuelve
             <textarea
               className={`${baseFieldClasses} min-h-[96px] resize-none`}
@@ -1264,7 +1804,7 @@ function EditorSheet({ term, onCancel, onSave }: EditorSheetProps) {
             />
           </label>
         </div>
-        <label className="mt-4 block text-sm text-white/70">
+        <label className="mt-4 block text-sm text-neo-text-secondary">
           Cómo se usa
           <textarea
             className={`${baseFieldClasses} min-h-[160px] bg-ink-900 font-mono text-sm`}
@@ -1345,19 +1885,19 @@ function ChipInput({ label, placeholder, values, onChange }: ChipInputProps) {
   }
 
   return (
-    <label className="text-sm text-white/70">
+    <label className="text-sm text-neo-text-secondary">
       {label}
       <div className="mt-1 flex flex-wrap gap-2 rounded-2xl border border-white/15 bg-[#0d1424] px-3 py-2 shadow-inner">
         {values.map((value) => (
-          <span key={value} className="inline-flex items-center gap-2 rounded-full bg-white/20 px-3 py-1 text-xs text-white">
+          <span key={value} className="inline-flex items-center gap-2 rounded-full bg-white/20 px-3 py-1 text-xs text-neo-text-primary">
             {value}
-            <button type="button" aria-label={`Eliminar ${value}`} onClick={() => removeChip(value)} className="text-white/70 hover:text-white">
+            <button type="button" aria-label={`Eliminar ${value}`} onClick={() => removeChip(value)} className="text-neo-text-secondary hover:text-neo-text-primary">
               ✕
             </button>
           </span>
         ))}
         <input
-          className="flex-1 bg-transparent text-sm text-white placeholder-white/40 focus:outline-none"
+          className="flex-1 bg-transparent text-sm text-neo-text-primary placeholder-neo-text-secondary focus:outline-none"
           value={draft}
           placeholder={placeholder}
           onChange={(event) => setDraft(event.target.value)}
@@ -1417,7 +1957,7 @@ function ExamplesEditor({ value, onChange }: ExamplesEditorProps) {
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
-        <p className="text-sm text-white/70">Ejemplos interactivos</p>
+        <p className="text-sm text-neo-text-secondary">Ejemplos interactivos</p>
         <button className="btn-ghost" type="button" onClick={add}>
           + Añadir ejemplo
         </button>
@@ -1427,7 +1967,7 @@ function ExamplesEditor({ value, onChange }: ExamplesEditorProps) {
           {list.map((example, index) => (
             <div key={`${example.title}-${index}`} className="rounded-2xl border border-white/15 bg-[#050915] p-4 shadow-inner">
               <div className="flex flex-wrap items-center justify-between gap-3">
-                <p className="text-sm font-semibold text-white">Bloque #{index + 1}</p>
+                <p className="text-sm font-semibold text-neo-text-primary">Bloque #{index + 1}</p>
                 <div className="flex gap-2">
                   <button className="btn-ghost" type="button" onClick={() => move(index, -1)} disabled={index === 0}>
                     Subir
@@ -1441,27 +1981,27 @@ function ExamplesEditor({ value, onChange }: ExamplesEditorProps) {
                 </div>
               </div>
               <div className="mt-4 grid gap-3 md:grid-cols-2">
-                <label className="text-xs uppercase tracking-wide text-white/50">
+                <label className="text-xs uppercase tracking-wide text-neo-text-secondary">
                   Título
                   <input
-                    className="mt-1 w-full rounded-2xl border border-white/15 bg-[#0d1424] px-3 py-2 text-sm text-white shadow-inner focus:border-accent-secondary focus:outline-none"
+                    className="mt-1 w-full rounded-2xl border border-white/15 bg-[#0d1424] px-3 py-2 text-sm text-neo-text-primary shadow-inner focus:border-accent-secondary focus:outline-none"
                     value={example.title}
                     onChange={(event) => update(index, { title: event.target.value })}
                   />
                 </label>
-                <label className="text-xs uppercase tracking-wide text-white/50">
+                <label className="text-xs uppercase tracking-wide text-neo-text-secondary">
                   Nota
                   <input
-                    className="mt-1 w-full rounded-2xl border border-white/15 bg-[#0d1424] px-3 py-2 text-sm text-white shadow-inner focus:border-accent-secondary focus:outline-none"
+                    className="mt-1 w-full rounded-2xl border border-white/15 bg-[#0d1424] px-3 py-2 text-sm text-neo-text-primary shadow-inner focus:border-accent-secondary focus:outline-none"
                     value={example.note || ""}
                     onChange={(event) => update(index, { note: event.target.value })}
                   />
                 </label>
               </div>
-              <label className="mt-3 block text-xs uppercase tracking-wide text-white/50">
+              <label className="mt-3 block text-xs uppercase tracking-wide text-neo-text-secondary">
                 Código
                 <textarea
-                  className="mt-1 w-full rounded-2xl border border-white/15 bg-[#050915] px-3 py-2 font-mono text-xs text-white shadow-inner focus:border-accent-secondary focus:outline-none"
+                  className="mt-1 w-full rounded-2xl border border-white/15 bg-[#050915] px-3 py-2 font-mono text-xs text-neo-text-primary shadow-inner focus:border-accent-secondary focus:outline-none"
                   rows={4}
                   value={example.code}
                   onChange={(event) => update(index, { code: event.target.value })}
@@ -1471,7 +2011,7 @@ function ExamplesEditor({ value, onChange }: ExamplesEditorProps) {
           ))}
         </div>
       ) : (
-        <p className="rounded-2xl border border-dashed border-white/10 px-4 py-6 text-center text-sm text-white/60">Sin ejemplos.</p>
+        <p className="rounded-2xl border border-dashed border-white/10 px-4 py-6 text-center text-sm text-neo-text-secondary">Sin ejemplos.</p>
       )}
     </div>
   );
@@ -1508,7 +2048,7 @@ function VariantsEditor({ value, onChange }: VariantsEditorProps) {
   return (
     <section className="space-y-4">
       <div className="flex items-center justify-between">
-        <p className="text-sm text-white/70">Variantes por lenguaje</p>
+        <p className="text-sm text-neo-text-secondary">Variantes por lenguaje</p>
         <button className="btn-ghost" type="button" onClick={add}>
           + Añadir variante
         </button>
@@ -1518,16 +2058,16 @@ function VariantsEditor({ value, onChange }: VariantsEditorProps) {
           {list.map((variant, index) => (
             <div key={`variant-${index}`} className="rounded-2xl border border-white/15 bg-[#050915] p-4 shadow-inner">
               <div className="flex flex-wrap items-center justify-between gap-3">
-                <p className="text-xs uppercase tracking-wide text-white/50">Variante #{index + 1}</p>
+                <p className="text-xs uppercase tracking-wide text-neo-text-secondary">Variante #{index + 1}</p>
                 <button className="btn-ghost" type="button" onClick={() => remove(index)}>
                   Eliminar
                 </button>
               </div>
               <div className="mt-3 grid gap-3 md:grid-cols-3">
-                <label className="text-xs text-white/60">
+                <label className="text-xs text-neo-text-secondary">
                   Lenguaje
                   <select
-                    className="mt-1 w-full rounded-2xl border border-white/15 bg-ink-900 px-3 py-2 text-sm text-white focus:outline-none"
+                    className="mt-1 w-full rounded-2xl border border-white/15 bg-ink-900 px-3 py-2 text-sm text-neo-text-primary focus:outline-none"
                     value={variant.language}
                     onChange={(event) => update(index, { language: event.target.value })}
                   >
@@ -1538,10 +2078,10 @@ function VariantsEditor({ value, onChange }: VariantsEditorProps) {
                     ))}
                   </select>
                 </label>
-                <label className="text-xs text-white/60">
+                <label className="text-xs text-neo-text-secondary">
                   Nivel
                   <select
-                    className="mt-1 w-full rounded-2xl border border-white/15 bg-ink-900 px-3 py-2 text-sm text-white focus:outline-none"
+                    className="mt-1 w-full rounded-2xl border border-white/15 bg-ink-900 px-3 py-2 text-sm text-neo-text-primary focus:outline-none"
                     value={variant.level || "intermediate"}
                     onChange={(event) => update(index, { level: event.target.value })}
                   >
@@ -1552,10 +2092,10 @@ function VariantsEditor({ value, onChange }: VariantsEditorProps) {
                     ))}
                   </select>
                 </label>
-                <label className="text-xs text-white/60">
+                <label className="text-xs text-neo-text-secondary">
                   Estado
                   <select
-                    className="mt-1 w-full rounded-2xl border border-white/15 bg-ink-900 px-3 py-2 text-sm text-white focus:outline-none"
+                    className="mt-1 w-full rounded-2xl border border-white/15 bg-ink-900 px-3 py-2 text-sm text-neo-text-primary focus:outline-none"
                     value={variant.status || "pending"}
                     onChange={(event) => update(index, { status: event.target.value as ReviewStatus })}
                   >
@@ -1567,19 +2107,19 @@ function VariantsEditor({ value, onChange }: VariantsEditorProps) {
                   </select>
                 </label>
               </div>
-              <label className="mt-3 block text-xs text-white/60">
+              <label className="mt-3 block text-xs text-neo-text-secondary">
                 Snippet
                 <textarea
-                  className="mt-1 w-full rounded-2xl border border-white/15 bg-[#050915] px-3 py-2 font-mono text-xs text-white focus:outline-none"
+                  className="mt-1 w-full rounded-2xl border border-white/15 bg-[#050915] px-3 py-2 font-mono text-xs text-neo-text-primary focus:outline-none"
                   rows={3}
                   value={variant.snippet}
                   onChange={(event) => update(index, { snippet: event.target.value })}
                 />
               </label>
-              <label className="mt-3 block text-xs text-white/60">
+              <label className="mt-3 block text-xs text-neo-text-secondary">
                 Notas
                 <input
-                  className="mt-1 w-full rounded-2xl border border-white/15 bg-[#0d1424] px-3 py-2 text-sm text-white focus:outline-none"
+                  className="mt-1 w-full rounded-2xl border border-white/15 bg-[#0d1424] px-3 py-2 text-sm text-neo-text-primary focus:outline-none"
                   value={variant.notes || ""}
                   onChange={(event) => update(index, { notes: event.target.value })}
                 />
@@ -1588,7 +2128,7 @@ function VariantsEditor({ value, onChange }: VariantsEditorProps) {
           ))}
         </div>
       ) : (
-        <p className="rounded-2xl border border-dashed border-white/10 px-4 py-6 text-center text-sm text-white/60">Sin variantes aún.</p>
+        <p className="rounded-2xl border border-dashed border-white/10 px-4 py-6 text-center text-sm text-neo-text-secondary">Sin variantes aún.</p>
       )}
     </section>
   );
@@ -1627,7 +2167,7 @@ function UseCasesEditor({ value, onChange }: UseCasesEditorProps) {
   return (
     <section className="space-y-4">
       <div className="flex items-center justify-between">
-        <p className="text-sm text-white/70">Casos de uso</p>
+        <p className="text-sm text-neo-text-secondary">Casos de uso</p>
         <button className="btn-ghost" type="button" onClick={add}>
           + Añadir caso
         </button>
@@ -1637,16 +2177,16 @@ function UseCasesEditor({ value, onChange }: UseCasesEditorProps) {
           {list.map((useCase, index) => (
             <div key={`usecase-${index}`} className="rounded-2xl border border-white/15 bg-[#050915] p-4 shadow-inner">
               <div className="flex flex-wrap items-center justify-between gap-3">
-                <p className="text-xs uppercase tracking-wide text-white/50">Caso #{index + 1}</p>
+                <p className="text-xs uppercase tracking-wide text-neo-text-secondary">Caso #{index + 1}</p>
                 <button className="btn-ghost" type="button" onClick={() => remove(index)}>
                   Eliminar
                 </button>
               </div>
               <div className="mt-3 grid gap-3 md:grid-cols-3">
-                <label className="text-xs text-white/60">
+                <label className="text-xs text-neo-text-secondary">
                   Contexto
                   <select
-                    className="mt-1 w-full rounded-2xl border border-white/15 bg-ink-900 px-3 py-2 text-sm text-white focus:outline-none"
+                    className="mt-1 w-full rounded-2xl border border-white/15 bg-ink-900 px-3 py-2 text-sm text-neo-text-primary focus:outline-none"
                     value={useCase.context}
                     onChange={(event) => update(index, { context: event.target.value })}
                   >
@@ -1657,10 +2197,10 @@ function UseCasesEditor({ value, onChange }: UseCasesEditorProps) {
                     ))}
                   </select>
                 </label>
-                <label className="text-xs text-white/60">
+                <label className="text-xs text-neo-text-secondary">
                   Estado
                   <select
-                    className="mt-1 w-full rounded-2xl border border-white/15 bg-ink-900 px-3 py-2 text-sm text-white focus:outline-none"
+                    className="mt-1 w-full rounded-2xl border border-white/15 bg-ink-900 px-3 py-2 text-sm text-neo-text-primary focus:outline-none"
                     value={useCase.status || "pending"}
                     onChange={(event) => update(index, { status: event.target.value as ReviewStatus })}
                   >
@@ -1671,19 +2211,19 @@ function UseCasesEditor({ value, onChange }: UseCasesEditorProps) {
                     ))}
                   </select>
                 </label>
-                <label className="text-xs text-white/60">
+                <label className="text-xs text-neo-text-secondary">
                   Tips
                   <input
-                    className="mt-1 w-full rounded-2xl border border-white/15 bg-[#0d1424] px-3 py-2 text-sm text-white focus:outline-none"
+                    className="mt-1 w-full rounded-2xl border border-white/15 bg-[#0d1424] px-3 py-2 text-sm text-neo-text-primary focus:outline-none"
                     value={useCase.tips || ""}
                     onChange={(event) => update(index, { tips: event.target.value })}
                   />
                 </label>
               </div>
-              <label className="mt-3 block text-xs text-white/60">
+              <label className="mt-3 block text-xs text-neo-text-secondary">
                 Resumen
                 <textarea
-                  className="mt-1 w-full rounded-2xl border border-white/15 bg-[#050915] px-3 py-2 text-sm text-white focus:outline-none"
+                  className="mt-1 w-full rounded-2xl border border-white/15 bg-[#050915] px-3 py-2 text-sm text-neo-text-primary focus:outline-none"
                   rows={3}
                   value={useCase.summary}
                   onChange={(event) => update(index, { summary: event.target.value })}
@@ -1691,26 +2231,26 @@ function UseCasesEditor({ value, onChange }: UseCasesEditorProps) {
               </label>
               <div className="mt-3 space-y-2">
                 <div className="flex items-center justify-between">
-                  <p className="text-xs text-white/60">Pasos</p>
+                  <p className="text-xs text-neo-text-secondary">Pasos</p>
                   <button className="btn-ghost" type="button" onClick={() => addStep(index)}>
                     + Paso
                   </button>
                 </div>
                 {(useCase.steps || []).map((step, stepIndex) => (
                   <div key={`step-${stepIndex}`} className="grid gap-2 md:grid-cols-2">
-                    <label className="text-xs text-white/60">
+                    <label className="text-xs text-neo-text-secondary">
                       ES
                       <input
-                        className="mt-1 w-full rounded-2xl border border-white/15 bg-[#0d1424] px-3 py-2 text-sm text-white focus:outline-none"
+                        className="mt-1 w-full rounded-2xl border border-white/15 bg-[#0d1424] px-3 py-2 text-sm text-neo-text-primary focus:outline-none"
                         value={step.es || ""}
                         onChange={(event) => updateStep(index, stepIndex, { es: event.target.value })}
                       />
                     </label>
                     <div className="flex gap-2">
-                      <label className="flex-1 text-xs text-white/60">
+                      <label className="flex-1 text-xs text-neo-text-secondary">
                         EN
                         <input
-                          className="mt-1 w-full rounded-2xl border border-white/15 bg-[#0d1424] px-3 py-2 text-sm text-white focus:outline-none"
+                          className="mt-1 w-full rounded-2xl border border-white/15 bg-[#0d1424] px-3 py-2 text-sm text-neo-text-primary focus:outline-none"
                           value={step.en || ""}
                           onChange={(event) => updateStep(index, stepIndex, { en: event.target.value })}
                         />
@@ -1726,7 +2266,7 @@ function UseCasesEditor({ value, onChange }: UseCasesEditorProps) {
           ))}
         </div>
       ) : (
-        <p className="rounded-2xl border border-dashed border-white/10 px-4 py-6 text-center text-sm text-white/60">Sin casos de uso todavía.</p>
+        <p className="rounded-2xl border border-dashed border-white/10 px-4 py-6 text-center text-sm text-neo-text-secondary">Sin casos de uso todavía.</p>
       )}
     </section>
   );
@@ -1753,7 +2293,7 @@ function FaqsEditor({ value, onChange }: FaqsEditorProps) {
   return (
     <section className="space-y-4">
       <div className="flex items-center justify-between">
-        <p className="text-sm text-white/70">FAQs</p>
+        <p className="text-sm text-neo-text-secondary">FAQs</p>
         <button className="btn-ghost" type="button" onClick={add}>
           + Añadir FAQ
         </button>
@@ -1763,43 +2303,43 @@ function FaqsEditor({ value, onChange }: FaqsEditorProps) {
           {list.map((faq, index) => (
             <div key={`faq-${index}`} className="rounded-2xl border border-white/15 bg-[#050915] p-4 shadow-inner">
               <div className="flex flex-wrap items-center justify-between gap-3">
-                <p className="text-xs uppercase tracking-wide text-white/50">FAQ #{index + 1}</p>
+                <p className="text-xs uppercase tracking-wide text-neo-text-secondary">FAQ #{index + 1}</p>
                 <button className="btn-ghost" type="button" onClick={() => remove(index)}>
                   Eliminar
                 </button>
               </div>
               <div className="mt-3 grid gap-3 md:grid-cols-2">
-                <label className="text-xs text-white/60">
+                <label className="text-xs text-neo-text-secondary">
                   Pregunta (ES)
                   <input
-                    className="mt-1 w-full rounded-2xl border border-white/15 bg-[#0d1424] px-3 py-2 text-sm text-white focus:outline-none"
+                    className="mt-1 w-full rounded-2xl border border-white/15 bg-[#0d1424] px-3 py-2 text-sm text-neo-text-primary focus:outline-none"
                     value={faq.questionEs}
                     onChange={(event) => update(index, { questionEs: event.target.value })}
                   />
                 </label>
-                <label className="text-xs text-white/60">
+                <label className="text-xs text-neo-text-secondary">
                   Pregunta (EN)
                   <input
-                    className="mt-1 w-full rounded-2xl border border-white/15 bg-[#0d1424] px-3 py-2 text-sm text-white focus:outline-none"
+                    className="mt-1 w-full rounded-2xl border border-white/15 bg-[#0d1424] px-3 py-2 text-sm text-neo-text-primary focus:outline-none"
                     value={faq.questionEn || ""}
                     onChange={(event) => update(index, { questionEn: event.target.value })}
                   />
                 </label>
               </div>
               <div className="mt-3 grid gap-3 md:grid-cols-2">
-                <label className="text-xs text-white/60">
+                <label className="text-xs text-neo-text-secondary">
                   Respuesta (ES)
                   <textarea
-                    className="mt-1 w-full rounded-2xl border border-white/15 bg-[#050915] px-3 py-2 text-sm text-white focus:outline-none"
+                    className="mt-1 w-full rounded-2xl border border-white/15 bg-[#050915] px-3 py-2 text-sm text-neo-text-primary focus:outline-none"
                     rows={3}
                     value={faq.answerEs}
                     onChange={(event) => update(index, { answerEs: event.target.value })}
                   />
                 </label>
-                <label className="text-xs text-white/60">
+                <label className="text-xs text-neo-text-secondary">
                   Respuesta (EN)
                   <textarea
-                    className="mt-1 w-full rounded-2xl border border-white/15 bg-[#050915] px-3 py-2 text-sm text-white focus:outline-none"
+                    className="mt-1 w-full rounded-2xl border border-white/15 bg-[#050915] px-3 py-2 text-sm text-neo-text-primary focus:outline-none"
                     rows={3}
                     value={faq.answerEn || ""}
                     onChange={(event) => update(index, { answerEn: event.target.value })}
@@ -1807,26 +2347,26 @@ function FaqsEditor({ value, onChange }: FaqsEditorProps) {
                 </label>
               </div>
               <div className="mt-3 grid gap-3 md:grid-cols-3">
-                <label className="text-xs text-white/60">
+                <label className="text-xs text-neo-text-secondary">
                   Snippet
                   <input
-                    className="mt-1 w-full rounded-2xl border border-white/15 bg-[#0d1424] px-3 py-2 text-sm text-white focus:outline-none"
+                    className="mt-1 w-full rounded-2xl border border-white/15 bg-[#0d1424] px-3 py-2 text-sm text-neo-text-primary focus:outline-none"
                     value={faq.snippet || ""}
                     onChange={(event) => update(index, { snippet: event.target.value })}
                   />
                 </label>
-                <label className="text-xs text-white/60">
+                <label className="text-xs text-neo-text-secondary">
                   Categoría
                   <input
-                    className="mt-1 w-full rounded-2xl border border-white/15 bg-[#0d1424] px-3 py-2 text-sm text-white focus:outline-none"
+                    className="mt-1 w-full rounded-2xl border border-white/15 bg-[#0d1424] px-3 py-2 text-sm text-neo-text-primary focus:outline-none"
                     value={faq.category || ""}
                     onChange={(event) => update(index, { category: event.target.value })}
                   />
                 </label>
-                <label className="text-xs text-white/60">
+                <label className="text-xs text-neo-text-secondary">
                   Estado
                   <select
-                    className="mt-1 w-full rounded-2xl border border-white/15 bg-ink-900 px-3 py-2 text-sm text-white focus:outline-none"
+                    className="mt-1 w-full rounded-2xl border border-white/15 bg-ink-900 px-3 py-2 text-sm text-neo-text-primary focus:outline-none"
                     value={faq.status || "pending"}
                     onChange={(event) => update(index, { status: event.target.value as ReviewStatus })}
                   >
@@ -1838,10 +2378,10 @@ function FaqsEditor({ value, onChange }: FaqsEditorProps) {
                   </select>
                 </label>
               </div>
-              <label className="mt-3 block text-xs text-white/60">
+              <label className="mt-3 block text-xs text-neo-text-secondary">
                 Cómo explicarlo
                 <textarea
-                  className="mt-1 w-full rounded-2xl border border-white/15 bg-[#050915] px-3 py-2 text-sm text-white focus:outline-none"
+                  className="mt-1 w-full rounded-2xl border border-white/15 bg-[#050915] px-3 py-2 text-sm text-neo-text-primary focus:outline-none"
                   rows={2}
                   value={faq.howToExplain || ""}
                   onChange={(event) => update(index, { howToExplain: event.target.value })}
@@ -1851,7 +2391,7 @@ function FaqsEditor({ value, onChange }: FaqsEditorProps) {
           ))}
         </div>
       ) : (
-        <p className="rounded-2xl border border-dashed border-white/10 px-4 py-6 text-center text-sm text-white/60">Sin FAQs.</p>
+        <p className="rounded-2xl border border-dashed border-white/10 px-4 py-6 text-center text-sm text-neo-text-secondary">Sin FAQs.</p>
       )}
     </section>
   );
@@ -1881,7 +2421,7 @@ function ExercisesEditor({ value, onChange }: ExercisesEditorProps) {
   return (
     <section className="space-y-4">
       <div className="flex items-center justify-between">
-        <p className="text-sm text-white/70">Ejercicios</p>
+        <p className="text-sm text-neo-text-secondary">Ejercicios</p>
         <button className="btn-ghost" type="button" onClick={add}>
           + Añadir ejercicio
         </button>
@@ -1891,43 +2431,43 @@ function ExercisesEditor({ value, onChange }: ExercisesEditorProps) {
           {list.map((exercise, index) => (
             <div key={`exercise-${index}`} className="rounded-2xl border border-white/15 bg-[#050915] p-4 shadow-inner">
               <div className="flex flex-wrap items-center justify-between gap-3">
-                <p className="text-xs uppercase tracking-wide text-white/50">Ejercicio #{index + 1}</p>
+                <p className="text-xs uppercase tracking-wide text-neo-text-secondary">Ejercicio #{index + 1}</p>
                 <button className="btn-ghost" type="button" onClick={() => remove(index)}>
                   Eliminar
                 </button>
               </div>
               <div className="mt-3 grid gap-3 md:grid-cols-2">
-                <label className="text-xs text-white/60">
+                <label className="text-xs text-neo-text-secondary">
                   Título (ES)
                   <input
-                    className="mt-1 w-full rounded-2xl border border-white/15 bg-[#0d1424] px-3 py-2 text-sm text-white focus:outline-none"
+                    className="mt-1 w-full rounded-2xl border border-white/15 bg-[#0d1424] px-3 py-2 text-sm text-neo-text-primary focus:outline-none"
                     value={exercise.titleEs}
                     onChange={(event) => update(index, { titleEs: event.target.value })}
                   />
                 </label>
-                <label className="text-xs text-white/60">
+                <label className="text-xs text-neo-text-secondary">
                   Título (EN)
                   <input
-                    className="mt-1 w-full rounded-2xl border border-white/15 bg-[#0d1424] px-3 py-2 text-sm text-white focus:outline-none"
+                    className="mt-1 w-full rounded-2xl border border-white/15 bg-[#0d1424] px-3 py-2 text-sm text-neo-text-primary focus:outline-none"
                     value={exercise.titleEn || ""}
                     onChange={(event) => update(index, { titleEn: event.target.value })}
                   />
                 </label>
               </div>
               <div className="mt-3 grid gap-3 md:grid-cols-2">
-                <label className="text-xs text-white/60">
+                <label className="text-xs text-neo-text-secondary">
                   Prompt (ES)
                   <textarea
-                    className="mt-1 w-full rounded-2xl border border-white/15 bg-[#050915] px-3 py-2 text-sm text-white focus:outline-none"
+                    className="mt-1 w-full rounded-2xl border border-white/15 bg-[#050915] px-3 py-2 text-sm text-neo-text-primary focus:outline-none"
                     rows={2}
                     value={exercise.promptEs}
                     onChange={(event) => update(index, { promptEs: event.target.value })}
                   />
                 </label>
-                <label className="text-xs text-white/60">
+                <label className="text-xs text-neo-text-secondary">
                   Prompt (EN)
                   <textarea
-                    className="mt-1 w-full rounded-2xl border border-white/15 bg-[#050915] px-3 py-2 text-sm text-white focus:outline-none"
+                    className="mt-1 w-full rounded-2xl border border-white/15 bg-[#050915] px-3 py-2 text-sm text-neo-text-primary focus:outline-none"
                     rows={2}
                     value={exercise.promptEn || ""}
                     onChange={(event) => update(index, { promptEn: event.target.value })}
@@ -1935,10 +2475,10 @@ function ExercisesEditor({ value, onChange }: ExercisesEditorProps) {
                 </label>
               </div>
               <div className="mt-3 grid gap-3 md:grid-cols-2">
-                <label className="text-xs text-white/60">
+                <label className="text-xs text-neo-text-secondary">
                   Dificultad
                   <select
-                    className="mt-1 w-full rounded-2xl border border-white/15 bg-ink-900 px-3 py-2 text-sm text-white focus:outline-none"
+                    className="mt-1 w-full rounded-2xl border border-white/15 bg-ink-900 px-3 py-2 text-sm text-neo-text-primary focus:outline-none"
                     value={exercise.difficulty}
                     onChange={(event) => update(index, { difficulty: event.target.value })}
                   >
@@ -1949,10 +2489,10 @@ function ExercisesEditor({ value, onChange }: ExercisesEditorProps) {
                     ))}
                   </select>
                 </label>
-                <label className="text-xs text-white/60">
+                <label className="text-xs text-neo-text-secondary">
                   Estado
                   <select
-                    className="mt-1 w-full rounded-2xl border border-white/15 bg-ink-900 px-3 py-2 text-sm text-white focus:outline-none"
+                    className="mt-1 w-full rounded-2xl border border-white/15 bg-ink-900 px-3 py-2 text-sm text-neo-text-primary focus:outline-none"
                     value={exercise.status || "pending"}
                     onChange={(event) => update(index, { status: event.target.value as ReviewStatus })}
                   >
@@ -1969,7 +2509,7 @@ function ExercisesEditor({ value, onChange }: ExercisesEditorProps) {
           ))}
         </div>
       ) : (
-        <p className="rounded-2xl border border-dashed border-white/10 px-4 py-6 text-center text-sm text-white/60">Sin ejercicios.</p>
+        <p className="rounded-2xl border border-dashed border-white/10 px-4 py-6 text-center text-sm text-neo-text-secondary">Sin ejercicios.</p>
       )}
     </section>
   );
@@ -1996,7 +2536,7 @@ function SolutionsEditor({ value, onChange }: SolutionsEditorProps) {
   return (
     <div className="mt-3 space-y-2">
       <div className="flex items-center justify-between">
-        <p className="text-xs uppercase tracking-wide text-white/60">Soluciones</p>
+        <p className="text-xs uppercase tracking-wide text-neo-text-secondary">Soluciones</p>
         <button className="btn-ghost" type="button" onClick={add}>
           + Añadir solución
         </button>
@@ -2004,10 +2544,10 @@ function SolutionsEditor({ value, onChange }: SolutionsEditorProps) {
       {list.map((solution, index) => (
         <div key={`solution-${index}`} className="rounded-2xl border border-white/10 bg-ink-900/50 p-3">
           <div className="flex flex-wrap items-center justify-between gap-2">
-            <label className="text-xs text-white/60">
+            <label className="text-xs text-neo-text-secondary">
               Lenguaje
               <select
-                className="mt-1 rounded-2xl border border-white/10 bg-ink-900 px-2 py-1 text-xs text-white focus:outline-none"
+                className="mt-1 rounded-2xl border border-white/10 bg-ink-900 px-2 py-1 text-xs text-neo-text-primary focus:outline-none"
                 value={solution.language}
                 onChange={(event) => update(index, { language: event.target.value })}
               >
@@ -2022,28 +2562,28 @@ function SolutionsEditor({ value, onChange }: SolutionsEditorProps) {
               Eliminar
             </button>
           </div>
-          <label className="mt-2 block text-xs text-white/60">
+          <label className="mt-2 block text-xs text-neo-text-secondary">
             Código
             <textarea
-              className="mt-1 w-full rounded-2xl border border-white/15 bg-[#050915] px-3 py-2 font-mono text-xs text-white focus:outline-none"
+              className="mt-1 w-full rounded-2xl border border-white/15 bg-[#050915] px-3 py-2 font-mono text-xs text-neo-text-primary focus:outline-none"
               rows={3}
               value={solution.code}
               onChange={(event) => update(index, { code: event.target.value })}
             />
           </label>
-          <label className="mt-2 block text-xs text-white/60">
+          <label className="mt-2 block text-xs text-neo-text-secondary">
             Explicación (ES)
             <textarea
-              className="mt-1 w-full rounded-2xl border border-white/15 bg-[#0d1424] px-3 py-2 text-xs text-white focus:outline-none"
+              className="mt-1 w-full rounded-2xl border border-white/15 bg-[#0d1424] px-3 py-2 text-xs text-neo-text-primary focus:outline-none"
               rows={2}
               value={solution.explainEs}
               onChange={(event) => update(index, { explainEs: event.target.value })}
             />
           </label>
-          <label className="mt-2 block text-xs text-white/60">
+          <label className="mt-2 block text-xs text-neo-text-secondary">
             Explicación (EN)
             <textarea
-              className="mt-1 w-full rounded-2xl border border-white/15 bg-[#0d1424] px-3 py-2 text-xs text-white focus:outline-none"
+              className="mt-1 w-full rounded-2xl border border-white/15 bg-[#0d1424] px-3 py-2 text-xs text-neo-text-primary focus:outline-none"
               rows={2}
               value={solution.explainEn || ""}
               onChange={(event) => update(index, { explainEn: event.target.value })}
@@ -2071,19 +2611,19 @@ function ConfirmDialog({ title, description, preview, confirmLabel, cancelLabel 
     <div className="fixed inset-0 z-40 flex items-center justify-center bg-black/70 px-4">
       <section className="w-full max-w-lg space-y-4 rounded-3xl border border-white/10 bg-ink-900 p-6 shadow-glow-card" role="dialog" aria-modal="true">
         <header>
-          <p className="text-xs uppercase tracking-wide text-white/60">Confirmación requerida</p>
+          <p className="text-xs uppercase tracking-wide text-neo-text-secondary">Confirmación requerida</p>
           <h2 className="text-2xl font-semibold">{title}</h2>
         </header>
-        <p className="text-sm text-white/70">{description}</p>
+        <p className="text-sm text-neo-text-secondary">{description}</p>
         {preview?.length ? (
           <div className="flex flex-wrap gap-2">
             {preview.slice(0, 3).map((item) => (
-              <span key={item} className="rounded-full border border-white/10 bg-white/5 px-3 py-1 text-xs text-white/80">
+              <span key={item} className="rounded-full border border-white/10 bg-white/5 px-3 py-1 text-xs text-neo-text-secondary">
                 {item}
               </span>
             ))}
             {preview.length > 3 && (
-              <span className="rounded-full border border-white/10 bg-white/5 px-3 py-1 text-xs text-white/80">
+              <span className="rounded-full border border-white/10 bg-white/5 px-3 py-1 text-xs text-neo-text-secondary">
                 +{preview.length - 3} más
               </span>
             )}

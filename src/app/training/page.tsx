@@ -22,27 +22,33 @@ export default function TrainingPage() {
       .then((payload) => {
         const items = Array.isArray(payload?.items) ? (payload.items as QuizTemplateDTO[]) : [];
         setQuizzes(items);
-        if (!selected && items.length) {
-          setSelected(items[0]);
-        }
       })
       .catch((err) => setError(err?.message || "No se pudieron cargar los retos"));
-  }, [selected]);
+  }, []);
+
+  useEffect(() => {
+    if (!selected && quizzes.length) {
+      setSelected(quizzes[0]);
+    }
+  }, [quizzes, selected]);
 
   useEffect(() => {
     refreshAttempts();
   }, []);
 
   useEffect(() => {
-    if (selected) {
-      const next: Record<number, number | null> = {};
-      selected.items.forEach((_, index) => {
-        next[index] = null;
-      });
-      setAnswers(next);
+    if (!selected) {
+      setAnswers({});
       setResult(null);
+      return;
     }
-  }, [selected?.id]);
+    const next: Record<number, number | null> = {};
+    selected.items.forEach((_, index) => {
+      next[index] = null;
+    });
+    setAnswers(next);
+    setResult(null);
+  }, [selected]);
 
   const allAnswered = useMemo(() => {
     if (!selected) return false;
@@ -95,13 +101,13 @@ export default function TrainingPage() {
   }
 
   return (
-    <main className="min-h-screen bg-linear-to-b from-ink-950 via-ink-900 to-ink-950 px-4 py-10 text-white">
+    <main className="min-h-screen bg-neo-bg px-4 py-10 text-neo-text-primary">
       <div className="mx-auto flex w-full max-w-6xl flex-col gap-8 lg:flex-row">
-        <section className="w-full rounded-3xl border border-white/10 bg-white/5 p-6 lg:w-1/3">
+        <section className="w-full rounded-3xl border border-neo-border bg-white/90 p-6 shadow-xl lg:w-1/3">
           <header className="mb-4">
-            <p className="text-xs uppercase tracking-wide text-white/50">Modo entrenamiento</p>
-            <h1 className="text-2xl font-semibold">Quizzes guiados</h1>
-            <p className="text-sm text-white/60">Selecciona un quiz y responde acompañado de explicaciones.</p>
+            <p className="text-xs uppercase tracking-wide text-neo-text-secondary">Modo entrenamiento</p>
+            <h1 className="text-2xl font-semibold text-neo-text-primary">Quizzes guiados</h1>
+            <p className="text-sm text-neo-text-secondary">Selecciona un quiz y responde acompañado de explicaciones.</p>
           </header>
           {error ? <p className="text-xs text-accent-danger">{error}</p> : null}
           <ul className="space-y-3">
@@ -112,20 +118,22 @@ export default function TrainingPage() {
                   <button
                     type="button"
                     className={`w-full rounded-2xl border px-4 py-3 text-left text-sm transition ${
-                      active ? "border-accent-secondary/70 bg-white/10" : "border-white/10 hover:border-white/30"
+                      active
+                        ? "border-neo-primary bg-neo-primary-light/60 text-neo-text-primary shadow-lg shadow-neo-primary/25"
+                        : "border-neo-border hover:border-neo-primary/60 hover:bg-neo-surface"
                     }`}
                     onClick={() => setSelected(quiz)}
                   >
-                    <p className="font-semibold">{quiz.title}</p>
-                    <p className="text-xs text-white/60">{quiz.description}</p>
+                    <p className="font-semibold text-neo-text-primary">{quiz.title}</p>
+                    <p className="text-xs text-neo-text-secondary">{quiz.description}</p>
                   </button>
                 </li>
               );
             })}
           </ul>
-          <section className="mt-6 rounded-2xl border border-white/10 bg-ink-900/60 p-4">
-            <p className="text-xs uppercase tracking-wide text-white/50">Historial</p>
-            <ul className="mt-3 space-y-2 text-xs text-white/70">
+          <section className="mt-6 rounded-2xl border border-neo-border bg-neo-surface p-4">
+            <p className="text-xs uppercase tracking-wide text-neo-text-secondary">Historial</p>
+            <ul className="mt-3 space-y-2 text-xs text-neo-text-secondary">
               {attempts.length ? (
                 attempts.map((attempt) => (
                   <li key={attempt.id} className="flex items-center justify-between">
@@ -141,7 +149,7 @@ export default function TrainingPage() {
             </ul>
           </section>
         </section>
-        <section className="flex-1 rounded-3xl border border-white/10 bg-ink-900/60 p-6" ref={containerRef}>
+        <section className="flex-1 rounded-3xl border border-neo-border bg-white/90 p-6 shadow-xl" ref={containerRef}>
           {selected ? (
             <QuizDetail
               quiz={selected}
@@ -154,7 +162,7 @@ export default function TrainingPage() {
               result={result}
             />
           ) : (
-            <p className="text-sm text-white/60">Selecciona un quiz para comenzar.</p>
+            <p className="text-sm text-neo-text-secondary">Selecciona un quiz para comenzar.</p>
           )}
         </section>
       </div>
@@ -175,22 +183,27 @@ function QuizDetail({ quiz, answers, onSelect, onSubmit, disabled, result }: Qui
   return (
     <div className="space-y-6">
       <header>
-        <p className="text-xs uppercase tracking-wide text-white/60">{quiz.difficulty.toUpperCase()} · {quiz.tags.join(", ")}</p>
-        <h2 className="text-2xl font-semibold">{quiz.title}</h2>
-        <p className="text-sm text-white/60">{quiz.description}</p>
+        <p className="text-xs uppercase tracking-wide text-neo-text-secondary">{quiz.difficulty.toUpperCase()} · {quiz.tags.join(", ")}</p>
+        <h2 className="text-2xl font-semibold text-neo-text-primary">{quiz.title}</h2>
+        <p className="text-sm text-neo-text-secondary">{quiz.description}</p>
       </header>
       <ol className="space-y-4">
         {quiz.items.map((item, index) => (
-          <li key={`${quiz.id}-${index}`} className="rounded-2xl border border-white/10 bg-white/5 p-4">
-            <p className="text-sm font-semibold text-white">{index + 1}. {item.questionEs}</p>
-            <div className="mt-3 space-y-2 text-sm text-white/80">
+          <li key={`${quiz.id}-${index}`} className="rounded-2xl border border-neo-border bg-neo-surface p-4">
+            <p className="text-sm font-semibold text-neo-text-primary">{index + 1}. {item.questionEs}</p>
+            <div className="mt-3 space-y-2 text-sm text-neo-text-secondary">
               {item.options.map((option, optionIndex) => {
                 const checked = answers[index] === optionIndex;
                 return (
-                  <label key={`${quiz.id}-${index}-${optionIndex}`} className="flex cursor-pointer items-center gap-2 rounded-xl border border-white/15 bg-ink-900/40 px-3 py-2">
+                  <label
+                    key={`${quiz.id}-${index}-${optionIndex}`}
+                    className={`flex cursor-pointer items-center gap-2 rounded-xl border px-3 py-2 ${
+                      checked ? "border-neo-primary bg-neo-primary-light/60 text-neo-text-primary" : "border-neo-border bg-white text-neo-text-secondary"
+                    }`}
+                  >
                     <input
                       type="radio"
-                      className="accent-accent-secondary"
+                      className="accent-neo-primary"
                       checked={checked}
                       onChange={() => onSelect(index, optionIndex)}
                     />
@@ -200,7 +213,7 @@ function QuizDetail({ quiz, answers, onSelect, onSubmit, disabled, result }: Qui
               })}
             </div>
             {result ? (
-              <p className="mt-3 text-xs text-white/60">
+              <p className="mt-3 text-xs text-neo-text-secondary">
                 Correcta: {item.options[item.answerIndex]} · {item.explanationEs}
               </p>
             ) : null}
@@ -217,11 +230,11 @@ function QuizDetail({ quiz, answers, onSelect, onSubmit, disabled, result }: Qui
           Enviar respuestas
         </button>
         {result ? (
-          <span className="text-sm text-white/80">
+          <span className="text-sm text-neo-text-secondary">
             Obtuviste {result.score} de {result.total} respuestas correctas.
           </span>
         ) : (
-          <span className="text-xs text-white/50">Responde todas las preguntas para habilitar el envío.</span>
+          <span className="text-xs text-neo-text-secondary">Responde todas las preguntas para habilitar el envío.</span>
         )}
       </div>
     </div>

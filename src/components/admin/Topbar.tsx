@@ -1,22 +1,41 @@
 "use client";
 
 import React, { useState } from "react";
-import { Search, Bell, Settings, LogOut, User, ChevronDown } from "lucide-react";
+import { useRouter } from "next/navigation";
+import { Search, Bell, Settings, LogOut, User, ChevronDown, AlertTriangle, CheckCircle2, Loader2, RotateCcw } from "lucide-react";
+import { useNotifications } from "@/components/admin/NotificationsProvider";
 
 export default function Topbar() {
+  const router = useRouter();
   const [dropdownOpen, setDropdownOpen] = useState(false);
+  const [notificationsOpen, setNotificationsOpen] = useState(false);
+  const [signingOut, setSigningOut] = useState(false);
+  const { notifications, unreadCount, markAsRead, markAllRead, refresh, loading } = useNotifications();
+
+  const handleSignOut = async () => {
+    if (signingOut) return;
+    setSigningOut(true);
+    try {
+      await fetch("/api/auth", { method: "DELETE", credentials: "include" });
+      setDropdownOpen(false);
+      router.push("/admin");
+      router.refresh();
+    } finally {
+      setSigningOut(false);
+    }
+  };
 
   return (
-    <header className="sticky top-0 z-30 border-b border-slate-800/30 bg-gradient-to-r from-ink-900/95 to-ink-950/95 backdrop-blur-md">
+    <header className="sticky top-0 z-30 border-b border-neo-border bg-white/80 backdrop-blur-md">
       <div className="flex items-center justify-between px-6 py-3">
         {/* Left side - Search */}
         <div className="flex flex-1 items-center gap-4">
           <div className="relative hidden md:block">
-            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-500" />
+            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-neo-text-secondary" />
             <input
               type="text"
               placeholder="Buscar términos..."
-              className="rounded-lg border border-slate-800 bg-slate-800/20 py-1.5 pl-10 pr-3 text-sm text-white placeholder-slate-500 transition focus:border-accent-primary focus:bg-slate-800/40 focus:outline-none focus:ring-1 focus:ring-accent-primary/50"
+              className="rounded-lg border border-neo-border bg-neo-bg py-1.5 pl-10 pr-3 text-sm text-neo-text-primary placeholder:text-neo-text-secondary transition focus:border-neo-primary focus:outline-none focus:ring-2 focus:ring-neo-primary/20"
             />
           </div>
         </div>
@@ -24,29 +43,97 @@ export default function Topbar() {
         {/* Right side - Actions */}
         <div className="flex items-center gap-3">
           {/* Notifications */}
-          <button className="relative rounded-lg p-2 text-slate-400 hover:bg-slate-800/50 hover:text-white transition">
-            <Bell className="h-5 w-5" />
-            <span className="absolute right-1 top-1 h-2 w-2 rounded-full bg-accent-rose" />
-          </button>
+          <div className="relative">
+            <button
+              className="relative rounded-lg p-2 text-neo-text-secondary transition hover:bg-neo-surface hover:text-neo-text-primary"
+              onClick={() => setNotificationsOpen((open) => !open)}
+            >
+              <Bell className="h-5 w-5" />
+              {unreadCount ? (
+                <span className="absolute right-1 top-1 h-4 min-w-[1rem] rounded-full bg-accent-rose px-1 text-center text-[10px] font-bold leading-4 text-white">
+                  {unreadCount}
+                </span>
+              ) : null}
+            </button>
+
+            {notificationsOpen && (
+              <div className="absolute right-0 mt-2 w-80 rounded-2xl border border-neo-border bg-white p-3 shadow-xl animate-slide-up">
+                <div className="flex items-center justify-between">
+                  <p className="text-sm font-semibold text-neo-text-primary">Notificaciones</p>
+                  <div className="flex items-center gap-2">
+                    <button className="text-xs text-neo-primary" type="button" onClick={() => { markAllRead(); setNotificationsOpen(false); }}>
+                      Marcar todo leído
+                    </button>
+                    <button className="inline-flex items-center gap-1 text-xs text-neo-text-secondary" type="button" onClick={refresh} aria-label="Sincronizar notificaciones">
+                      <RotateCcw className="h-3.5 w-3.5" />
+                      Sync
+                    </button>
+                  </div>
+                </div>
+                <ul className="mt-3 space-y-2">
+                  {loading ? (
+                    <li className="rounded-xl border border-neo-border bg-neo-bg px-3 py-4 text-center text-xs text-neo-text-secondary">
+                      Cargando notificaciones…
+                    </li>
+                  ) : notifications.length ? (
+                    notifications.map((notif) => (
+                      <li
+                        key={notif.id}
+                        className={`flex gap-3 rounded-xl border px-3 py-2 text-sm ${
+                          notif.read
+                            ? "border-neo-border bg-neo-surface text-neo-text-secondary"
+                            : "border-neo-primary bg-neo-primary-light/70 text-neo-text-primary"
+                        }`}
+                      >
+                        <button
+                          type="button"
+                          className="text-left flex-1"
+                          onClick={() => markAsRead(notif.id)}
+                        >
+                          <div className="flex items-center gap-2 text-xs uppercase tracking-wide">
+                            {notif.type === "alert" ? (
+                              <AlertTriangle className="h-3.5 w-3.5 text-accent-rose" />
+                            ) : (
+                              <CheckCircle2 className="h-3.5 w-3.5 text-accent-emerald" />
+                            )}
+                            <span>{notif.title}</span>
+                          </div>
+                          <p className="mt-1 text-sm font-medium text-neo-text-primary">{notif.detail}</p>
+                          <p className="text-xs text-neo-text-secondary">{notif.timestamp}</p>
+                        </button>
+                      </li>
+                    ))
+                  ) : (
+                    <li className="rounded-xl border border-neo-border bg-neo-bg px-3 py-4 text-center text-xs text-neo-text-secondary">
+                      Todo en orden; no hay alertas.
+                    </li>
+                  )}
+                </ul>
+              </div>
+            )}
+          </div>
 
           {/* Settings */}
-          <button className="rounded-lg p-2 text-slate-400 hover:bg-slate-800/50 hover:text-white transition">
+          <button className="rounded-lg p-2 text-neo-text-secondary transition hover:bg-neo-surface hover:text-neo-text-primary" onClick={() => router.push("/admin/settings")}>
             <Settings className="h-5 w-5" />
           </button>
 
           {/* Divider */}
-          <div className="h-6 w-px bg-slate-800/50" />
+          <div className="h-6 w-px bg-neo-border" />
 
           {/* User Menu */}
           <div className="relative">
             <button
               onClick={() => setDropdownOpen(!dropdownOpen)}
-              className="flex items-center gap-2 rounded-lg px-3 py-1.5 text-sm font-medium text-slate-300 hover:bg-slate-800/50 hover:text-white transition"
+              className="flex items-center gap-2 rounded-lg px-3 py-1.5 text-sm font-medium text-neo-text-secondary transition hover:bg-neo-surface hover:text-neo-text-primary"
             >
-              <div className="flex h-7 w-7 items-center justify-center rounded-full bg-gradient-primary text-xs font-bold text-white">
-                O
+              <div className="flex h-7 w-7 items-center justify-center rounded-full bg-gradient-to-br from-neo-primary to-neo-accent-purple text-xs font-bold text-white">
+                OH
               </div>
-              <span className="hidden sm:inline">Omar</span>
+              <div className="hidden sm:flex flex-col leading-tight">
+                <span className="text-sm font-semibold text-neo-text-primary">Omar Hernandez Rey</span>
+                <span className="text-[11px] uppercase tracking-wide text-neo-text-secondary">Perfil</span>
+              </div>
               <ChevronDown
                 className={`h-4 w-4 transition-transform duration-200 ${
                   dropdownOpen ? "rotate-180" : ""
@@ -56,19 +143,35 @@ export default function Topbar() {
 
             {/* Dropdown Menu */}
             {dropdownOpen && (
-              <div className="absolute right-0 mt-2 w-48 rounded-lg border border-slate-800 bg-gradient-card shadow-xl animate-slide-up">
-                <button className="flex w-full items-center gap-3 px-4 py-2.5 text-sm text-slate-300 hover:bg-slate-800/50 hover:text-white transition">
+              <div className="absolute right-0 mt-2 w-48 rounded-lg border border-neo-border bg-white shadow-xl animate-slide-up">
+                <button
+                  className="flex w-full items-center gap-3 px-4 py-2.5 text-sm text-neo-text-secondary transition hover:bg-neo-surface hover:text-neo-text-primary"
+                  onClick={() => {
+                    router.push("/admin/profile");
+                    setDropdownOpen(false);
+                  }}
+                >
                   <User className="h-4 w-4" />
                   Perfil
                 </button>
-                <button className="flex w-full items-center gap-3 px-4 py-2.5 text-sm text-slate-300 hover:bg-slate-800/50 hover:text-white transition">
+                <button
+                  className="flex w-full items-center gap-3 px-4 py-2.5 text-sm text-neo-text-secondary transition hover:bg-neo-surface hover:text-neo-text-primary"
+                  onClick={() => {
+                    router.push("/admin/settings");
+                    setDropdownOpen(false);
+                  }}
+                >
                   <Settings className="h-4 w-4" />
                   Preferencias
                 </button>
-                <div className="border-t border-slate-800/30" />
-                <button className="flex w-full items-center gap-3 px-4 py-2.5 text-sm text-accent-rose hover:bg-slate-800/50 transition">
-                  <LogOut className="h-4 w-4" />
-                  Salir
+                <div className="border-t border-neo-border" />
+                <button
+                  className="flex w-full items-center gap-3 px-4 py-2.5 text-sm text-accent-rose transition hover:bg-neo-surface disabled:opacity-60"
+                  onClick={handleSignOut}
+                  disabled={signingOut}
+                >
+                  {signingOut ? <Loader2 className="h-4 w-4 animate-spin" /> : <LogOut className="h-4 w-4" />}
+                  {signingOut ? "Saliendo…" : "Salir"}
                 </button>
               </div>
             )}

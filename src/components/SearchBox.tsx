@@ -8,6 +8,12 @@ import type { TermDTO, TermVariantDTO } from "@/types/term";
 import type { StructuralTranslationResult } from "@/types/translate";
 import SoftSkillsPanel from "@/components/SoftSkillsPanel";
 
+type SearchBoxVariant = "dark" | "light";
+
+type SearchBoxProps = {
+  variant?: SearchBoxVariant;
+};
+
 const quickTerms = ["fetch", "useState", "REST", "JOIN", "JWT", "Docker"];
 const contexts = [
   { id: "dictionary", label: "Diccionario" },
@@ -48,8 +54,10 @@ const skillLabels: Record<string, string> = {
 };
 type Status = "idle" | "loading" | "ready" | "empty" | "error";
 
-export default function SearchBox() {
+export default function SearchBox({ variant = "dark" }: SearchBoxProps) {
   const { t } = useI18n();
+  const isLight = variant === "light";
+  const tone = (light: string, dark: string) => (isLight ? light : dark);
   const [search, setSearch] = useState("");
   const [items, setItems] = useState<TermDTO[]>([]);
   const [selected, setSelected] = useState<TermDTO | null>(null);
@@ -235,13 +243,21 @@ export default function SearchBox() {
   }, [debounced, hasQuery, context, effectiveMode]);
 
   return (
-    <section id="search" className="rounded-3xl border border-white/10 bg-white/5 p-6 shadow-glow-card space-y-4">
+    <section
+      id="search"
+      className={`space-y-4 rounded-3xl p-6 ${tone("border border-neo-border bg-white shadow-xl shadow-neo-primary/5", "border border-white/10 bg-white/5 shadow-glow-card")}`}
+    >
       <div className="space-y-3">
         <label htmlFor="term-search" className="sr-only">
           {t("search.ariaLabel")}
         </label>
-        <div className="flex items-center gap-3 rounded-2xl border border-white/10 bg-white/5 px-4 py-3 focus-within:border-accent-secondary">
-          <span aria-hidden className="text-lg text-white/60">
+        <div
+          className={`flex items-center gap-3 rounded-2xl px-4 py-3 focus-within:border-accent-secondary ${tone(
+            "border border-neo-border bg-neo-surface",
+            "border border-white/10 bg-white/5",
+          )}`}
+        >
+          <span aria-hidden className={`text-lg ${tone("text-neo-text-secondary", "text-white/60")}`}>
             🔍
           </span>
           <input
@@ -251,23 +267,38 @@ export default function SearchBox() {
             onPaste={handlePaste}
             placeholder={t("search.placeholder")}
             aria-label={t("search.ariaLabel")}
-            className="w-full bg-transparent text-base text-white placeholder:text-white/40 focus:outline-none"
+            className={`w-full bg-transparent text-base focus:outline-none ${tone(
+              "text-neo-text-primary placeholder:text-neo-text-secondary",
+              "text-white placeholder:text-white/40",
+            )}`}
           />
-          {status === "loading" ? <span className="h-4 w-4 animate-spin rounded-full border-2 border-white/40 border-t-white" /> : null}
+          {status === "loading" ? (
+            <span
+              className={`h-4 w-4 animate-spin rounded-full border-2 ${tone(
+                "border-neo-border border-t-neo-primary",
+                "border-white/40 border-t-white",
+              )}`}
+            />
+          ) : null}
         </div>
         <div className="flex flex-wrap gap-2 text-sm" aria-label={t("search.quickFilters")}>
           {quickTerms.map((term) => (
             <button
               key={term}
               type="button"
-              className="rounded-full border border-white/10 bg-white/5 px-3 py-1 text-white/70 transition hover:bg-white/10 hover:text-white"
+              className={`rounded-full border px-3 py-1 transition ${tone(
+                "border-neo-border bg-neo-surface text-neo-text-secondary hover:bg-white",
+                "border-white/10 bg-white/5 text-white/70 hover:bg-white/10 hover:text-white",
+              )}`}
               onClick={() => setSearch(term)}
             >
               #{term}
             </button>
           ))}
         </div>
-        {clipboardHint ? <p className="text-sm font-semibold text-accent-secondary">{clipboardHint}</p> : null}
+        {clipboardHint ? (
+          <p className={`text-sm font-semibold ${tone("text-neo-text-primary", "text-accent-secondary")}`}>{clipboardHint}</p>
+        ) : null}
         <div className="flex flex-wrap items-center gap-2 pt-2">
           {contexts.map((ctx) => {
             const active = context === ctx.id;
@@ -276,7 +307,12 @@ export default function SearchBox() {
                 key={ctx.id}
                 type="button"
                 className={`rounded-full px-3 py-1 text-xs font-semibold transition ${
-                  active ? "bg-white text-ink-900 shadow" : "border border-white/15 text-white/70 hover:bg-white/10"
+                  active
+                    ? tone("bg-neo-primary text-white shadow-lg shadow-neo-primary/30", "bg-white text-ink-900 shadow")
+                    : tone(
+                        "border border-neo-border text-neo-text-secondary hover:bg-neo-surface",
+                        "border border-white/15 text-white/70 hover:bg-white/10",
+                      )
                 }`}
                 aria-pressed={active}
                 onClick={() => setContext(ctx.id)}
@@ -285,11 +321,11 @@ export default function SearchBox() {
               </button>
             );
           })}
-          <span className="text-xs text-white/60">
+          <span className={`text-xs ${tone("text-neo-text-secondary", "text-white/60")}`}>
             Modo:{" "}
             <button
               type="button"
-              className="underline-offset-4 hover:underline"
+              className={`underline-offset-4 hover:underline ${tone("text-neo-text-primary", "text-white")}`}
               onClick={() =>
                 setModeOverride((current) => {
                   if (current === null) return detectedMode;
@@ -306,13 +342,16 @@ export default function SearchBox() {
       </div>
 
       {context === "translate" ? (
-        <TranslationPanel input={debounced} status={status} helper={statusMessage} result={translationResult} />
+        <TranslationPanel input={debounced} status={status} helper={statusMessage} result={translationResult} variant={variant} />
       ) : (
         <div className="mt-2 flex flex-col gap-6 lg:flex-row">
           <div className="flex-1 space-y-4">
             <header className="flex items-center justify-between gap-2">
-              <h3 className="text-lg font-semibold text-white">{t("search.results")}</h3>
-              <span className="rounded-full border border-white/10 px-3 py-1 text-xs text-white/70" aria-live="polite">
+              <h3 className={`text-lg font-semibold ${tone("text-neo-text-primary", "text-white")}`}>{t("search.results")}</h3>
+              <span
+                className={`rounded-full px-3 py-1 text-xs ${tone("border border-neo-border text-neo-text-secondary", "border border-white/10 text-white/70")}`}
+                aria-live="polite"
+              >
                 {statusMessage}
               </span>
             </header>
@@ -329,22 +368,37 @@ export default function SearchBox() {
                           type="button"
                           className={`w-full rounded-2xl border px-4 py-3 text-left transition ${
                             active
-                              ? "border-accent-secondary/70 bg-white/10 shadow-glow-card"
-                              : "border-white/5 bg-white/0 hover:border-white/20 hover:bg-white/[0.03]"
+                              ? tone(
+                                  "border-neo-primary bg-neo-primary-light/80 shadow-lg shadow-neo-primary/30",
+                                  "border-accent-secondary/70 bg-white/10 shadow-glow-card",
+                                )
+                              : tone(
+                                  "border-neo-border hover:border-neo-primary hover:bg-neo-surface",
+                                  "border-white/5 hover:border-white/20 hover:bg-white/[0.03]",
+                                )
                           }`}
                           onClick={() => setSelected(term)}
                           aria-pressed={active}
                         >
                           <div className="flex items-center justify-between gap-3">
                             <div>
-                              <p className="text-base font-semibold text-white">{term.term}</p>
-                              <p className="text-xs uppercase tracking-wide text-white/50">{term.translation}</p>
+                              <p className={`text-base font-semibold ${tone("text-neo-text-primary", "text-white")}`}>{term.term}</p>
+                              <p className={`text-xs uppercase tracking-wide ${tone("text-neo-text-secondary", "text-white/50")}`}>
+                                {term.translation}
+                              </p>
                             </div>
-                            <span className="rounded-full bg-white/5 px-2 py-1 text-xs text-white/70">{term.category}</span>
+                            <span
+                              className={`rounded-full px-2 py-1 text-xs ${tone("bg-neo-surface text-neo-text-secondary", "bg-white/5 text-white/70")}`}
+                            >
+                              {term.category}
+                            </span>
                           </div>
                           {term.aliases?.length ? (
-                            <p className="mt-2 line-clamp-1 text-xs text-white/60">
-                              Aliases: <span className="text-white/80">{term.aliases.slice(0, 3).join(", ")}</span>
+                            <p className={`mt-2 line-clamp-1 text-xs ${tone("text-neo-text-secondary", "text-white/60")}`}>
+                              Aliases:{" "}
+                              <span className={tone("text-neo-text-primary", "text-white/80")}>
+                                {term.aliases.slice(0, 3).join(", ")}
+                              </span>
                             </p>
                           ) : null}
                         </button>
@@ -353,13 +407,24 @@ export default function SearchBox() {
                   })}
                 </ul>
               ) : (
-                <p className="rounded-2xl border border-dashed border-white/10 px-4 py-6 text-sm text-white/60">{statusMessage}</p>
+                <p
+                  className={`rounded-2xl border border-dashed px-4 py-6 text-sm ${tone(
+                    "border-neo-border text-neo-text-secondary",
+                    "border-white/10 text-white/60",
+                  )}`}
+                >
+                  {statusMessage}
+                </p>
               )}
             </div>
           </div>
 
           <div className="flex-1">
-            {selected ? <ResultPreview term={selected} activeContext={context} /> : <Placeholder copy={t("search.helper")} />}
+            {selected ? (
+              <ResultPreview term={selected} activeContext={context} variant={variant} />
+            ) : (
+              <Placeholder copy={t("search.helper")} variant={variant} />
+            )}
           </div>
         </div>
       )}
@@ -367,8 +432,10 @@ export default function SearchBox() {
   );
 }
 
-function ResultPreview({ term, activeContext }: { term: TermDTO; activeContext: string }) {
+function ResultPreview({ term, activeContext, variant }: { term: TermDTO; activeContext: string; variant: SearchBoxVariant }) {
   const { t } = useI18n();
+  const isLight = variant === "light";
+  const tone = (light: string, dark: string) => (isLight ? light : dark);
   const [variantLang, setVariantLang] = useState<string | null>(term.variants?.[0]?.language ?? null);
   const [cheatSheetOpen, setCheatSheetOpen] = useState(false);
   const [actionHint, setActionHint] = useState<string | null>(null);
@@ -458,29 +525,40 @@ function ResultPreview({ term, activeContext }: { term: TermDTO; activeContext: 
       <div className="flex-1 space-y-4">
         <div className="flex flex-wrap items-center gap-4">
           <div>
-            <h3 className="text-2xl font-semibold text-white">{term.term}</h3>
-            <p className="text-sm text-white/70">{term.translation}</p>
+            <h3 className={`text-2xl font-semibold ${tone("text-neo-text-primary", "text-white")}`}>{term.term}</h3>
+            <p className={`text-sm ${tone("text-neo-text-secondary", "text-white/70")}`}>{term.translation}</p>
           </div>
-          <span className="rounded-full border border-white/10 bg-white/10 px-3 py-1 text-xs uppercase tracking-wide text-white/70">
+          <span
+            className={`rounded-full px-3 py-1 text-xs uppercase tracking-wide ${tone(
+              "border border-neo-border bg-neo-surface text-neo-text-secondary",
+              "border border-white/10 bg-white/10 text-white/70",
+            )}`}
+          >
             {term.category}
           </span>
         </div>
-        <div className="rounded-2xl border border-white/10 bg-white/5 p-4">
-          <p className="text-xs uppercase tracking-wide text-white/60">Traducción literal</p>
-          <p className="text-lg font-semibold text-white">{term.translation}</p>
+        <div className={`rounded-2xl border p-4 ${tone("border-neo-border bg-white", "border-white/10 bg-white/5")}`}>
+          <p className={`text-xs uppercase tracking-wide ${tone("text-neo-text-secondary", "text-white/60")}`}>Traducción literal</p>
+          <p className={`text-lg font-semibold ${tone("text-neo-text-primary", "text-white")}`}>{term.translation}</p>
           {aliasList.length ? (
-            <div className="mt-3 flex flex-wrap gap-2 text-xs text-white/70">
+            <div className={`mt-3 flex flex-wrap gap-2 text-xs ${tone("text-neo-text-secondary", "text-white/70")}`}>
               {aliasList.map((alias) => (
-                <span key={alias} className="rounded-full border border-white/15 px-2 py-0.5">
+                <span
+                  key={alias}
+                  className={`rounded-full border px-2 py-0.5 ${tone("border-neo-border text-neo-text-secondary", "border-white/15")}`}
+                >
                   {alias}
                 </span>
               ))}
             </div>
           ) : null}
           {tags.length ? (
-            <div className="mt-2 flex flex-wrap gap-2 text-xs text-white/40">
+            <div className={`mt-2 flex flex-wrap gap-2 text-xs ${tone("text-neo-text-secondary/80", "text-white/40")}`}>
               {tags.map((tag) => (
-                <span key={tag} className="rounded-full bg-white/5 px-2 py-0.5">
+                <span
+                  key={tag}
+                  className={`rounded-full px-2 py-0.5 ${tone("bg-neo-surface text-neo-text-secondary", "bg-white/5")}`}
+                >
                   #{tag}
                 </span>
               ))}
@@ -494,27 +572,28 @@ function ResultPreview({ term, activeContext }: { term: TermDTO; activeContext: 
           onOpenCheatSheet={() => setCheatSheetOpen(true)}
           onGenerateResponse={handleGenerateResponse}
           hint={actionHint}
+          variant={variant}
         />
 
         <div className="grid gap-3 md:grid-cols-2">
-          <div className="rounded-2xl border border-white/10 bg-white/5 p-4">
-            <p className="text-xs uppercase tracking-wide text-white/60">Significado (ES)</p>
-            <p className="mt-2 text-sm text-white">{meaningEs}</p>
+          <div className={`rounded-2xl border p-4 ${tone("border-neo-border bg-white", "border-white/10 bg-white/5")}`}>
+            <p className={`text-xs uppercase tracking-wide ${tone("text-neo-text-secondary", "text-white/60")}`}>Significado (ES)</p>
+            <p className={`mt-2 text-sm ${tone("text-neo-text-primary", "text-white")}`}>{meaningEs}</p>
           </div>
-          <div className="rounded-2xl border border-white/10 bg-white/5 p-4">
-            <p className="text-xs uppercase tracking-wide text-white/60">Meaning (EN)</p>
-            <p className="mt-2 text-sm text-white">{meaningEn}</p>
+          <div className={`rounded-2xl border p-4 ${tone("border-neo-border bg-white", "border-white/10 bg-white/5")}`}>
+            <p className={`text-xs uppercase tracking-wide ${tone("text-neo-text-secondary", "text-white/60")}`}>Meaning (EN)</p>
+            <p className={`mt-2 text-sm ${tone("text-neo-text-primary", "text-white")}`}>{meaningEn}</p>
           </div>
         </div>
 
         <div className="grid gap-3 md:grid-cols-2">
-          <div className="rounded-2xl border border-white/10 bg-white/5 p-4">
-            <p className="text-xs uppercase tracking-wide text-white/60">{t("terms.what")} (ES)</p>
-            <p className="text-sm text-white">{whatEs}</p>
+          <div className={`rounded-2xl border p-4 ${tone("border-neo-border bg-white", "border-white/10 bg-white/5")}`}>
+            <p className={`text-xs uppercase tracking-wide ${tone("text-neo-text-secondary", "text-white/60")}`}>{t("terms.what")} (ES)</p>
+            <p className={`text-sm ${tone("text-neo-text-primary", "text-white")}`}>{whatEs}</p>
           </div>
-          <div className="rounded-2xl border border-white/10 bg-white/5 p-4">
-            <p className="text-xs uppercase tracking-wide text-white/60">{t("terms.what")} (EN)</p>
-            <p className="text-sm text-white">{whatEn}</p>
+          <div className={`rounded-2xl border p-4 ${tone("border-neo-border bg-white", "border-white/10 bg-white/5")}`}>
+            <p className={`text-xs uppercase tracking-wide ${tone("text-neo-text-secondary", "text-white/60")}`}>{t("terms.what")} (EN)</p>
+            <p className={`text-sm ${tone("text-neo-text-primary", "text-white")}`}>{whatEn}</p>
           </div>
         </div>
 
@@ -529,17 +608,20 @@ function ResultPreview({ term, activeContext }: { term: TermDTO; activeContext: 
 
         {term.examples?.length ? (
           <div className="space-y-3">
-            <p className="text-xs uppercase tracking-wide text-white/60">{t("terms.examples")}</p>
+            <p className={`text-xs uppercase tracking-wide ${tone("text-neo-text-secondary", "text-white/60")}`}>{t("terms.examples")}</p>
             <div className="space-y-2">
               {term.examples.map((example, index) => {
                 const title =
                   example.titleEs || example.titleEn || example.title || `${t("terms.examples")} #${index + 1}`;
                 const note = example.noteEs || example.noteEn || example.note;
                 return (
-                  <div key={`${title}-${index}`} className="rounded-2xl border border-white/10 bg-ink-900/60 p-4">
+                  <div
+                    key={`${title}-${index}`}
+                    className={`rounded-2xl border p-4 ${tone("border-neo-border bg-neo-surface", "border-white/10 bg-ink-900/60")}`}
+                  >
                     <div>
-                      <p className="text-sm font-semibold text-white">{title}</p>
-                      {note ? <p className="text-xs text-white/60">{note}</p> : null}
+                      <p className={`text-sm font-semibold ${tone("text-neo-text-primary", "text-white")}`}>{title}</p>
+                      {note ? <p className={`text-xs ${tone("text-neo-text-secondary", "text-white/60")}`}>{note}</p> : null}
                     </div>
                     <CodeBlock code={example.code} label={title} />
                   </div>
@@ -552,9 +634,9 @@ function ResultPreview({ term, activeContext }: { term: TermDTO; activeContext: 
 
       <aside className="w-full space-y-4 lg:w-80">
         {useCases.length ? (
-          <section className="rounded-2xl border border-white/10 bg-ink-900/50 p-4">
+          <section className={`rounded-2xl border p-4 ${tone("border-neo-border bg-white", "border-white/10 bg-ink-900/50")}`}>
             <header className="flex flex-wrap items-center justify-between gap-2">
-              <p className="text-xs uppercase tracking-wide text-white/60">Casos de uso</p>
+              <p className={`text-xs uppercase tracking-wide ${tone("text-neo-text-secondary", "text-white/60")}`}>Casos de uso</p>
               {availableUseCaseContexts.length > 1 ? (
                 <div className="flex flex-wrap gap-2 text-[11px]">
                   {availableUseCaseContexts.map((ctx) => {
@@ -564,7 +646,12 @@ function ResultPreview({ term, activeContext }: { term: TermDTO; activeContext: 
                         key={`${term.id}-ctx-${ctx}`}
                         type="button"
                         className={`rounded-full px-2.5 py-0.5 font-semibold transition ${
-                          active ? "bg-white text-ink-900" : "border border-white/20 text-white/60 hover:bg-white/10"
+                          active
+                            ? tone("bg-neo-primary text-white shadow", "bg-white text-ink-900")
+                            : tone(
+                                "border border-neo-border text-neo-text-secondary hover:bg-neo-surface",
+                                "border border-white/20 text-white/60 hover:bg-white/10",
+                              )
                         }`}
                         onClick={() => setUseCaseContext(ctx)}
                       >
@@ -578,26 +665,34 @@ function ResultPreview({ term, activeContext }: { term: TermDTO; activeContext: 
             <div className="space-y-3 pt-3">
               {filteredUseCases.length ? (
                 filteredUseCases.slice(0, 3).map((useCase) => (
-                  <div key={`${term.id}-usecase-${useCase.context}-${useCase.id ?? ""}`} className="rounded-2xl border border-white/10 bg-white/5 p-3">
-                    <div className="flex items-center justify-between text-xs text-white/60">
+                  <div
+                    key={`${term.id}-usecase-${useCase.context}-${useCase.id ?? ""}`}
+                    className={`rounded-2xl border p-3 ${tone("border-neo-border bg-neo-surface", "border-white/10 bg-white/5")}`}
+                  >
+                    <div className={`flex items-center justify-between text-xs ${tone("text-neo-text-secondary", "text-white/60")}`}>
                       <span className="font-semibold">{contextLabels[useCase.context] ?? useCase.context}</span>
                     </div>
-                    <p className="mt-2 text-sm text-white">{useCase.summary}</p>
+                    <p className={`mt-2 text-sm ${tone("text-neo-text-primary", "text-white")}`}>{useCase.summary}</p>
                     {useCase.steps?.length ? (
-                      <ul className="mt-2 space-y-1 text-xs text-white/70">
+                      <ul className={`mt-2 space-y-1 text-xs ${tone("text-neo-text-secondary", "text-white/70")}`}>
                         {useCase.steps.slice(0, 3).map((step, index) => (
                           <li key={`${term.id}-step-${useCase.context}-${index}`} className="flex gap-2">
-                            <span className="text-white/40">{index + 1}.</span>
+                            <span className={tone("text-neo-text-secondary/70", "text-white/40")}>{index + 1}.</span>
                             <span>{step.es || step.en}</span>
                           </li>
                         ))}
                       </ul>
                     ) : null}
-                    {useCase.tips ? <p className="mt-2 text-xs text-white/50">{useCase.tips}</p> : null}
+                    {useCase.tips ? <p className={`mt-2 text-xs ${tone("text-neo-text-secondary", "text-white/50")}`}>{useCase.tips}</p> : null}
                   </div>
                 ))
               ) : (
-                <p className="rounded-2xl border border-dashed border-white/10 p-4 text-xs text-white/60">
+                <p
+                  className={`rounded-2xl border border-dashed p-4 text-xs ${tone(
+                    "border-neo-border text-neo-text-secondary",
+                    "border-white/10 text-white/60",
+                  )}`}
+                >
                   No tenemos guías para este contexto todavía.
                 </p>
               )}
@@ -606,20 +701,20 @@ function ResultPreview({ term, activeContext }: { term: TermDTO; activeContext: 
         ) : null}
 
         {faqs.length ? (
-          <section className="rounded-2xl border border-white/10 bg-ink-900/50 p-4">
-            <p className="text-xs uppercase tracking-wide text-white/60 mb-2">FAQs</p>
+          <section className={`rounded-2xl border p-4 ${tone("border-neo-border bg-white", "border-white/10 bg-ink-900/50")}`}>
+            <p className={`mb-2 text-xs uppercase tracking-wide ${tone("text-neo-text-secondary", "text-white/60")}`}>FAQs</p>
             <div className="space-y-3">
               {faqs.slice(0, 2).map((faq) => (
                 <details
                   key={`${term.id}-faq-${faq.id ?? faq.questionEs}`}
-                  className="rounded-2xl border border-white/10 bg-white/5 p-3"
+                  className={`rounded-2xl border p-3 ${tone("border-neo-border bg-neo-surface", "border-white/10 bg-white/5")}`}
                 >
-                  <summary className="cursor-pointer text-sm font-semibold text-white">{faq.questionEs}</summary>
-                  <div className="mt-2 text-sm text-white/80">{faq.answerEs}</div>
-                  {faq.answerEn ? <div className="mt-1 text-xs text-white/60">{faq.answerEn}</div> : null}
+                  <summary className={`cursor-pointer text-sm font-semibold ${tone("text-neo-text-primary", "text-white")}`}>{faq.questionEs}</summary>
+                  <div className={`mt-2 text-sm ${tone("text-neo-text-secondary", "text-white/80")}`}>{faq.answerEs}</div>
+                  {faq.answerEn ? <div className={`mt-1 text-xs ${tone("text-neo-text-secondary", "text-white/60")}`}>{faq.answerEn}</div> : null}
                   {faq.snippet ? <CodeBlock code={faq.snippet} label={faq.category ?? "FAQ"} /> : null}
                   {faq.howToExplain ? (
-                    <p className="mt-2 text-xs text-white/50">{faq.howToExplain}</p>
+                    <p className={`mt-2 text-xs ${tone("text-neo-text-secondary", "text-white/50")}`}>{faq.howToExplain}</p>
                   ) : null}
                 </details>
               ))}
@@ -628,19 +723,22 @@ function ResultPreview({ term, activeContext }: { term: TermDTO; activeContext: 
         ) : null}
 
         {exercises.length ? (
-          <section className="rounded-2xl border border-white/10 bg-ink-900/50 p-4">
-            <p className="text-xs uppercase tracking-wide text-white/60 mb-2">Ejercicios</p>
+          <section className={`rounded-2xl border p-4 ${tone("border-neo-border bg-white", "border-white/10 bg-ink-900/50")}`}>
+            <p className={`mb-2 text-xs uppercase tracking-wide ${tone("text-neo-text-secondary", "text-white/60")}`}>Ejercicios</p>
             <div className="space-y-3">
               {exercises.slice(0, 2).map((exercise) => {
                 const difficultyLabel = difficultyLabels[exercise.difficulty as keyof typeof difficultyLabels] ?? exercise.difficulty;
                 const solution = exercise.solutions?.[0];
                 return (
-                  <div key={`${term.id}-exercise-${exercise.id ?? exercise.titleEs}`} className="rounded-2xl border border-white/10 bg-white/5 p-3">
-                    <div className="flex items-center justify-between text-xs text-white/70">
-                      <span className="font-semibold text-white">{exercise.titleEs}</span>
+                  <div
+                    key={`${term.id}-exercise-${exercise.id ?? exercise.titleEs}`}
+                    className={`rounded-2xl border p-3 ${tone("border-neo-border bg-neo-surface", "border-white/10 bg-white/5")}`}
+                  >
+                    <div className={`flex items-center justify-between text-xs ${tone("text-neo-text-secondary", "text-white/70")}`}>
+                      <span className={tone("font-semibold text-neo-text-primary", "font-semibold text-white")}>{exercise.titleEs}</span>
                       <span>{difficultyLabel}</span>
                     </div>
-                    <p className="mt-2 text-xs text-white/70">{exercise.promptEs}</p>
+                    <p className={`mt-2 text-xs ${tone("text-neo-text-secondary", "text-white/70")}`}>{exercise.promptEs}</p>
                     {solution ? (
                       <CodeBlock
                         code={solution.code}
@@ -654,7 +752,7 @@ function ResultPreview({ term, activeContext }: { term: TermDTO; activeContext: 
           </section>
         ) : null}
 
-        {activeContext === "interview" ? <SoftSkillsPanel tags={tags} /> : null}
+        {activeContext === "interview" ? <SoftSkillsPanel tags={tags} variant={variant} /> : null}
       </aside>
       <CheatSheetOverlay
         open={cheatSheetOpen}
@@ -732,11 +830,15 @@ type ActionToolbarProps = {
   onOpenCheatSheet: () => void;
   onGenerateResponse: (lang: "es" | "en") => void;
   hint?: string | null;
+  variant?: SearchBoxVariant;
 };
 
-function ActionToolbar({ onCopyDefinition, onCopySnippet, onOpenCheatSheet, onGenerateResponse, hint }: ActionToolbarProps) {
+function ActionToolbar({ onCopyDefinition, onCopySnippet, onOpenCheatSheet, onGenerateResponse, hint, variant = "dark" }: ActionToolbarProps) {
+  const isLight = variant === "light";
+  const tone = (light: string, dark: string) => (isLight ? light : dark);
+
   return (
-    <div className="flex flex-col gap-2 rounded-2xl border border-white/10 bg-ink-900/60 p-4">
+    <div className={`flex flex-col gap-2 rounded-2xl border p-4 ${tone("border-neo-border bg-white", "border-white/10 bg-ink-900/60")}`}>
       <div className="flex flex-wrap gap-2 text-xs font-semibold">
         <button className="btn-ghost" type="button" onClick={onCopyDefinition}>
           Copiar definición
@@ -827,17 +929,27 @@ function buildInterviewResponse(
   return `When I mention ${term.term}, I mean ${meaning.en}. I rely on it because ${usage.en}. It's part of my ${term.category} toolkit.`;
 }
 
-function Placeholder({ copy }: { copy: string }) {
+function Placeholder({ copy, variant = "dark" }: { copy: string; variant?: SearchBoxVariant }) {
+  const isLight = variant === "light";
+  const tone = (light: string, dark: string) => (isLight ? light : dark);
   return (
-    <div className="flex h-full flex-col items-center justify-center rounded-3xl border border-dashed border-white/10 bg-white/5 p-6 text-center text-sm text-white/60">
+    <div
+      className={`flex h-full flex-col items-center justify-center rounded-3xl border border-dashed p-6 text-center text-sm ${tone(
+        "border-neo-border bg-white text-neo-text-secondary",
+        "border-white/10 bg-white/5 text-white/60",
+      )}`}
+    >
       <p>{copy}</p>
     </div>
   );
 }
 
-function ErrorBlock({ message }: { message: string }) {
+function ErrorBlock({ message, variant = "dark" }: { message: string; variant?: SearchBoxVariant }) {
+  const isLight = variant === "light";
   return (
-    <div className="rounded-3xl border border-accent-danger/30 bg-accent-danger/10 p-6 text-center text-sm text-accent-danger">
+    <div
+      className={`rounded-3xl border p-6 text-center text-sm ${isLight ? "border-accent-danger/40 bg-accent-danger/10 text-accent-danger" : "border-accent-danger/30 bg-accent-danger/10 text-accent-danger"}`}
+    >
       {message}
     </div>
   );
@@ -848,93 +960,115 @@ function TranslationPanel({
   status,
   helper,
   result,
+  variant,
 }: {
   input: string;
   status: Status;
   helper: string;
   result: StructuralTranslationResult | null;
+  variant: SearchBoxVariant;
 }) {
+  const isLight = variant === "light";
+  const tone = (light: string, dark: string) => (isLight ? light : dark);
   const trimmed = input.trim();
   if (!trimmed) {
-    return <Placeholder copy="Pega código o texto técnico para traducirlo al español." />;
+    return <Placeholder copy="Pega código o texto técnico para traducirlo al español." variant={variant} />;
   }
   if (status === "loading") {
     return <TranslationSkeleton />;
   }
   if (status === "error") {
-    return <ErrorBlock message={helper} />;
+    return <ErrorBlock message={helper} variant={variant} />;
   }
   if (!result) {
-    return <Placeholder copy={helper} />;
+    return <Placeholder copy={helper} variant={variant} />;
   }
   return (
     <div className="mt-3 space-y-5">
       <header className="flex flex-wrap items-center justify-between gap-2">
-        <h3 className="text-lg font-semibold text-white">Traducción estructural</h3>
-        <span className="rounded-full border border-white/10 px-3 py-1 text-xs text-white/70">{helper}</span>
+        <h3 className={`text-lg font-semibold ${tone("text-neo-text-primary", "text-white")}`}>Traducción estructural</h3>
+        <span
+          className={`rounded-full px-3 py-1 text-xs ${tone("border border-neo-border text-neo-text-secondary", "border border-white/10 text-white/70")}`}
+        >
+          {helper}
+        </span>
       </header>
       <div className="grid gap-4 lg:grid-cols-2">
-        <div className="rounded-2xl border border-white/10 bg-white/5 p-4">
-          <p className="text-xs uppercase tracking-wide text-white/60">Fragmento original</p>
+        <div className={`rounded-2xl border p-4 ${tone("border-neo-border bg-white", "border-white/10 bg-white/5")}`}>
+          <p className={`text-xs uppercase tracking-wide ${tone("text-neo-text-secondary", "text-white/60")}`}>Fragmento original</p>
           <CodeBlock code={input} label="Original" />
         </div>
-        <div className="rounded-2xl border border-white/10 bg-ink-900/50 p-4">
-          <div className="flex items-center justify-between gap-2 text-xs text-white/60">
-            <p>Salida en español</p>
-            <span className="rounded-full border border-white/15 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.2em] text-white/70">
+        <div className={`rounded-2xl border p-4 ${tone("border-neo-border bg-neo-surface", "border-white/10 bg-ink-900/50")}`}>
+          <div className={`flex items-center justify-between gap-2 text-xs ${tone("text-neo-text-secondary", "text-white/60")}`}>
+            <p className={tone("text-neo-text-primary", "text-white")}>Salida en español</p>
+            <span
+              className={`rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.2em] ${tone("border border-neo-border text-neo-text-secondary", "border border-white/15 text-white/70")}`}
+            >
               {result.fallbackApplied ? "Modo básico" : result.language.toUpperCase()}
             </span>
           </div>
           <CodeBlock code={result.code} label="Traducción" />
         </div>
       </div>
-      <TranslationSummary result={result} />
+      <TranslationSummary result={result} variant={variant} />
     </div>
   );
 }
 
-function TranslationSummary({ result }: { result: StructuralTranslationResult }) {
+function TranslationSummary({ result, variant }: { result: StructuralTranslationResult; variant: SearchBoxVariant }) {
+  const isLight = variant === "light";
+  const tone = (light: string, dark: string) => (isLight ? light : dark);
   const meaningfulSegments = (result.segments || []).filter((segment) => segment.type !== "text");
   const topSegments = meaningfulSegments.slice(0, 4);
   return (
     <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
-      <div className="rounded-2xl border border-white/10 bg-white/5 p-4">
-        <p className="text-xs uppercase tracking-wide text-white/60">Resumen</p>
-        <dl className="mt-3 grid gap-2 text-sm text-white">
+      <div className={`rounded-2xl border p-4 ${tone("border-neo-border bg-white", "border-white/10 bg-white/5")}`}>
+        <p className={`text-xs uppercase tracking-wide ${tone("text-neo-text-secondary", "text-white/60")}`}>Resumen</p>
+        <dl className={`mt-3 grid gap-2 text-sm ${tone("text-neo-text-primary", "text-white")}`}>
           <div className="flex items-center justify-between">
-            <dt className="text-white/60">Cadenas</dt>
+            <dt className={tone("text-neo-text-secondary", "text-white/60")}>Cadenas</dt>
             <dd className="font-semibold">{result.replacedStrings}</dd>
           </div>
           <div className="flex items-center justify-between">
-            <dt className="text-white/60">Comentarios</dt>
+            <dt className={tone("text-neo-text-secondary", "text-white/60")}>Comentarios</dt>
             <dd className="font-semibold">{result.replacedComments}</dd>
           </div>
           {result.fallbackApplied ? (
-            <p className="rounded-full border border-white/10 bg-white/10 px-3 py-1 text-center text-[11px] text-white/70">
+            <p
+              className={`rounded-full px-3 py-1 text-center text-[11px] ${tone(
+                "border border-neo-border bg-neo-surface text-neo-text-secondary",
+                "border border-white/10 bg-white/10 text-white/70",
+              )}`}
+            >
               Se activó el modo básico para mantener la estructura.
             </p>
           ) : null}
         </dl>
       </div>
-      <div className="rounded-2xl border border-white/10 bg-ink-900/50 p-4">
-        <p className="text-xs uppercase tracking-wide text-white/60">Segmentos detectados</p>
+      <div className={`rounded-2xl border p-4 ${tone("border-neo-border bg-neo-surface", "border-white/10 bg-ink-900/50")}`}>
+        <p className={`text-xs uppercase tracking-wide ${tone("text-neo-text-secondary", "text-white/60")}`}>Segmentos detectados</p>
         {topSegments.length ? (
-          <ul className="mt-3 space-y-2 text-xs text-white/80">
+          <ul className={`mt-3 space-y-2 text-xs ${tone("text-neo-text-secondary", "text-white/80")}`}>
             {topSegments.map((segment, index) => (
-              <li key={`${segment.type}-${segment.start}-${index}`} className="rounded-xl border border-white/10 bg-white/5 p-3">
-                <div className="flex items-center justify-between text-[11px] text-white/60">
+              <li
+                key={`${segment.type}-${segment.start}-${index}`}
+                className={`rounded-xl border p-3 ${tone("border-neo-border bg-white", "border-white/10 bg-white/5")}`}
+              >
+                <div className={`flex items-center justify-between text-[11px] ${tone("text-neo-text-secondary", "text-white/60")}`}>
                   <span className="font-semibold capitalize">
                     {segment.type === "comment" ? "Comentario" : "Cadena"} #{index + 1}
                   </span>
                   <span>pos {segment.start}-{segment.end}</span>
                 </div>
-                <p className="mt-2 text-[11px] text-white/50">Original: {truncateSegment(segment.original)}</p>
-                <p className="mt-1 text-[11px] text-white">→ {truncateSegment(segment.translated)}</p>
+                <p className={`mt-2 text-[11px] ${tone("text-neo-text-secondary", "text-white/50")}`}>
+                  Original: {truncateSegment(segment.original)}
+                </p>
+                <p className={`mt-1 text-[11px] ${tone("text-neo-text-primary", "text-white")}`}>→ {truncateSegment(segment.translated)}</p>
               </li>
             ))}
           </ul>
         ) : (
-          <p className="mt-3 text-xs text-white/60">No encontramos strings ni comentarios en este fragmento.</p>
+          <p className={`mt-3 text-xs ${tone("text-neo-text-secondary", "text-white/60")}`}>No encontramos strings ni comentarios en este fragmento.</p>
         )}
       </div>
     </div>

@@ -76,7 +76,7 @@ section.cards > article {
     },
     whatEs: "Permite describir estructuras complejas con pocas líneas y mantiene el grid estable.",
     whatEn: "Lets you describe complex grids declaratively while keeping layouts stable.",
-    howEs: "Combina repeat y minmax para columnas fluidas o nombra líneas con "[]" si necesitas colocar elementos por nombre.",
+  howEs: "Combina repeat y minmax para columnas fluidas o nombra líneas con '[]' si necesitas colocar elementos por nombre.",
     howEn: "Mix repeat with minmax for fluid columns or name grid lines with brackets to place elements explicitly.",
     languageOverride: Language.css,
   },
