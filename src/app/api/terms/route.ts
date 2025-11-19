@@ -23,6 +23,23 @@ export const dynamic = "force-dynamic";
 const noStoreHeaders = { "Cache-Control": "no-store" } as const;
 const DEFAULT_PAGE_SIZE = 50;
 const RATE_LIMIT_PREFIX = "terms:list";
+const TRUTHY = new Set(["1", "true", "yes", "on"]);
+
+const envDisablesSearchLogs = (() => {
+  const raw = process.env.DISABLE_SEARCH_LOGS;
+  return raw ? TRUTHY.has(raw.trim().toLowerCase()) : false;
+})();
+
+const sqliteReadonlyOnVercel = Boolean(process.env.VERCEL && (process.env.DATABASE_URL ?? "").startsWith("file:"));
+
+let searchLogWritesDisabled = envDisablesSearchLogs || sqliteReadonlyOnVercel;
+
+if (searchLogWritesDisabled) {
+  logger.info(
+    { reason: envDisablesSearchLogs ? "env_flag" : "sqlite_readonly" },
+    "search.log_disabled_initialization",
+  );
+}
 
 /**
  * Intenta autenticar como administrador. Si falla devuelve la respuesta HTTP lista para retornar.
@@ -102,6 +119,21 @@ function buildReviewMetadata(status: ReviewStatus, reviewerId: number) {
   return { reviewedAt: new Date(), reviewedById: reviewerId };
 }
 
+function isReadOnlySqliteError(error: unknown) {
+  if (!error) return false;
+  if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2034") {
+    return true;
+  }
+  if (typeof error === "object" && error && "message" in error) {
+    const message = String((error as { message: unknown }).message);
+    return message.toLowerCase().includes("attempt to write a readonly database");
+  }
+  if (typeof error === "string") {
+    return error.toLowerCase().includes("attempt to write a readonly database");
+  }
+  return false;
+}
+
 async function recordSearchEvent(event: {
   query: string;
   language: string;
@@ -112,6 +144,9 @@ async function recordSearchEvent(event: {
   hadResults?: boolean;
 }) {
   const { query, language, context, mode, termId = null, resultCount = 0, hadResults = false } = event;
+
+  if (searchLogWritesDisabled) return;
+
   try {
     await prisma.searchLog.create({
       data: {
@@ -125,6 +160,11 @@ async function recordSearchEvent(event: {
       },
     });
   } catch (error) {
+    if (isReadOnlySqliteError(error)) {
+      searchLogWritesDisabled = true;
+      logger.warn({ query, context, mode }, "search.log_disabled_readonly");
+      return;
+    }
     logger.warn({ err: error, query, context, mode }, "search.log_failed");
   }
 }

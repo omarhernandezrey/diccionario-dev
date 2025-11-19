@@ -6,7 +6,7 @@ import DonutChart from "@/components/admin/DonutChart";
 import LineChartComponent from "@/components/admin/LineChart";
 import BarChartComponent from "@/components/admin/BarChart";
 import ChartCard from "@/components/admin/ChartCard";
-import { BookOpen, TrendingUp, Users, Zap } from "lucide-react";
+import { Icon } from "@/components/Icon";
 import type { AnalyticsSummary } from "@/lib/analytics";
 
 const EMPTY_SUMMARY: AnalyticsSummary = {
@@ -76,35 +76,35 @@ export default function AdminDashboard() {
 
   // Stats para cards
   const stats = [
-    {
-      label: "Total de búsquedas",
-      value: analytics.topTerms.reduce((sum, t) => sum + t.hits, 0) +
-        contextData.reduce((sum, c) => sum + c.value, 0),
-      icon: <Zap className="h-5 w-5" />,
-      color: "primary" as const,
-      trend: { value: 12, direction: "up" as const },
-    },
-    {
-      label: "Términos buscados",
-      value: analytics.topTerms.length,
-      icon: <BookOpen className="h-5 w-5" />,
-      color: "secondary" as const,
-      trend: { value: 8, direction: "up" as const },
-    },
-    {
-      label: "Lenguajes activos",
-      value: analytics.languages.length,
-      icon: <TrendingUp className="h-5 w-5" />,
-      color: "emerald" as const,
-      trend: { value: 5, direction: "up" as const },
-    },
-    {
-      label: "Búsquedas vacías",
-      value: analytics.emptyQueries.reduce((sum, q) => sum + q.attempts, 0),
-      icon: <Users className="h-5 w-5" />,
-      color: "rose" as const,
-      trend: { value: 3, direction: "down" as const },
-    },
+      {
+        label: "Total de búsquedas",
+        value: analytics.topTerms.reduce((sum, t) => sum + t.hits, 0) +
+          contextData.reduce((sum, c) => sum + c.value, 0),
+        icon: <Icon library="lucide" name="Zap" className="h-5 w-5" />,
+        color: "primary" as const,
+        trend: { value: 12, direction: "up" as const },
+      },
+      {
+        label: "Términos buscados",
+        value: analytics.topTerms.length,
+        icon: <Icon library="lucide" name="BookOpen" className="h-5 w-5" />,
+        color: "secondary" as const,
+        trend: { value: 8, direction: "up" as const },
+      },
+      {
+        label: "Lenguajes activos",
+        value: analytics.languages.length,
+        icon: <Icon library="lucide" name="TrendingUp" className="h-5 w-5" />,
+        color: "emerald" as const,
+        trend: { value: 5, direction: "up" as const },
+      },
+      {
+        label: "Búsquedas vacías",
+        value: analytics.emptyQueries.reduce((sum, q) => sum + q.attempts, 0),
+        icon: <Icon library="lucide" name="Users" className="h-5 w-5" />,
+        color: "rose" as const,
+        trend: { value: 3, direction: "down" as const },
+      },
   ];
 
   return (

@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState, useTransition } from "react";
-import { ShieldCheck, RefreshCw, KeyRound, UserCircle2, CheckCircle2, AlertTriangle, Mail } from "lucide-react";
+import { Icon } from "@/components/Icon";
 
 type SessionUser = {
   id: number;
@@ -118,14 +118,20 @@ export default function AdminAccessPage() {
       <section className="rounded-[32px] border border-white/10 bg-gradient-to-br from-ink-900 via-ink-800 to-ink-900 p-8 shadow-glow-card">
         <div className="flex flex-wrap items-center gap-4">
           <div className="rounded-3xl border border-white/20 bg-white/10 p-3 shadow-glow-card">
-            <ShieldCheck className="h-7 w-7 text-accent-emerald" />
+            <Icon library="lucide" name="ShieldCheck" className="h-7 w-7 text-accent-emerald" />
           </div>
           <div>
             <p className="text-xs uppercase tracking-[0.3em] text-neo-text-secondary">Control de acceso</p>
             <h1 className="text-3xl font-semibold">Autenticación avanzada</h1>
           </div>
           <div className="ml-auto flex items-center gap-2 rounded-full border border-white/15 bg-ink-900/60 px-4 py-2 text-xs text-neo-text-secondary">
-            {session ? <CheckCircle2 className="h-4 w-4 text-accent-emerald" /> : authLoading ? <RefreshCw className="h-4 w-4 animate-spin text-accent-secondary" /> : <AlertTriangle className="h-4 w-4 text-accent-danger" />}
+            {session ? (
+              <Icon library="lucide" name="CheckCircle2" className="h-4 w-4 text-accent-emerald" />
+            ) : authLoading ? (
+              <Icon library="lucide" name="RefreshCw" className="h-4 w-4 animate-spin text-accent-secondary" />
+            ) : (
+              <Icon library="lucide" name="AlertTriangle" className="h-4 w-4 text-accent-danger" />
+            )}
             <span>{authLoading ? "Verificando sesión…" : session ? `Activo: ${session.username} (${session.role})` : "Sin sesión activa"}</span>
           </div>
         </div>
@@ -133,9 +139,9 @@ export default function AdminAccessPage() {
           Centraliza la creación de cuentas, el inicio de sesión y la auditoría de accesos administrativos. Esta vista funciona incluso si el resto del panel no está disponible.
         </p>
         <div className="mt-6 grid gap-4 sm:grid-cols-3">
-          <MetricPill label="Bootstrap" value={allowBootstrap ? "Disponible" : "Cerrado"} icon={<KeyRound className="h-4 w-4 text-accent-secondary" />} />
-          <MetricPill label="ID de sesión" value={session ? `#${session.id}` : "-"} icon={<UserCircle2 className="h-4 w-4 text-accent-secondary" />} />
-          <MetricPill label="Estado" value={authLoading ? "Validando" : session ? "Autenticado" : "Invitado"} icon={<Mail className="h-4 w-4 text-accent-secondary" />} />
+          <MetricPill label="Bootstrap" value={allowBootstrap ? "Disponible" : "Cerrado"} icon={<Icon library="lucide" name="KeyRound" className="h-4 w-4 text-accent-secondary" />} />
+          <MetricPill label="ID de sesión" value={session ? `#${session.id}` : "-"} icon={<Icon library="lucide" name="UserCircle2" className="h-4 w-4 text-accent-secondary" />} />
+          <MetricPill label="Estado" value={authLoading ? "Validando" : session ? "Autenticado" : "Invitado"} icon={<Icon library="lucide" name="Mail" className="h-4 w-4 text-accent-secondary" />} />
         </div>
         {message ? <p className="mt-4 text-sm text-accent-secondary">{message}</p> : null}
         {error ? <p className="mt-2 text-sm text-accent-danger">{error}</p> : null}

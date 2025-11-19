@@ -2,7 +2,7 @@
 
 import React, { useState } from "react";
 import { useRouter } from "next/navigation";
-import { Search, Bell, Settings, LogOut, User, ChevronDown, AlertTriangle, CheckCircle2, Loader2, RotateCcw } from "lucide-react";
+import { Icon } from "@/components/Icon";
 import { useNotifications } from "@/components/admin/NotificationsProvider";
 
 export default function Topbar() {
@@ -31,7 +31,7 @@ export default function Topbar() {
         {/* Left side - Search */}
         <div className="flex flex-1 items-center gap-4">
           <div className="relative hidden md:block">
-            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-neo-text-secondary" />
+            <Icon library="lucide" name="Search" className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-neo-text-secondary" />
             <input
               type="text"
               placeholder="Buscar términos..."
@@ -48,7 +48,7 @@ export default function Topbar() {
               className="relative rounded-lg p-2 text-neo-text-secondary transition hover:bg-neo-surface hover:text-neo-text-primary"
               onClick={() => setNotificationsOpen((open) => !open)}
             >
-              <Bell className="h-5 w-5" />
+              <Icon library="lucide" name="Bell" className="h-5 w-5" />
               {unreadCount ? (
                 <span className="absolute right-1 top-1 h-4 min-w-[1rem] rounded-full bg-accent-rose px-1 text-center text-[10px] font-bold leading-4 text-white">
                   {unreadCount}
@@ -65,7 +65,7 @@ export default function Topbar() {
                       Marcar todo leído
                     </button>
                     <button className="inline-flex items-center gap-1 text-xs text-neo-text-secondary" type="button" onClick={refresh} aria-label="Sincronizar notificaciones">
-                      <RotateCcw className="h-3.5 w-3.5" />
+                      <Icon library="lucide" name="RotateCcw" className="h-3.5 w-3.5" />
                       Sync
                     </button>
                   </div>
@@ -92,9 +92,9 @@ export default function Topbar() {
                         >
                           <div className="flex items-center gap-2 text-xs uppercase tracking-wide">
                             {notif.type === "alert" ? (
-                              <AlertTriangle className="h-3.5 w-3.5 text-accent-rose" />
+                            <Icon library="lucide" name="AlertTriangle" className="h-3.5 w-3.5 text-accent-rose" />
                             ) : (
-                              <CheckCircle2 className="h-3.5 w-3.5 text-accent-emerald" />
+                            <Icon library="lucide" name="CheckCircle2" className="h-3.5 w-3.5 text-accent-emerald" />
                             )}
                             <span>{notif.title}</span>
                           </div>
@@ -115,7 +115,7 @@ export default function Topbar() {
 
           {/* Settings */}
           <button className="rounded-lg p-2 text-neo-text-secondary transition hover:bg-neo-surface hover:text-neo-text-primary" onClick={() => router.push("/admin/settings")}>
-            <Settings className="h-5 w-5" />
+            <Icon library="lucide" name="Settings" className="h-5 w-5" />
           </button>
 
           {/* Divider */}
@@ -134,10 +134,10 @@ export default function Topbar() {
                 <span className="text-sm font-semibold text-neo-text-primary">Omar Hernandez Rey</span>
                 <span className="text-[11px] uppercase tracking-wide text-neo-text-secondary">Perfil</span>
               </div>
-              <ChevronDown
-                className={`h-4 w-4 transition-transform duration-200 ${
-                  dropdownOpen ? "rotate-180" : ""
-                }`}
+              <Icon
+                library="lucide"
+                name="ChevronDown"
+                className={`h-4 w-4 transition-transform duration-200 ${dropdownOpen ? "rotate-180" : ""}`}
               />
             </button>
 
@@ -151,7 +151,7 @@ export default function Topbar() {
                     setDropdownOpen(false);
                   }}
                 >
-                  <User className="h-4 w-4" />
+                  <Icon library="lucide" name="User" className="h-4 w-4" />
                   Perfil
                 </button>
                 <button
@@ -161,7 +161,7 @@ export default function Topbar() {
                     setDropdownOpen(false);
                   }}
                 >
-                  <Settings className="h-4 w-4" />
+                  <Icon library="lucide" name="Settings" className="h-4 w-4" />
                   Preferencias
                 </button>
                 <div className="border-t border-neo-border" />
@@ -170,7 +170,11 @@ export default function Topbar() {
                   onClick={handleSignOut}
                   disabled={signingOut}
                 >
-                  {signingOut ? <Loader2 className="h-4 w-4 animate-spin" /> : <LogOut className="h-4 w-4" />}
+                  {signingOut ? (
+                    <Icon library="lucide" name="Loader2" className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <Icon library="lucide" name="LogOut" className="h-4 w-4" />
+                  )}
                   {signingOut ? "Saliendo…" : "Salir"}
                 </button>
               </div>

@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState, useTransition, type ReactNode } from "react";
-import { User, Mail, ShieldCheck, KeyRound, Loader2, Copy, Check } from "lucide-react";
+import { Icon } from "@/components/Icon";
 
 type SessionUser = {
   id: number;
@@ -59,8 +59,8 @@ export default function AdminProfilePage() {
     <div className="space-y-8 text-neo-text-primary">
       <section className="rounded-[32px] border border-white/10 bg-gradient-to-br from-ink-900 via-ink-800 to-ink-900 p-8 shadow-glow-card">
         <div className="flex flex-wrap items-center gap-4">
-          <div className="rounded-3xl border border-white/20 bg-white/10 p-3 shadow-glow-card">
-            <User className="h-7 w-7 text-accent-secondary" />
+            <div className="rounded-3xl border border-white/20 bg-white/10 p-3 shadow-glow-card">
+              <Icon library="lucide" name="User" className="h-7 w-7 text-accent-secondary" />
           </div>
           <div>
             <p className="text-xs uppercase tracking-[0.3em] text-neo-text-secondary">Cuenta</p>
@@ -79,17 +79,21 @@ export default function AdminProfilePage() {
           </header>
 
           <div className="grid gap-4 sm:grid-cols-2">
-            <InfoCard label="Usuario" value={sanitize(session?.username)} icon={<User className="h-4 w-4 text-accent-secondary" />} loading={loading} />
-            <InfoCard label="Rol" value={session?.role === "admin" ? "Administrador" : "Usuario"} icon={<ShieldCheck className="h-4 w-4 text-accent-emerald" />} loading={loading} />
-            <InfoCard label="Email" value={sanitize(session?.email)} icon={<Mail className="h-4 w-4 text-accent-secondary" />} loading={loading} />
+            <InfoCard label="Usuario" value={sanitize(session?.username)} icon={<Icon library="lucide" name="User" className="h-4 w-4 text-accent-secondary" />} loading={loading} />
+            <InfoCard label="Rol" value={session?.role === "admin" ? "Administrador" : "Usuario"} icon={<Icon library="lucide" name="ShieldCheck" className="h-4 w-4 text-accent-emerald" />} loading={loading} />
+            <InfoCard label="Email" value={sanitize(session?.email)} icon={<Icon library="lucide" name="Mail" className="h-4 w-4 text-accent-secondary" />} loading={loading} />
             <InfoCard
               label="ID interno"
               value={session ? `#${session.id}` : "-"}
-              icon={<KeyRound className="h-4 w-4 text-accent-secondary" />}
-              loading={loading}
-              action={
-                <button className="flex items-center gap-1 text-xs text-accent-secondary hover:text-accent-secondary" type="button" onClick={copyId} disabled={!session}>
-                  {copied ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
+            icon={<Icon library="lucide" name="KeyRound" className="h-4 w-4 text-accent-secondary" />}
+            loading={loading}
+            action={
+              <button className="flex items-center gap-1 text-xs text-accent-secondary hover:text-accent-secondary" type="button" onClick={copyId} disabled={!session}>
+                  {copied ? (
+                    <Icon library="lucide" name="Check" className="h-4 w-4" />
+                  ) : (
+                    <Icon library="lucide" name="Copy" className="h-4 w-4" />
+                  )}
                   {copied ? "Copiado" : "Copiar"}
                 </button>
               }
@@ -109,7 +113,8 @@ export default function AdminProfilePage() {
             <button className="btn-primary" type="button" onClick={handleSave} disabled={isPending}>
               {isPending ? (
                 <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Guardando…
+                  <Icon library="lucide" name="Loader2" className="mr-2 h-4 w-4 animate-spin" />
+                  Guardando…
                 </>
               ) : (
                 "Guardar ajustes"

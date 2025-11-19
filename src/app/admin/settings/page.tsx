@@ -1,7 +1,7 @@
 "use client";
 
-import { useState, useTransition, type ComponentType } from "react";
-import { Bell, ShieldCheck, Database, Globe, Save, Loader2 } from "lucide-react";
+import { useState, useTransition } from "react";
+import { Icon } from "@/components/Icon";
 
 type Preferences = {
   realtimeAlerts: boolean;
@@ -43,8 +43,8 @@ export default function AdminSettingsPage() {
     <div className="space-y-8 text-neo-text-primary">
       <section className="rounded-[32px] border border-white/10 bg-gradient-to-br from-ink-900 via-ink-800 to-ink-900 p-8 shadow-glow-card">
         <div className="flex flex-wrap items-center gap-4">
-          <div className="rounded-3xl border border-white/20 bg-white/10 p-3 shadow-glow-card">
-            <ShieldCheck className="h-7 w-7 text-accent-emerald" />
+            <div className="rounded-3xl border border-white/20 bg-white/10 p-3 shadow-glow-card">
+              <Icon library="lucide" name="ShieldCheck" className="h-7 w-7 text-accent-emerald" />
           </div>
           <div>
             <p className="text-xs uppercase tracking-[0.3em] text-neo-text-secondary">Seguridad & Operaciones</p>
@@ -65,28 +65,28 @@ export default function AdminSettingsPage() {
           </header>
           <div className="space-y-4">
             <PreferenceToggle
-              icon={Bell}
+              iconName="Bell"
               title="Alertas en tiempo real"
               description="Mensajes directos cuando un término cae o hay fallos de autenticación."
               checked={preferences.realtimeAlerts}
               onChange={() => handleToggle("realtimeAlerts")}
             />
             <PreferenceToggle
-              icon={Globe}
+              iconName="Globe"
               title="Resumen nocturno"
               description="Correo consolidado con pendientes, nuevos términos y métricas clave."
               checked={preferences.nightlyDigest}
               onChange={() => handleToggle("nightlyDigest")}
             />
             <PreferenceToggle
-              icon={ShieldCheck}
+              iconName="ShieldCheck"
               title="Modo IP Lockdown"
               description="Limita el panel admin a subredes aprobadas."
               checked={preferences.ipLockdown}
               onChange={() => handleToggle("ipLockdown")}
             />
             <PreferenceToggle
-              icon={Database}
+              iconName="Database"
               title="Compartir telemetría anónima"
               description="Ayuda a detectar consultas con mala salud de datos."
               checked={preferences.shareTelemetry}
@@ -100,11 +100,13 @@ export default function AdminSettingsPage() {
             <button className="btn-primary" type="button" onClick={handleSave} disabled={isPending}>
               {isPending ? (
                 <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Guardando…
+                  <Icon library="lucide" name="Loader2" className="mr-2 h-4 w-4 animate-spin" />
+                  Guardando…
                 </>
               ) : (
                 <>
-                  <Save className="mr-2 h-4 w-4" /> Guardar cambios
+                  <Icon library="lucide" name="Save" className="mr-2 h-4 w-4" />
+                  Guardar cambios
                 </>
               )}
             </button>
@@ -146,20 +148,21 @@ export default function AdminSettingsPage() {
 }
 
 type PreferenceToggleProps = {
-  icon: ComponentType<{ className?: string }>;
+  iconName: string;
+  iconLibrary?: "lucide" | "phosphor" | "tabler";
   title: string;
   description: string;
   checked: boolean;
   onChange: () => void;
 };
 
-function PreferenceToggle({ icon: Icon, title, description, checked, onChange }: PreferenceToggleProps) {
+function PreferenceToggle({ iconName, iconLibrary = "lucide", title, description, checked, onChange }: PreferenceToggleProps) {
   return (
     <label className={`flex items-start gap-4 rounded-2xl border px-4 py-3 transition ${checked ? "border-accent-secondary/50 bg-accent-secondary/5" : "border-white/10 bg-ink-950/60"}`}>
       <input type="checkbox" className="mt-1 h-4 w-4 accent-accent-secondary" checked={checked} onChange={onChange} />
       <div className="flex-1 space-y-1">
         <div className="flex items-center gap-2 text-sm font-semibold">
-          <Icon className="h-4 w-4 text-accent-secondary" /> {title}
+          <Icon library={iconLibrary} name={iconName} className="h-4 w-4 text-accent-secondary" size={16} /> {title}
         </div>
         <p className="text-xs text-neo-text-secondary">{description}</p>
       </div>

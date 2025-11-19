@@ -158,6 +158,25 @@ ADMIN_EMAIL="admin@example.com"
 - `JWT_EXPIRES_IN`: duración del token (ej. `1d`, `12h`, `3600`).
 - `ADMIN_USERNAME`, `ADMIN_PASSWORD`, `ADMIN_EMAIL`: credenciales para el usuario sembrado (rol admin).
 - `ADMIN_TOKEN` (opcional): si ya tenías un token previo lo puedes reutilizar como fallback de contraseña para el seed.
+- `DISABLE_SEARCH_LOGS` (opcional): fija `true`/`1` para saltar escrituras en `SearchLog` cuando la base (SQLite en servidores read-only como Vercel) no acepte inserts.
+
+---
+
+### 7. Iconografía profesional
+
+Se combinan tres familias de íconos para cubrir todos los matices:
+- **Lucide** (modernos, livianos) para la UI diaria.
+- **Phosphor** (redondeados, suaves) para estados y acciones amistosas.
+- **Tabler** (corporativos) para contextos más formales o administrativos.
+
+Instala las dependencias (`phosphor-react`, `tabler-icons-react`) y usa `Icon` (`src/components/Icon.tsx`) para renderizar el glyph correcto indicando la biblioteca y el nombre:
+
+```tsx
+<Icon library="phosphor" name="Check" size={18} className="text-accent-emerald" />
+<Icon library="lucide" name="Settings" size={22} />
+```
+
+La ruta `src/components/Icon.tsx` actúa como gateway central; si centralizas los nombres de iconos aquí, tus componentes solo necesitan saber qué símbolo pedir y no qué librería importa.
 
 ---
 

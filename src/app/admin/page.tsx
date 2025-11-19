@@ -2,8 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import AdminDashboard from "@/components/admin/Dashboard";
-import type { LucideIcon } from "lucide-react";
-import { ActivitySquare, AlertTriangle, BookOpenCheck, Code2, Download, Layers, Link2, RefreshCcw, ShieldCheck, Signal, Users2 } from "lucide-react";
+import { Icon } from "@/components/Icon";
 import { useNotifications } from "@/components/admin/NotificationsProvider";
 import type { AdminNotification } from "@/components/admin/NotificationsProvider";
 
@@ -95,18 +94,18 @@ const LEVEL_OPTIONS = ["beginner", "intermediate", "advanced"];
 const DIFFICULTY_OPTIONS = ["easy", "medium", "hard"];
 
 const ADMIN_VIEWS = [
-  { id: "overview", label: "Inteligencia", description: "Analítica en vivo y tendencias", icon: ActivitySquare },
-  { id: "terms", label: "Colección", description: "Gestión total del glosario", icon: BookOpenCheck },
-  { id: "team", label: "Equipo", description: "Accesos, reputación y comunidad", icon: Users2 },
+  { id: "overview", label: "Inteligencia", description: "Analítica en vivo y tendencias", iconName: "ActivitySquare" },
+  { id: "terms", label: "Colección", description: "Gestión total del glosario", iconName: "BookOpenCheck" },
+  { id: "team", label: "Equipo", description: "Accesos, reputación y comunidad", iconName: "Users2" },
 ] as const;
 
 type AdminView = (typeof ADMIN_VIEWS)[number]["id"];
 
-const HERO_STAT_ICONS: Record<string, LucideIcon> = {
-  "Términos visibles": BookOpenCheck,
-  "Categorías activas": Layers,
-  "Snippets guardados": Code2,
-  Pendientes: AlertTriangle,
+const HERO_STAT_ICONS: Record<string, string> = {
+  "Términos visibles": "BookOpenCheck",
+  "Categorías activas": "Layers",
+  "Snippets guardados": "Code2",
+  Pendientes: "AlertTriangle",
 };
 
 type TermsResponse = {
@@ -648,14 +647,18 @@ export function AdminConsole({ initialView = "overview" }: AdminConsoleProps) {
         <div className="absolute inset-y-0 right-0 hidden w-1/3 bg-gradient-to-l from-accent-secondary/10 to-transparent blur-3xl lg:block" />
         <div className="flex flex-wrap items-center gap-4">
           <div className="rounded-3xl border border-white/20 bg-white/10 p-3 shadow-glow-card">
-            <BookOpenCheck className="h-7 w-7 text-neo-text-primary" />
+            <Icon library="lucide" name="BookOpenCheck" className="h-7 w-7 text-neo-text-primary" />
           </div>
           <div>
             <p className="text-xs uppercase tracking-[0.3em] text-neo-text-secondary">Panel de control</p>
             <h1 className="text-3xl font-semibold">Diccionario Dev · Admin</h1>
           </div>
           <div className="ml-auto flex items-center gap-3 rounded-full border border-white/15 bg-ink-900/60 px-4 py-2 text-xs text-neo-text-secondary">
-            <ShieldCheck className={`h-4 w-4 ${session ? "text-accent-emerald" : "text-accent-danger"}`} />
+            <Icon
+              library="lucide"
+              name="ShieldCheck"
+              className={`h-4 w-4 ${session ? "text-accent-emerald" : "text-accent-danger"}`}
+            />
             <span>{session ? `Activo: ${session.username} (${session.role})` : "Acceso restringido"}</span>
             <button type="button" className="text-accent-secondary underline-offset-2 hover:underline" onClick={() => handleViewChange("team")}>
               Gestionar
@@ -667,11 +670,11 @@ export function AdminConsole({ initialView = "overview" }: AdminConsoleProps) {
         </p>
         <dl className="mt-8 grid gap-4 md:grid-cols-2 xl:grid-cols-4">
           {adminHeroStats.map((stat) => {
-            const Icon = HERO_STAT_ICONS[stat.label] || ActivitySquare;
+            const iconName = HERO_STAT_ICONS[stat.label] || "ActivitySquare";
             return (
               <div key={stat.label} className="flex flex-col gap-3 rounded-3xl border border-white/10 bg-ink-900/60 p-4 shadow-inner">
                 <div className="inline-flex h-10 w-10 items-center justify-center rounded-2xl bg-white/10">
-                  <Icon className="h-5 w-5 text-accent-secondary" />
+                  <Icon library="lucide" name={iconName} className="h-5 w-5 text-accent-secondary" />
                 </div>
                 <dt className="text-xs uppercase tracking-wide text-neo-text-secondary">{stat.label}</dt>
                 <dd className="text-3xl font-semibold text-neo-text-primary">{stat.value}</dd>
@@ -1058,7 +1061,6 @@ function ViewSwitcher({ activeView, onChange, itemsCount, pendingCount, session,
   return (
     <div className="grid gap-4 lg:grid-cols-3">
       {ADMIN_VIEWS.map((view) => {
-        const Icon = view.icon;
         const isActive = view.id === activeView;
         return (
           <button
@@ -1072,13 +1074,13 @@ function ViewSwitcher({ activeView, onChange, itemsCount, pendingCount, session,
             }`}
           >
             <div className="flex items-center gap-3">
-              <span
-                className={`inline-flex h-10 w-10 items-center justify-center rounded-2xl ${
-                  isActive ? "bg-white text-ink-900" : "bg-white/10 text-neo-text-primary"
-                }`}
-              >
-                <Icon className="h-5 w-5" />
-              </span>
+                <span
+                  className={`inline-flex h-10 w-10 items-center justify-center rounded-2xl ${
+                    isActive ? "bg-white text-ink-900" : "bg-white/10 text-neo-text-primary"
+                  }`}
+                >
+                  <Icon library="lucide" name={view.iconName} className="h-5 w-5" />
+                </span>
               <div>
                 <p className="text-sm font-semibold">{view.label}</p>
                 <p className="text-xs text-neo-text-secondary">{view.description}</p>
@@ -1433,7 +1435,7 @@ function QuickActionsPanel({
         <article className="rounded-2xl border border-white/10 bg-white/5 p-4">
           <div className="flex items-center justify-between">
             <p className="text-sm font-semibold">Sincronizar catálogo</p>
-            <RefreshCcw className="h-4 w-4 text-accent-secondary" />
+            <Icon library="lucide" name="RefreshCcw" className="h-4 w-4 text-accent-secondary" />
           </div>
           <p className="mt-2 text-xs text-neo-text-secondary">{lastManualRefresh ? `Última manual: ${lastManualRefresh}` : "Sin ejecutar hoy."}</p>
           <button className="btn-ghost mt-3 w-full text-sm" type="button" onClick={onManualRefresh}>
@@ -1443,7 +1445,7 @@ function QuickActionsPanel({
         <article className="rounded-2xl border border-white/10 bg-white/5 p-4">
           <div className="flex items-center justify-between">
             <p className="text-sm font-semibold">Exportar catálogo</p>
-            <Download className="h-4 w-4 text-accent-secondary" />
+            <Icon library="lucide" name="Download" className="h-4 w-4 text-accent-secondary" />
           </div>
           <p className="mt-2 text-xs text-neo-text-secondary">{lastExportedAt ? `Último export: ${lastExportedAt}` : "Aún sin exportar esta sesión."}</p>
           <button className="btn-primary mt-3 w-full text-sm" type="button" onClick={onExport} disabled={exporting}>
@@ -1565,29 +1567,29 @@ function IntegrationsStatusPanel({
   const analyticsTone: IntegrationStatus =
     analyticsStatus === "loading" ? "loading" : analyticsStatus === "error" ? "error" : analyticsStatus === "ok" ? "ok" : "warning";
 
-  const cards: Array<{ label: string; detail: string; status: IntegrationStatus; icon: LucideIcon; meta?: string }> = [
-    { label: "API términos", detail: termsStatus === "ok" ? "Online" : "Sin datos recientes", status: termsStatus, icon: BookOpenCheck, meta: lastAutoRefresh || "—" },
-    {
-      label: "Analytics",
-      detail: analyticsStatus === "loading" ? "Sincronizando…" : analyticsStatus === "ok" ? "Coherente" : analyticsStatus === "error" ? "Fallo" : "En espera",
-      status: analyticsTone,
-      icon: Signal,
-      meta: lastAnalyticsPing || "—",
-    },
-    {
-      label: "Alertas",
-      detail: notificationsStatus === "ok" ? "Monitor activo" : notificationsStatus === "warning" ? "Alertas pendientes" : notificationsStatus === "loading" ? "Cargando" : "Fallo",
-      status: notificationsStatus,
-      icon: Link2,
-    },
-    {
-      label: "Autenticación",
-      detail: authStatus === "ok" ? "Sesión válida" : authStatus === "loading" ? "Validando…" : "No autenticado",
-      status: authStatus,
-      icon: ShieldCheck,
-      meta: allowBootstrap ? "Bootstrap abierto" : "Bootstrap cerrado",
-    },
-  ];
+const cards: Array<{ label: string; detail: string; status: IntegrationStatus; iconName: string; meta?: string }> = [
+  { label: "API términos", detail: termsStatus === "ok" ? "Online" : "Sin datos recientes", status: termsStatus, iconName: "BookOpenCheck", meta: lastAutoRefresh || "—" },
+  {
+    label: "Analytics",
+    detail: analyticsStatus === "loading" ? "Sincronizando…" : analyticsStatus === "ok" ? "Coherente" : analyticsStatus === "error" ? "Fallo" : "En espera",
+    status: analyticsTone,
+    iconName: "Signal",
+    meta: lastAnalyticsPing || "—",
+  },
+  {
+    label: "Alertas",
+    detail: notificationsStatus === "ok" ? "Monitor activo" : notificationsStatus === "warning" ? "Alertas pendientes" : notificationsStatus === "loading" ? "Cargando" : "Fallo",
+    status: notificationsStatus,
+    iconName: "Link2",
+  },
+  {
+    label: "Autenticación",
+    detail: authStatus === "ok" ? "Sesión válida" : authStatus === "loading" ? "Validando…" : "No autenticado",
+    status: authStatus,
+    iconName: "ShieldCheck",
+    meta: allowBootstrap ? "Bootstrap abierto" : "Bootstrap cerrado",
+  },
+];
 
   const badgeClass = (status: IntegrationStatus) => {
     switch (status) {
@@ -1614,8 +1616,8 @@ function IntegrationsStatusPanel({
         {cards.map((card) => (
           <article key={card.label} className="rounded-2xl border border-white/10 bg-white/5 p-4">
             <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2 text-sm font-semibold text-neo-text-primary">
-                <card.icon className="h-4 w-4 text-accent-secondary" />
+                <div className="flex items-center gap-2 text-sm font-semibold text-neo-text-primary">
+                  <Icon library="lucide" name={card.iconName} className="h-4 w-4 text-accent-secondary" />
                 {card.label}
               </div>
               <span className={`text-xs font-semibold ${badgeClass(card.status)}`}>{card.detail}</span>

@@ -1,5 +1,5 @@
 import React from "react";
-import { TrendingUp, TrendingDown } from "lucide-react";
+import { Icon } from "@/components/Icon";
 
 interface StatCardProps {
   label: string;
@@ -43,9 +43,9 @@ function StatCard({
               }`}
             >
               {trend.direction === "up" ? (
-                <TrendingUp className="h-3 w-3" />
+                <Icon library="lucide" name="TrendingUp" className="h-3 w-3" />
               ) : (
-                <TrendingDown className="h-3 w-3" />
+                <Icon library="lucide" name="TrendingDown" className="h-3 w-3" />
               )}
               {trend.direction === "up" ? "+" : ""}
               {trend.value}%
