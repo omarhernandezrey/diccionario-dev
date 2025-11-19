@@ -35,14 +35,22 @@ const featureHighlights = [
 export default function HomePage() {
   const { t } = useI18n();
   const [activePulse, setActivePulse] = useState(0);
-  const pulses = useMemo(
-    () => [
-      { label: t("landing.pulse.users"), value: "8.2K" },
-      { label: t("landing.pulse.terms"), value: "1.5K" },
-      { label: t("landing.pulse.response"), value: "30ms" },
-    ],
-    [t],
-  );
+const pulses = useMemo(
+  () => [
+    { label: t("landing.pulse.users"), value: "8.2K" },
+    { label: t("landing.pulse.terms"), value: "1.5K" },
+    { label: t("landing.pulse.response"), value: "30ms" },
+  ],
+  [t],
+);
+
+const heroTags = ["#fetch", "#REST", "#GraphQL", "#semántica", "#devtools"];
+
+const benefitCards = [
+  { title: "Observabilidad inmediata", description: "Mapea intentos fallidos y performance en <20ms.", gradient: "bg-grad-1" },
+  { title: "Colección verificada", description: "Cada término revisado con reseñas, snippets y variantes.", gradient: "bg-grad-2" },
+  { title: "Automatización segura", description: "Webhooks, role-based access y auditoría distribuida.", gradient: "bg-grad-3" },
+];
 
   const [hasQuery, setHasQuery] = useState(false);
   useEffect(() => {
@@ -77,6 +85,73 @@ export default function HomePage() {
             <div className="mx-auto mt-20 max-w-4xl px-4">
               <SearchBox variant="light" />
             </div>
+            <div className="mx-auto mt-10 max-w-4xl px-4">
+              <div className="flex flex-wrap gap-2 text-xs font-semibold text-neo-text-primary">
+                {heroTags.map((tag) => (
+                  <span key={tag} className="motion-elevate cursor-default rounded-full border border-white/20 bg-white/90 px-3 py-1 text-sm text-ink-900 shadow-sm transition">
+                    {tag}
+                  </span>
+                ))}
+              </div>
+            </div>
+            <section className="mx-auto mt-10 max-w-6xl px-4 motion-fade-up">
+              <div className="grid gap-4 md:grid-cols-3">
+                {pulses.map((pulse, index) => (
+                  <article
+                    key={pulse.label}
+                    className={`motion-card border border-white/10 bg-white/70 text-ink-900 shadow-xl transition ${activePulse === index ? "border-accent-secondary/60" : ""}`}
+                    onMouseEnter={() => setActivePulse(index)}
+                  >
+                    <p className="text-xs uppercase tracking-[0.3em] text-ink-600">{pulse.label}</p>
+                    <p className="mt-2 text-2xl font-semibold">{pulse.value}</p>
+                    <p className="text-xs text-ink-500">Actualizado hace segundos</p>
+                  </article>
+                ))}
+              </div>
+            </section>
+            <section className="mx-auto mt-12 max-w-6xl px-4 motion-fade-up">
+              <div className="grid gap-6 md:grid-cols-3">
+                {benefitCards.map((card) => (
+                  <article
+                    key={card.title}
+                    className={`motion-card border-0 bg-gradient-to-br ${card.gradient} text-white shadow-lg`}
+                  >
+                    <p className="text-xs uppercase tracking-[0.4em]">Beneficio</p>
+                    <h3 className="mt-2 text-xl font-semibold">{card.title}</h3>
+                    <p className="mt-1 text-sm text-white/90">{card.description}</p>
+                  </article>
+                ))}
+              </div>
+            </section>
+            <section className="mx-auto mt-16 max-w-6xl px-4">
+              <div className="rounded-3xl border border-white/20 bg-gradient-to-br from-ink-900 via-ink-800 to-ink-900 p-8 motion-elevate">
+                <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
+                  <div>
+                    <p className="text-xs uppercase tracking-[0.4em] text-white/70">Panel Admin</p>
+                    <h3 className="text-2xl font-semibold text-white">Muestra mínima</h3>
+                    <p className="text-sm text-white/70">
+                      Acceso seguro, métricas limpias y un layout minimalista listo para operar sin distracciones.
+                    </p>
+                  </div>
+                  <div className="flex gap-3">
+                    <Link href="/admin" className="btn-primary text-sm">
+                      Acceder
+                    </Link>
+                    <Link href="/admin/access" className="btn-ghost text-sm">
+                      Seguridad
+                    </Link>
+                  </div>
+                </div>
+              </div>
+            </section>
+            <footer className="mx-auto mt-16 max-w-6xl px-4">
+              <div className="rounded-3xl border border-black/30 bg-black bg-opacity-60 p-6 text-white/80 shadow-2xl">
+                <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                  <span className="text-sm font-semibold">Diccionario Dev</span>
+                  <p className="text-xs text-white/60">Diseñado con precisión para equipos de producto exigentes. Inspirado en Raycast.</p>
+                </div>
+              </div>
+            </footer>
           </div>
         </div>
       ) : (
