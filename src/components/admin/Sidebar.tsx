@@ -3,23 +3,14 @@
 import React, { useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import {
-  LayoutDashboard,
-  BookOpen,
-  Dumbbell,
-  Video,
-  Settings,
-  ChevronDown,
-  Menu,
-  X,
-} from "lucide-react";
+import { Icon } from "@/components/Icon";
 
 const sections = [
-  { href: "/admin", label: "Dashboard", icon: LayoutDashboard },
-  { href: "/admin/terms", label: "Términos", icon: BookOpen },
-  { href: "/training", label: "Training", icon: Dumbbell },
-  { href: "/interview/live", label: "Interview Live", icon: Video },
-  { href: "/admin/settings", label: "Settings", icon: Settings },
+  { href: "/admin", label: "Dashboard", icon: "LayoutDashboard" },
+  { href: "/admin/terms", label: "Términos", icon: "BookOpen" },
+  { href: "/training", label: "Training", icon: "Dumbbell" },
+  { href: "/interview/live", label: "Interview Live", icon: "Video" },
+  { href: "/admin/settings", label: "Settings", icon: "Settings" },
 ];
 
 export default function Sidebar() {
@@ -54,9 +45,9 @@ export default function Sidebar() {
           {/* Header */}
           <div className="flex items-center justify-between border-b border-neo-border bg-neo-bg p-4">
             <div className="flex items-center gap-3">
-              <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-gradient-to-br from-neo-primary to-neo-accent-purple text-white">
-                <BookOpen className="h-6 w-6" />
-              </div>
+                <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-gradient-to-br from-neo-primary to-neo-accent-purple text-white">
+                  <Icon library="lucide" name="BookOpen" className="h-6 w-6" />
+                </div>
               <div className="hidden sm:block">
                 <div className="text-sm font-bold text-neo-text-primary">Diccionario</div>
                 <div className="text-xs text-neo-text-secondary">Admin Panel</div>
@@ -66,14 +57,13 @@ export default function Sidebar() {
               onClick={() => setCollapsed(true)}
               className="rounded p-1 text-neo-text-secondary hover:bg-neo-surface lg:hidden"
             >
-              <X className="h-5 w-5" />
+              <Icon library="lucide" name="X" className="h-5 w-5" />
             </button>
           </div>
 
           {/* Navigation */}
           <nav className="flex-1 space-y-1 overflow-y-auto px-3 py-6">
             {sections.map((section) => {
-              const Icon = section.icon;
               const active = isActive(section.href);
               return (
                 <Link
@@ -85,11 +75,9 @@ export default function Sidebar() {
                       : "text-neo-text-secondary hover:bg-neo-surface hover:text-neo-text-primary"
                   }`}
                 >
-                  <Icon className="h-5 w-5 flex-shrink-0" />
+                  <Icon library="lucide" name={section.icon} className="h-5 w-5 flex-shrink-0" />
                   <span className="text-sm font-medium">{section.label}</span>
-                  {active && (
-                    <ChevronDown className="ml-auto h-4 w-4 rotate-180" />
-                  )}
+                  {active && <Icon library="lucide" name="ChevronDown" className="ml-auto h-4 w-4 rotate-180" />}
                 </Link>
               );
             })}
@@ -110,7 +98,7 @@ export default function Sidebar() {
         onClick={() => setCollapsed(false)}
         className="fixed left-4 top-4 z-50 rounded-lg bg-neo-primary p-2 text-white shadow-lg shadow-neo-primary/30 lg:hidden"
       >
-        <Menu className="h-5 w-5" />
+        <Icon library="lucide" name="Menu" className="h-5 w-5" />
       </button>
     </>
   );
