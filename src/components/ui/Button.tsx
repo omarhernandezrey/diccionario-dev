@@ -5,9 +5,9 @@ type Variant = "solid" | "soft" | "outline";
 type Size = "sm" | "md" | "lg";
 
 const variantClasses: Record<Variant, string> = {
-  solid: "bg-gradient-to-r from-accent-primary to-accent-secondary text-ink-900 hover:opacity-90",
-  soft: "bg-white/10 text-white hover:bg-white/20",
-  outline: "border border-white/30 text-white hover:border-white hover:bg-white/5",
+  solid: "bg-neo-primary text-white hover:bg-neo-primary-dark shadow-lg shadow-neo-primary/20",
+  soft: "bg-neo-surface text-neo-text-primary hover:bg-neo-card border border-neo-border",
+  outline: "border border-neo-border text-neo-text-primary hover:border-neo-text-secondary hover:bg-neo-surface",
 };
 
 const sizeClasses: Record<Size, string> = {

@@ -204,4 +204,29 @@ jobs:
     howEn: "Describe models in schema.prisma, run migrate dev and use the generated client inside services.",
     languageOverride: Language.ts,
   },
+  {
+    term: "REST",
+    translation: "transferencia de estado representacional",
+    category: Category.backend,
+    descriptionEs: "Estilo de arquitectura para diseñar servicios web basados en recursos y verbos HTTP.",
+    descriptionEn: "Architectural style for designing networked applications based on resources and HTTP verbs.",
+    aliases: ["restful", "rest api"],
+    tags: ["api", "http", "architecture"],
+    example: {
+      titleEs: "Endpoint REST típico",
+      titleEn: "Typical REST endpoint",
+      code: `// GET /api/users/123
+app.get('/users/:id', async (req, res) => {
+  const user = await db.findUser(req.params.id);
+  if (!user) return res.status(404).json({ error: 'Not found' });
+  res.json(user);
+});`,
+      noteEs: "Usa verbos estándar (GET) y códigos de estado (404, 200).",
+      noteEn: "Uses standard verbs (GET) and status codes (404, 200).",
+    },
+    whatEs: "Estandariza la comunicación entre cliente y servidor usando la infraestructura existente de la web.",
+    whatEn: "Standardizes client-server communication leveraging existing web infrastructure.",
+    howEs: "Diseña recursos (URLs), usa verbos HTTP correctos (GET, POST, PUT, DELETE) y devuelve representaciones (JSON).",
+    howEn: "Design resources (URLs), use proper HTTP verbs and return representations (JSON).",
+  },
 ];

@@ -4,13 +4,32 @@ import { useEffect, useMemo, useRef, useState, type ClipboardEvent } from "react
 import { Prism as SyntaxHighlighter } from "react-syntax-highlighter";
 import { dracula } from "react-syntax-highlighter/dist/cjs/styles/prism";
 import { useI18n } from "@/lib/i18n";
-import type { TermDTO, TermVariantDTO } from "@/types/term";
+import type { TermDTO, TermVariantDTO, TermExampleDTO, TermExerciseDTO } from "@/types/term";
 import type { StructuralTranslationResult } from "@/types/translate";
+import { TbBriefcase, TbMicrophone, TbBug, TbBulb, TbListCheck, TbTarget } from "react-icons/tb";
 import SoftSkillsPanel from "@/components/SoftSkillsPanel";
 
 type SearchBoxVariant = "dark" | "light";
 
 type SearchBoxProps = {
+  variant?: SearchBoxVariant;
+};
+
+type SelectorPanelProps = {
+  variantOptions: TermVariantDTO[];
+  variantLang: string | null;
+  onVariantChange: (lang: string) => void;
+  activeVariant?: TermVariantDTO;
+  snippetCode: string;
+  snippetLabel?: string;
+};
+
+type ActionToolbarProps = {
+  onCopyDefinition: () => void;
+  onCopySnippet: () => void;
+  onOpenCheatSheet: () => void;
+  onGenerateResponse: (lang: "es" | "en") => void;
+  hint?: string | null;
   variant?: SearchBoxVariant;
 };
 
@@ -183,6 +202,8 @@ export default function SearchBox({ variant = "dark" }: SearchBoxProps) {
     const controller = new AbortController();
     setStatus("loading");
     setErrorMsg("");
+    setItems([]);
+    setSelected(null);
     if (context === "translate") {
       setItems([]);
       setSelected(null);
@@ -245,7 +266,7 @@ export default function SearchBox({ variant = "dark" }: SearchBoxProps) {
   return (
     <section
       id="search"
-      className={`space-y-4 rounded-3xl p-6 ${tone("border border-neo-border bg-white shadow-xl shadow-neo-primary/5", "border border-white/10 bg-white/5 shadow-glow-card")}`}
+      className="space-y-4"
     >
       <div className="space-y-3">
         <label htmlFor="term-search" className="sr-only">
@@ -254,10 +275,10 @@ export default function SearchBox({ variant = "dark" }: SearchBoxProps) {
         <div
           className={`flex items-center gap-3 rounded-2xl px-4 py-3 focus-within:border-accent-secondary ${tone(
             "border border-neo-border bg-neo-surface",
-            "border border-white/10 bg-white/5",
+            "border border-neo-border bg-neo-surface",
           )}`}
         >
-          <span aria-hidden className={`text-lg ${tone("text-neo-text-secondary", "text-white/60")}`}>
+          <span aria-hidden className={`text-lg ${tone("text-neo-text-secondary", "text-neo-text-secondary")}`}>
             🔍
           </span>
           <input
@@ -269,14 +290,14 @@ export default function SearchBox({ variant = "dark" }: SearchBoxProps) {
             aria-label={t("search.ariaLabel")}
             className={`w-full bg-transparent text-base focus:outline-none ${tone(
               "text-neo-text-primary placeholder:text-neo-text-secondary",
-              "text-white placeholder:text-white/40",
+              "text-neo-text-primary placeholder:text-neo-text-secondary",
             )}`}
           />
           {status === "loading" ? (
             <span
               className={`h-4 w-4 animate-spin rounded-full border-2 ${tone(
                 "border-neo-border border-t-neo-primary",
-                "border-white/40 border-t-white",
+                "border-neo-border border-t-neo-primary",
               )}`}
             />
           ) : null}
@@ -288,7 +309,7 @@ export default function SearchBox({ variant = "dark" }: SearchBoxProps) {
               type="button"
               className={`rounded-full border px-3 py-1 transition ${tone(
                 "border-neo-border bg-neo-surface text-neo-text-secondary hover:bg-white",
-                "border-white/10 bg-white/5 text-white/70 hover:bg-white/10 hover:text-white",
+                "border-neo-border bg-neo-surface text-neo-text-secondary hover:bg-neo-card hover:text-neo-text-primary",
               )}`}
               onClick={() => setSearch(term)}
             >
@@ -306,14 +327,13 @@ export default function SearchBox({ variant = "dark" }: SearchBoxProps) {
               <button
                 key={ctx.id}
                 type="button"
-                className={`rounded-full px-3 py-1 text-xs font-semibold transition ${
-                  active
-                    ? tone("bg-neo-primary text-white shadow-lg shadow-neo-primary/30", "bg-white text-ink-900 shadow")
-                    : tone(
-                        "border border-neo-border text-neo-text-secondary hover:bg-neo-surface",
-                        "border border-white/15 text-white/70 hover:bg-white/10",
-                      )
-                }`}
+                className={`rounded-full px-3 py-1 text-xs font-semibold transition ${active
+                  ? tone("bg-neo-primary text-white shadow-lg shadow-neo-primary/30", "bg-neo-primary text-white shadow")
+                  : tone(
+                    "border border-neo-border text-neo-text-secondary hover:bg-neo-surface",
+                    "border border-neo-border text-neo-text-secondary hover:bg-neo-surface",
+                  )
+                  }`}
                 aria-pressed={active}
                 onClick={() => setContext(ctx.id)}
               >
@@ -321,11 +341,11 @@ export default function SearchBox({ variant = "dark" }: SearchBoxProps) {
               </button>
             );
           })}
-          <span className={`text-xs ${tone("text-neo-text-secondary", "text-white/60")}`}>
+          <span className={`text-xs ${tone("text-neo-text-secondary", "text-neo-text-secondary")}`}>
             Modo:{" "}
             <button
               type="button"
-              className={`underline-offset-4 hover:underline ${tone("text-neo-text-primary", "text-white")}`}
+              className={`underline-offset-4 hover:underline ${tone("text-neo-text-primary", "text-neo-text-primary")}`}
               onClick={() =>
                 setModeOverride((current) => {
                   if (current === null) return detectedMode;
@@ -344,73 +364,67 @@ export default function SearchBox({ variant = "dark" }: SearchBoxProps) {
       {context === "translate" ? (
         <TranslationPanel input={debounced} status={status} helper={statusMessage} result={translationResult} variant={variant} />
       ) : (
-        <div className="mt-2 flex flex-col gap-6 lg:flex-row">
-          <div className="flex-1 space-y-4">
+        <div className="mt-2 space-y-6">
+          {/* Results List Section */}
+          <div className="space-y-4">
             <header className="flex items-center justify-between gap-2">
-              <h3 className={`text-lg font-semibold ${tone("text-neo-text-primary", "text-white")}`}>{t("search.results")}</h3>
+              <h3 className={`text-lg font-semibold ${tone("text-neo-text-primary", "text-neo-text-primary")}`}>{t("search.results")}</h3>
               <span
-                className={`rounded-full px-3 py-1 text-xs ${tone("border border-neo-border text-neo-text-secondary", "border border-white/10 text-white/70")}`}
+                className={`rounded-full px-3 py-1 text-xs ${tone("border border-neo-border text-neo-text-secondary", "border border-neo-border text-neo-text-secondary")}`}
                 aria-live="polite"
               >
                 {statusMessage}
               </span>
             </header>
-            <div className="max-h-[360px] overflow-y-auto pr-2 scroll-silent">
+            <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
               {status === "loading" ? (
                 <SkeletonList />
               ) : items.length ? (
-                <ul className="space-y-2">
-                  {items.map((term) => {
-                    const active = selected?.id === term.id;
-                    return (
-                      <li key={term.id}>
-                        <button
-                          type="button"
-                          className={`w-full rounded-2xl border px-4 py-3 text-left transition ${
-                            active
-                              ? tone(
-                                  "border-neo-primary bg-neo-primary-light/80 shadow-lg shadow-neo-primary/30",
-                                  "border-accent-secondary/70 bg-white/10 shadow-glow-card",
-                                )
-                              : tone(
-                                  "border-neo-border hover:border-neo-primary hover:bg-neo-surface",
-                                  "border-white/5 hover:border-white/20 hover:bg-white/[0.03]",
-                                )
-                          }`}
-                          onClick={() => setSelected(term)}
-                          aria-pressed={active}
-                        >
-                          <div className="flex items-center justify-between gap-3">
-                            <div>
-                              <p className={`text-base font-semibold ${tone("text-neo-text-primary", "text-white")}`}>{term.term}</p>
-                              <p className={`text-xs uppercase tracking-wide ${tone("text-neo-text-secondary", "text-white/50")}`}>
-                                {term.translation}
-                              </p>
-                            </div>
-                            <span
-                              className={`rounded-full px-2 py-1 text-xs ${tone("bg-neo-surface text-neo-text-secondary", "bg-white/5 text-white/70")}`}
-                            >
-                              {term.category}
-                            </span>
-                          </div>
-                          {term.aliases?.length ? (
-                            <p className={`mt-2 line-clamp-1 text-xs ${tone("text-neo-text-secondary", "text-white/60")}`}>
-                              Aliases:{" "}
-                              <span className={tone("text-neo-text-primary", "text-white/80")}>
-                                {term.aliases.slice(0, 3).join(", ")}
-                              </span>
-                            </p>
-                          ) : null}
-                        </button>
-                      </li>
-                    );
-                  })}
-                </ul>
+                items.map((term) => {
+                  const active = selected?.id === term.id;
+                  return (
+                    <button
+                      key={term.id}
+                      type="button"
+                      className={`rounded-2xl border px-4 py-3 text-left transition ${active
+                        ? tone(
+                          "border-neo-primary bg-neo-primary-light/80 shadow-lg shadow-neo-primary/30",
+                          "border-neo-primary bg-neo-primary-light/20 shadow-glow-card",
+                        )
+                        : tone(
+                          "border-neo-border hover:border-neo-primary hover:bg-neo-surface",
+                          "border-neo-border hover:border-neo-primary hover:bg-neo-surface",
+                        )
+                        }`}
+                      onClick={() => setSelected(term)}
+                      aria-pressed={active}
+                    >
+                      <div className="space-y-2">
+                        <div className="flex items-start justify-between gap-2">
+                          <p className={`text-base font-semibold ${tone("text-neo-text-primary", "text-neo-text-primary")}`}>{term.term}</p>
+                          <span
+                            className={`rounded-full px-2 py-1 text-[10px] font-semibold uppercase ${tone("bg-neo-surface text-neo-text-secondary", "bg-neo-surface text-neo-text-secondary")}`}
+                          >
+                            {term.category}
+                          </span>
+                        </div>
+                        <p className={`text-xs uppercase tracking-wide ${tone("text-neo-text-secondary", "text-neo-text-secondary")}`}>
+                          {term.translation}
+                        </p>
+                        {term.aliases?.length ? (
+                          <p className={`line-clamp-1 text-xs ${tone("text-neo-text-secondary", "text-neo-text-secondary")}`}>
+                            {term.aliases.slice(0, 2).join(", ")}
+                          </p>
+                        ) : null}
+                      </div>
+                    </button>
+                  );
+                })
               ) : (
                 <p
-                  className={`rounded-2xl border border-dashed px-4 py-6 text-sm ${tone(
+                  className={`col-span-full rounded-2xl border border-dashed px-4 py-6 text-center text-sm ${tone(
                     "border-neo-border text-neo-text-secondary",
-                    "border-white/10 text-white/60",
+                    "border-neo-border text-neo-text-secondary",
                   )}`}
                 >
                   {statusMessage}
@@ -419,13 +433,12 @@ export default function SearchBox({ variant = "dark" }: SearchBoxProps) {
             </div>
           </div>
 
-          <div className="flex-1">
-            {selected ? (
-              <ResultPreview term={selected} activeContext={context} variant={variant} />
-            ) : (
-              <Placeholder copy={t("search.helper")} variant={variant} />
-            )}
-          </div>
+          {/* Preview Section - Full Width */}
+          {selected ? (
+            <ResultPreview term={selected} activeContext={context} variant={variant} />
+          ) : (
+            <Placeholder copy={t("search.helper")} variant={variant} />
+          )}
         </div>
       )}
     </section>
@@ -434,7 +447,7 @@ export default function SearchBox({ variant = "dark" }: SearchBoxProps) {
 
 function ResultPreview({ term, activeContext, variant }: { term: TermDTO; activeContext: string; variant: SearchBoxVariant }) {
   const { t } = useI18n();
-  const isLight = variant === "light";
+  const isLight = variant === 'light';
   const tone = (light: string, dark: string) => (isLight ? light : dark);
   const [variantLang, setVariantLang] = useState<string | null>(term.variants?.[0]?.language ?? null);
   const [cheatSheetOpen, setCheatSheetOpen] = useState(false);
@@ -465,13 +478,12 @@ function ResultPreview({ term, activeContext, variant }: { term: TermDTO; active
   const meaningEn = term.meaningEn ?? term.meaning;
   const whatEs = term.whatEs ?? term.what;
   const whatEn = term.whatEn ?? term.what;
-  const snippetCode = activeVariant?.snippet ?? term.howEs ?? term.how ?? "";
+  const snippetCode = activeVariant?.snippet ?? term.howEs ?? term.how ?? '';
   const snippetLabel = activeVariant
     ? `${languageLabels[activeVariant.language] ?? activeVariant.language}`
-    : t("terms.how");
+    : t('terms.how');
   const aliasList = term.aliases ?? [];
   const tags = term.tags ?? [];
-  const faqs = term.faqs ?? [];
   const exercises = term.exercises ?? [];
   const filteredUseCases = useCaseContext ? useCases.filter((useCase) => useCase.context === useCaseContext) : useCases;
 
@@ -495,77 +507,62 @@ function ResultPreview({ term, activeContext, variant }: { term: TermDTO; active
     const text = `${term.term}: ${meaningEs}`;
     try {
       await navigator.clipboard.writeText(text);
-      showActionHint("Definición copiada al portapapeles");
+      showActionHint('Definición copiada al portapapeles');
     } catch {
-      showActionHint("No se pudo copiar");
+      showActionHint('No se pudo copiar');
     }
   };
 
   const handleCopySnippet = async () => {
     try {
       await navigator.clipboard.writeText(snippetCode);
-      showActionHint("Snippet copiado");
+      showActionHint('Snippet copiado');
     } catch {
-      showActionHint("No se pudo copiar");
+      showActionHint('No se pudo copiar');
     }
   };
 
-  const handleGenerateResponse = async (language: "es" | "en") => {
+  const handleGenerateResponse = async (language: 'es' | 'en') => {
     const text = buildInterviewResponse(term, { es: meaningEs, en: meaningEn }, { es: whatEs, en: whatEn }, language);
     try {
       await navigator.clipboard.writeText(text);
-      showActionHint(language === "es" ? "Respuesta en ES lista" : "Respuesta en EN lista");
+      showActionHint(language === 'es' ? 'Respuesta en ES lista' : 'Respuesta en EN lista');
     } catch {
-      showActionHint("No se pudo copiar la respuesta");
+      showActionHint('No se pudo copiar la respuesta');
     }
   };
 
   return (
-    <article className="flex flex-col gap-6 lg:flex-row">
-      <div className="flex-1 space-y-4">
-        <div className="flex flex-wrap items-center gap-4">
+    <article className="px-1 py-4 md:px-0">
+      {/* Header with Term Info */}
+      <div className="mb-4">
+        <div className="flex flex-wrap items-start justify-between gap-2 mb-2">
           <div>
-            <h3 className={`text-2xl font-semibold ${tone("text-neo-text-primary", "text-white")}`}>{term.term}</h3>
-            <p className={`text-sm ${tone("text-neo-text-secondary", "text-white/70")}`}>{term.translation}</p>
+            <h3 className="text-2xl md:text-3xl font-bold text-neo-text-primary">{term.term}</h3>
+            <p className="mt-1 text-sm md:text-base text-neo-text-secondary">{term.translation}</p>
           </div>
-          <span
-            className={`rounded-full px-3 py-1 text-xs uppercase tracking-wide ${tone(
-              "border border-neo-border bg-neo-surface text-neo-text-secondary",
-              "border border-white/10 bg-white/10 text-white/70",
-            )}`}
-          >
+          <span className="rounded-full border border-neo-border bg-neo-surface px-3 py-1 text-xs font-semibold uppercase text-neo-text-secondary">
             {term.category}
           </span>
         </div>
-        <div className={`rounded-2xl border p-4 ${tone("border-neo-border bg-white", "border-white/10 bg-white/5")}`}>
-          <p className={`text-xs uppercase tracking-wide ${tone("text-neo-text-secondary", "text-white/60")}`}>Traducción literal</p>
-          <p className={`text-lg font-semibold ${tone("text-neo-text-primary", "text-white")}`}>{term.translation}</p>
-          {aliasList.length ? (
-            <div className={`mt-3 flex flex-wrap gap-2 text-xs ${tone("text-neo-text-secondary", "text-white/70")}`}>
-              {aliasList.map((alias) => (
-                <span
-                  key={alias}
-                  className={`rounded-full border px-2 py-0.5 ${tone("border-neo-border text-neo-text-secondary", "border-white/15")}`}
-                >
-                  {alias}
-                </span>
-              ))}
-            </div>
-          ) : null}
-          {tags.length ? (
-            <div className={`mt-2 flex flex-wrap gap-2 text-xs ${tone("text-neo-text-secondary/80", "text-white/40")}`}>
-              {tags.map((tag) => (
-                <span
-                  key={tag}
-                  className={`rounded-full px-2 py-0.5 ${tone("bg-neo-surface text-neo-text-secondary", "bg-white/5")}`}
-                >
-                  #{tag}
-                </span>
-              ))}
-            </div>
-          ) : null}
-        </div>
+        {(aliasList.length > 0 || tags.length > 0) && (
+          <div className="flex flex-wrap gap-1 text-xs">
+            {aliasList.map((alias) => (
+              <span key={alias} className="rounded-full border border-neo-border bg-neo-surface px-2 py-0.5 text-neo-text-secondary">
+                {alias}
+              </span>
+            ))}
+            {tags.map((tag) => (
+              <span key={tag} className="rounded-full border border-neo-border bg-neo-surface px-2 py-0.5 font-semibold text-neo-text-primary">
+                #{tag}
+              </span>
+            ))}
+          </div>
+        )}
+      </div>
 
+      {/* Action Toolbar */}
+      <div className="mt-6">
         <ActionToolbar
           onCopyDefinition={handleCopyDefinition}
           onCopySnippet={handleCopySnippet}
@@ -574,29 +571,31 @@ function ResultPreview({ term, activeContext, variant }: { term: TermDTO; active
           hint={actionHint}
           variant={variant}
         />
+      </div>
 
-        <div className="grid gap-3 md:grid-cols-2">
-          <div className={`rounded-2xl border p-4 ${tone("border-neo-border bg-white", "border-white/10 bg-white/5")}`}>
-            <p className={`text-xs uppercase tracking-wide ${tone("text-neo-text-secondary", "text-white/60")}`}>Significado (ES)</p>
-            <p className={`mt-2 text-sm ${tone("text-neo-text-primary", "text-white")}`}>{meaningEs}</p>
+      {/* Content Grid */}
+      <div className="mt-6 grid gap-6 lg:grid-cols-2">
+        {/* Meanings */}
+        {[{ label: 'Significado (ES)', value: meaningEs }, { label: 'Meaning (EN)', value: meaningEn }].map((block) => (
+          <div key={block.label} className="py-2">
+            <p className="text-xs font-bold uppercase tracking-widest text-neo-primary mb-2">{block.label}</p>
+            <p className="text-lg leading-relaxed text-neo-text-primary">{block.value}</p>
           </div>
-          <div className={`rounded-2xl border p-4 ${tone("border-neo-border bg-white", "border-white/10 bg-white/5")}`}>
-            <p className={`text-xs uppercase tracking-wide ${tone("text-neo-text-secondary", "text-white/60")}`}>Meaning (EN)</p>
-            <p className={`mt-2 text-sm ${tone("text-neo-text-primary", "text-white")}`}>{meaningEn}</p>
-          </div>
-        </div>
+        ))}
+      </div>
 
-        <div className="grid gap-3 md:grid-cols-2">
-          <div className={`rounded-2xl border p-4 ${tone("border-neo-border bg-white", "border-white/10 bg-white/5")}`}>
-            <p className={`text-xs uppercase tracking-wide ${tone("text-neo-text-secondary", "text-white/60")}`}>{t("terms.what")} (ES)</p>
-            <p className={`text-sm ${tone("text-neo-text-primary", "text-white")}`}>{whatEs}</p>
+      {/* What it solves */}
+      <div className="mt-6 grid gap-6 lg:grid-cols-2">
+        {[{ label: `${t('terms.what')} (ES)`, value: whatEs }, { label: `${t('terms.what')} (EN)`, value: whatEn }].map((block) => (
+          <div key={block.label} className="py-2">
+            <p className="text-xs font-bold uppercase tracking-widest text-neo-primary mb-2">{block.label}</p>
+            <p className="text-lg leading-relaxed text-neo-text-primary">{block.value}</p>
           </div>
-          <div className={`rounded-2xl border p-4 ${tone("border-neo-border bg-white", "border-white/10 bg-white/5")}`}>
-            <p className={`text-xs uppercase tracking-wide ${tone("text-neo-text-secondary", "text-white/60")}`}>{t("terms.what")} (EN)</p>
-            <p className={`text-sm ${tone("text-neo-text-primary", "text-white")}`}>{whatEn}</p>
-          </div>
-        </div>
+        ))}
+      </div>
 
+      {/* Code Snippet */}
+      <div className="mt-6">
         <SelectorPanel
           variantOptions={variantOptions}
           variantLang={variantLang}
@@ -605,155 +604,142 @@ function ResultPreview({ term, activeContext, variant }: { term: TermDTO; active
           snippetLabel={snippetLabel}
           snippetCode={snippetCode}
         />
-
-        {term.examples?.length ? (
-          <div className="space-y-3">
-            <p className={`text-xs uppercase tracking-wide ${tone("text-neo-text-secondary", "text-white/60")}`}>{t("terms.examples")}</p>
-            <div className="space-y-2">
-              {term.examples.map((example, index) => {
-                const title =
-                  example.titleEs || example.titleEn || example.title || `${t("terms.examples")} #${index + 1}`;
-                const note = example.noteEs || example.noteEn || example.note;
-                return (
-                  <div
-                    key={`${title}-${index}`}
-                    className={`rounded-2xl border p-4 ${tone("border-neo-border bg-neo-surface", "border-white/10 bg-ink-900/60")}`}
-                  >
-                    <div>
-                      <p className={`text-sm font-semibold ${tone("text-neo-text-primary", "text-white")}`}>{title}</p>
-                      {note ? <p className={`text-xs ${tone("text-neo-text-secondary", "text-white/60")}`}>{note}</p> : null}
-                    </div>
-                    <CodeBlock code={example.code} label={title} />
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-        ) : null}
       </div>
 
-      <aside className="w-full space-y-4 lg:w-80">
-        {useCases.length ? (
-          <section className={`rounded-2xl border p-4 ${tone("border-neo-border bg-white", "border-white/10 bg-ink-900/50")}`}>
-            <header className="flex flex-wrap items-center justify-between gap-2">
-              <p className={`text-xs uppercase tracking-wide ${tone("text-neo-text-secondary", "text-white/60")}`}>Casos de uso</p>
-              {availableUseCaseContexts.length > 1 ? (
-                <div className="flex flex-wrap gap-2 text-[11px]">
-                  {availableUseCaseContexts.map((ctx) => {
-                    const active = ctx === useCaseContext;
-                    return (
-                      <button
-                        key={`${term.id}-ctx-${ctx}`}
-                        type="button"
-                        className={`rounded-full px-2.5 py-0.5 font-semibold transition ${
-                          active
-                            ? tone("bg-neo-primary text-white shadow", "bg-white text-ink-900")
-                            : tone(
-                                "border border-neo-border text-neo-text-secondary hover:bg-neo-surface",
-                                "border border-white/20 text-white/60 hover:bg-white/10",
-                              )
-                        }`}
-                        onClick={() => setUseCaseContext(ctx)}
-                      >
-                        {contextLabels[ctx] ?? ctx}
-                      </button>
-                    );
-                  })}
-                </div>
-              ) : null}
-            </header>
-            <div className="space-y-3 pt-3">
-              {filteredUseCases.length ? (
-                filteredUseCases.slice(0, 3).map((useCase) => (
-                  <div
-                    key={`${term.id}-usecase-${useCase.context}-${useCase.id ?? ""}`}
-                    className={`rounded-2xl border p-3 ${tone("border-neo-border bg-neo-surface", "border-white/10 bg-white/5")}`}
-                  >
-                    <div className={`flex items-center justify-between text-xs ${tone("text-neo-text-secondary", "text-white/60")}`}>
-                      <span className="font-semibold">{contextLabels[useCase.context] ?? useCase.context}</span>
-                    </div>
-                    <p className={`mt-2 text-sm ${tone("text-neo-text-primary", "text-white")}`}>{useCase.summary}</p>
-                    {useCase.steps?.length ? (
-                      <ul className={`mt-2 space-y-1 text-xs ${tone("text-neo-text-secondary", "text-white/70")}`}>
-                        {useCase.steps.slice(0, 3).map((step, index) => (
-                          <li key={`${term.id}-step-${useCase.context}-${index}`} className="flex gap-2">
-                            <span className={tone("text-neo-text-secondary/70", "text-white/40")}>{index + 1}.</span>
-                            <span>{step.es || step.en}</span>
-                          </li>
-                        ))}
-                      </ul>
-                    ) : null}
-                    {useCase.tips ? <p className={`mt-2 text-xs ${tone("text-neo-text-secondary", "text-white/50")}`}>{useCase.tips}</p> : null}
-                  </div>
-                ))
-              ) : (
-                <p
-                  className={`rounded-2xl border border-dashed p-4 text-xs ${tone(
-                    "border-neo-border text-neo-text-secondary",
-                    "border-white/10 text-white/60",
-                  )}`}
-                >
-                  No tenemos guías para este contexto todavía.
-                </p>
-              )}
-            </div>
-          </section>
-        ) : null}
+      {/* Examples */}
+      {term.examples?.length ? (
+        <div className="mt-10">
+          <h3 className="text-xl font-bold text-neo-text-primary mb-6 flex items-center gap-2">
+            <span className="h-1 w-6 rounded-full bg-neo-primary"></span>
+            {t('terms.examples')}
+          </h3>
+          <div className="grid gap-8 grid-cols-1">
+            {term.examples.map((example) => (
+              <ExampleRow key={example.title} example={example} variant={variant} />
+            ))}
+          </div>
+        </div>
+      ) : null}
 
-        {faqs.length ? (
-          <section className={`rounded-2xl border p-4 ${tone("border-neo-border bg-white", "border-white/10 bg-ink-900/50")}`}>
-            <p className={`mb-2 text-xs uppercase tracking-wide ${tone("text-neo-text-secondary", "text-white/60")}`}>FAQs</p>
-            <div className="space-y-3">
-              {faqs.slice(0, 2).map((faq) => (
-                <details
-                  key={`${term.id}-faq-${faq.id ?? faq.questionEs}`}
-                  className={`rounded-2xl border p-3 ${tone("border-neo-border bg-neo-surface", "border-white/10 bg-white/5")}`}
-                >
-                  <summary className={`cursor-pointer text-sm font-semibold ${tone("text-neo-text-primary", "text-white")}`}>{faq.questionEs}</summary>
-                  <div className={`mt-2 text-sm ${tone("text-neo-text-secondary", "text-white/80")}`}>{faq.answerEs}</div>
-                  {faq.answerEn ? <div className={`mt-1 text-xs ${tone("text-neo-text-secondary", "text-white/60")}`}>{faq.answerEn}</div> : null}
-                  {faq.snippet ? <CodeBlock code={faq.snippet} label={faq.category ?? "FAQ"} /> : null}
-                  {faq.howToExplain ? (
-                    <p className={`mt-2 text-xs ${tone("text-neo-text-secondary", "text-white/50")}`}>{faq.howToExplain}</p>
+      {/* Bottom Grid - Use Cases */}
+      <div className="mt-10">
+        {/* Use Cases - World Class Design */}
+        <div className="">
+          <div className="flex items-center justify-between mb-6">
+            <h3 className="text-xl font-bold text-neo-text-primary flex items-center gap-2">
+              <TbTarget className="text-neo-primary" /> Casos de uso
+            </h3>
+          </div>
+
+          {/* Premium Segmented Control */}
+          <div className="flex p-1 gap-1 bg-neo-surface/50 rounded-lg mb-8 overflow-x-auto border border-neo-border/30">
+            {availableUseCaseContexts.length ? (
+              availableUseCaseContexts.map((contextOption) => {
+                const isActive = useCaseContext === contextOption;
+                const icons: Record<string, any> = {
+                  project: TbBriefcase,
+                  interview: TbMicrophone,
+                  bug: TbBug,
+                };
+                const Icon = icons[contextOption] ?? TbListCheck;
+
+                return (
+                  <button
+                    key={contextOption}
+                    type="button"
+                    onClick={() => setUseCaseContext(contextOption)}
+                    className={`flex-1 flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg text-xs font-semibold transition-all duration-300 ${isActive
+                      ? 'bg-white dark:bg-neo-primary text-neo-primary dark:text-white shadow-md scale-[1.02]'
+                      : 'text-neo-text-secondary hover:bg-white/50 dark:hover:bg-white/5 hover:text-neo-text-primary'
+                      }`}
+                  >
+                    <Icon className="text-base" />
+                    <span className="capitalize">{contextOption}</span>
+                  </button>
+                );
+              })
+            ) : (
+              <span className="text-xs text-neo-text-secondary px-4 py-2">Sin contextos adicionales.</span>
+            )}
+          </div>
+
+          {/* Dynamic Content Card */}
+          <div className="min-h-[200px]">
+            {filteredUseCases.length ? (
+              filteredUseCases.map((useCase, index) => (
+                <div key={`${useCase.context}-${index}`} className="animate-in fade-in slide-in-from-bottom-2 duration-500">
+                  {/* Hero Summary */}
+                  <div className="mb-6">
+                    <h4 className="text-lg font-bold text-neo-text-primary leading-tight">
+                      {useCase.summary}
+                    </h4>
+                  </div>
+
+                  {/* Timeline Steps */}
+                  {useCase.steps?.length ? (
+                    <div className="relative pl-2 space-y-6 mb-6">
+                      {/* Vertical Line */}
+                      <div className="absolute left-[11px] top-2 bottom-2 w-[2px] bg-gradient-to-b from-neo-primary/50 to-transparent" />
+
+                      {useCase.steps.map((step, i) => (
+                        <div key={i} className="relative flex gap-4 group">
+                          <div className="relative z-10 flex-shrink-0 w-6 h-6 rounded-full bg-neo-surface border-2 border-neo-primary flex items-center justify-center text-[10px] font-bold text-neo-primary group-hover:scale-110 transition-transform bg-white dark:bg-black">
+                            {i + 1}
+                          </div>
+                          <p className="text-sm text-neo-text-secondary pt-0.5 group-hover:text-neo-text-primary transition-colors">
+                            {step.es ?? step.en}
+                          </p>
+                        </div>
+                      ))}
+                    </div>
                   ) : null}
-                </details>
+
+                  {/* Pro Tip Box */}
+                  {useCase.tips ? (
+                    <div className="relative overflow-hidden rounded-xl border border-yellow-500/20 bg-yellow-500/5 p-4 md:p-5">
+                      <div className="absolute top-0 right-0 p-1 md:p-2 opacity-10">
+                        <TbBulb className="text-4xl text-yellow-500" />
+                      </div>
+                      <div className="flex gap-2 md:gap-3 relative z-10">
+                        <TbBulb className="flex-shrink-0 text-lg text-yellow-500 mt-0.5" />
+                        <div>
+                          <p className="text-xs font-bold uppercase tracking-wider text-yellow-600/80 mb-1">Pro Tip</p>
+                          <p className="text-sm text-neo-text-primary/90 italic">
+                            "{useCase.tips}"
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                  ) : null}
+                </div>
+              ))
+            ) : (
+              <div className="flex flex-col items-center justify-center h-40 text-center opacity-50">
+                <TbTarget className="text-4xl mb-2" />
+                <p className="text-xs text-neo-text-secondary">Selecciona un contexto para ver el plan de acción.</p>
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+
+      {/* Exercises - Full Width */}
+      {
+        exercises.length ? (
+          <div className="mt-10">
+            <h3 className="text-xl font-bold text-neo-text-primary mb-6 flex items-center gap-2">
+              <span className="h-1 w-6 rounded-full bg-neo-accent-purple"></span>
+              Ejercicios
+            </h3>
+            <div className="space-y-8">
+              {exercises.map((exercise, index) => (
+                <ExerciseRow key={exercise.id ?? index} exercise={exercise} variant={variant} />
               ))}
             </div>
-          </section>
-        ) : null}
+          </div>
+        ) : null
+      }
 
-        {exercises.length ? (
-          <section className={`rounded-2xl border p-4 ${tone("border-neo-border bg-white", "border-white/10 bg-ink-900/50")}`}>
-            <p className={`mb-2 text-xs uppercase tracking-wide ${tone("text-neo-text-secondary", "text-white/60")}`}>Ejercicios</p>
-            <div className="space-y-3">
-              {exercises.slice(0, 2).map((exercise) => {
-                const difficultyLabel = difficultyLabels[exercise.difficulty as keyof typeof difficultyLabels] ?? exercise.difficulty;
-                const solution = exercise.solutions?.[0];
-                return (
-                  <div
-                    key={`${term.id}-exercise-${exercise.id ?? exercise.titleEs}`}
-                    className={`rounded-2xl border p-3 ${tone("border-neo-border bg-neo-surface", "border-white/10 bg-white/5")}`}
-                  >
-                    <div className={`flex items-center justify-between text-xs ${tone("text-neo-text-secondary", "text-white/70")}`}>
-                      <span className={tone("font-semibold text-neo-text-primary", "font-semibold text-white")}>{exercise.titleEs}</span>
-                      <span>{difficultyLabel}</span>
-                    </div>
-                    <p className={`mt-2 text-xs ${tone("text-neo-text-secondary", "text-white/70")}`}>{exercise.promptEs}</p>
-                    {solution ? (
-                      <CodeBlock
-                        code={solution.code}
-                        label={`${languageLabels[solution.language] ?? solution.language.toUpperCase()} · ${difficultyLabel}`}
-                      />
-                    ) : null}
-                  </div>
-                );
-              })}
-            </div>
-          </section>
-        ) : null}
-
-        {activeContext === "interview" ? <SoftSkillsPanel tags={tags} variant={variant} /> : null}
-      </aside>
       <CheatSheetOverlay
         open={cheatSheetOpen}
         onClose={() => setCheatSheetOpen(false)}
@@ -766,18 +752,9 @@ function ResultPreview({ term, activeContext, variant }: { term: TermDTO; active
         tags={tags}
         aliases={aliasList}
       />
-    </article>
+    </article >
   );
 }
-
-type SelectorPanelProps = {
-  variantOptions: TermVariantDTO[];
-  variantLang: string | null;
-  onVariantChange: (language: string) => void;
-  activeVariant: TermVariantDTO | null;
-  snippetCode: string;
-  snippetLabel: string;
-};
 
 function SelectorPanel({
   variantOptions = [],
@@ -790,11 +767,11 @@ function SelectorPanel({
   const { t } = useI18n();
   const hasVariants = Boolean(variantOptions.length);
   return (
-    <div className="rounded-2xl border border-white/10 bg-ink-900/60 p-4">
-      <div className="flex flex-wrap items-center justify-between gap-2">
-        <p className="text-xs uppercase tracking-wide text-white/60">{t("terms.how")}</p>
+    <div className="mt-4">
+      <div className="flex flex-wrap items-center justify-between gap-2 mb-4">
+        <p className="text-xs uppercase tracking-wide text-neo-text-secondary">{t("terms.how")}</p>
         {activeVariant?.level ? (
-          <span className="rounded-full border border-white/15 bg-white/5 px-3 py-0.5 text-[11px] uppercase tracking-wide text-white/60">
+          <span className="rounded-full border border-neo-border bg-neo-surface px-3 py-0.5 text-[11px] uppercase tracking-wide text-neo-text-secondary">
             {skillLabels[activeVariant.level] ?? activeVariant.level}
           </span>
         ) : null}
@@ -807,9 +784,8 @@ function SelectorPanel({
               <button
                 key={`variant-${variant.language}`}
                 type="button"
-                className={`rounded-full px-3 py-1 font-semibold transition ${
-                  active ? "bg-white text-ink-900" : "border border-white/20 text-white/60 hover:bg-white/10"
-                }`}
+                className={`rounded-full px-3 py-1 font-semibold transition ${active ? "bg-white text-ink-900" : "border border-white/20 text-white/60 hover:bg-white/10"
+                  }`}
                 onClick={() => onVariantChange(variant.language)}
               >
                 {languageLabels[variant.language] ?? variant.language.toUpperCase()}
@@ -824,21 +800,11 @@ function SelectorPanel({
   );
 }
 
-type ActionToolbarProps = {
-  onCopyDefinition: () => void;
-  onCopySnippet: () => void;
-  onOpenCheatSheet: () => void;
-  onGenerateResponse: (lang: "es" | "en") => void;
-  hint?: string | null;
-  variant?: SearchBoxVariant;
-};
+
 
 function ActionToolbar({ onCopyDefinition, onCopySnippet, onOpenCheatSheet, onGenerateResponse, hint, variant = "dark" }: ActionToolbarProps) {
-  const isLight = variant === "light";
-  const tone = (light: string, dark: string) => (isLight ? light : dark);
-
   return (
-    <div className={`flex flex-col gap-2 rounded-2xl border p-4 ${tone("border-neo-border bg-white", "border-white/10 bg-ink-900/60")}`}>
+    <div className="flex flex-col gap-4 border-b border-neo-border/30 pb-6">
       <div className="flex flex-wrap gap-2 text-xs font-semibold">
         <button className="btn-ghost" type="button" onClick={onCopyDefinition}>
           Copiar definición
@@ -878,7 +844,7 @@ function CheatSheetOverlay({ open, onClose, term, meaningEs, meaningEn, whatEs, 
   if (!open) return null;
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4">
-      <div className="w-full max-w-2xl rounded-3xl border border-white/10 bg-ink-900 p-6 shadow-2xl">
+      <div className="w-full max-w-2xl rounded-3xl border border-white/10 bg-ink-900 p-2 md:p-4 lg:p-6 shadow-2xl">
         <header className="flex items-center justify-between">
           <div>
             <p className="text-xs uppercase tracking-wide text-white/60">Cheat sheet</p>
@@ -901,7 +867,7 @@ function CheatSheetOverlay({ open, onClose, term, meaningEs, meaningEn, whatEs, 
           <p>
             <strong>How to pitch (EN):</strong> {whatEn}
           </p>
-          <div className="rounded-2xl border border-white/10 bg-white/5 p-3">
+          <div className="rounded-2xl border border-white/10 bg-white/5 p-2">
             <p className="text-xs uppercase tracking-wide text-white/60">Snippet base</p>
             <CodeBlock code={snippet} label={term.translation ?? term.term} />
           </div>
@@ -994,11 +960,11 @@ function TranslationPanel({
         </span>
       </header>
       <div className="grid gap-4 lg:grid-cols-2">
-        <div className={`rounded-2xl border p-4 ${tone("border-neo-border bg-white", "border-white/10 bg-white/5")}`}>
+        <div className={`rounded-2xl border p-2 ${tone("border-neo-border bg-white", "border-white/10 bg-white/5")}`}>
           <p className={`text-xs uppercase tracking-wide ${tone("text-neo-text-secondary", "text-white/60")}`}>Fragmento original</p>
           <CodeBlock code={input} label="Original" />
         </div>
-        <div className={`rounded-2xl border p-4 ${tone("border-neo-border bg-neo-surface", "border-white/10 bg-ink-900/50")}`}>
+        <div className={`rounded-2xl border p-2 ${tone("border-neo-border bg-neo-surface", "border-white/10 bg-ink-900/50")}`}>
           <div className={`flex items-center justify-between gap-2 text-xs ${tone("text-neo-text-secondary", "text-white/60")}`}>
             <p className={tone("text-neo-text-primary", "text-white")}>Salida en español</p>
             <span
@@ -1091,60 +1057,160 @@ function truncateSegment(text: string, limit = 120) {
   return `${trimmed.slice(0, limit)}…`;
 }
 
-function CodeBlock({ code, label }: { code: string; label?: string }) {
+function CodeBlock({ code, label, language = "tsx" }: { code: string; label?: string; language?: string }) {
   const normalized = (code ?? "").trimEnd().replace(/\r\n/g, "\n") || "// Sin código";
   return (
-    <div className="mt-3 overflow-hidden rounded-2xl border border-white/10 bg-[#050915] shadow-inner">
-      <div className="flex items-center justify-between gap-2 border-b border-white/5 px-4 py-2 text-[11px] text-white/60">
+    <div className="overflow-hidden rounded-xl border border-neo-border/40 bg-[#0d1117] my-4 group transition-all hover:border-neo-primary/30">
+      <div className="flex items-center justify-between gap-2 border-b border-neo-border/10 bg-white/5 px-3 py-2 md:px-4 md:py-2.5 text-xs text-neo-text-secondary">
         <div className="flex items-center gap-3">
-          <span className="flex gap-1">
+          <span className="flex gap-1.5 opacity-50 group-hover:opacity-100 transition-opacity">
             <span className="h-2.5 w-2.5 rounded-full bg-[#ff5f56]" />
             <span className="h-2.5 w-2.5 rounded-full bg-[#ffbd2e]" />
             <span className="h-2.5 w-2.5 rounded-full bg-[#27c93f]" />
           </span>
-          <span className="uppercase tracking-wide opacity-70">{label || "Snippet"}</span>
+          <span className="font-mono font-medium opacity-70">{label || "Snippet"}</span>
         </div>
         <CopyButton code={normalized} />
       </div>
       <SyntaxHighlighter
-        language="tsx"
+        language={language}
         style={dracula}
         customStyle={{
           borderRadius: 0,
-          padding: "1rem 1.25rem",
-          maxHeight: "11rem",
+          maxHeight: "24rem",
           overflow: "auto",
-          fontSize: "0.78rem",
           backgroundColor: "transparent",
           margin: 0,
+          whiteSpace: "pre", // Force no wrap
         }}
         codeTagProps={{
           style: {
-            fontFamily: "JetBrains Mono, SFMono-Regular, Menlo, monospace",
-            whiteSpace: "pre-wrap",
-            wordBreak: "break-word",
+            whiteSpace: "pre",
+            fontFamily: '"JetBrains Mono", monospace',
           },
         }}
         lineNumberStyle={{
-          minWidth: "2.5ch",
-          paddingRight: "0.75rem",
+          minWidth: "2em",
+          paddingRight: "0.5em",
           textAlign: "right",
-          color: "rgba(255,255,255,0.35)",
-        }}
-        lineProps={{
-          style: {
-            display: "block",
-            paddingLeft: "0.85rem",
-            textIndent: "-0.85rem",
-          },
+          color: "rgba(255,255,255,0.3)",
+          userSelect: "none",
         }}
         showLineNumbers
-        wrapLines
-        wrapLongLines
-        className="scroll-silent"
+        className="scroll-silent !p-2 md:!p-6 !text-[9px] md:!text-[13px] !leading-[1.3] md:!leading-relaxed tracking-tight"
       >
         {normalized}
       </SyntaxHighlighter>
+    </div>
+  );
+}
+
+type ExerciseRowProps = {
+  exercise: TermExerciseDTO;
+  variant: SearchBoxVariant;
+};
+
+function ExerciseRow({ exercise, variant }: ExerciseRowProps) {
+  const [showSolution, setShowSolution] = useState(true);
+  const isLight = variant === "light";
+  const tone = (light: string, dark: string) => (isLight ? light : dark);
+
+  const title = exercise.titleEs ?? exercise.titleEn ?? "Ejercicio";
+  const prompt = exercise.promptEs ?? exercise.promptEn ?? "";
+  const solution = exercise.solutions?.[0];
+
+  const renderPrompt = (text: string) => {
+    if (!text.includes("```")) {
+      return <span className="whitespace-pre-wrap">{text}</span>;
+    }
+
+    const parts = text.split(/(```[\w]*\n[\s\S]*?```)/g);
+    return parts.map((part, index) => {
+      if (part.startsWith("```")) {
+        const match = part.match(/```(\w*)\n([\s\S]*?)```/);
+        if (match) {
+          const [, lang, code] = match;
+          return (
+            <CodeBlock key={index} code={code.trim()} language={lang || 'text'} />
+          );
+        }
+      }
+      return <span key={index} className="whitespace-pre-wrap">{part}</span>;
+    });
+  };
+
+  return (
+    <div className="border-b border-neo-border/30 pb-8 last:border-0">
+      <div className="flex items-start justify-between gap-4 mb-3">
+        <div className="flex items-center gap-2">
+          <h4 className={`font-semibold ${tone('text-neo-text-primary', 'text-white')}`}>
+            {exercise.titleEs ?? exercise.titleEn}
+          </h4>
+          <span className={`rounded-full px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider ${exercise.difficulty === 'easy' ? 'bg-green-500/10 text-green-600 dark:text-green-400' :
+            exercise.difficulty === 'medium' ? 'bg-yellow-500/10 text-yellow-600 dark:text-yellow-400' :
+              'bg-red-500/10 text-red-600 dark:text-red-400'
+            }`}>
+            {exercise.difficulty}
+          </span>
+        </div>
+        {solution && (
+          <button
+            onClick={() => setShowSolution(!showSolution)}
+            className={`shrink-0 rounded-lg border px-3 py-1.5 text-xs font-semibold transition ${showSolution
+              ? tone("border-neo-primary bg-neo-primary text-white", "border-neo-primary bg-neo-primary text-white")
+              : tone("border-neo-border bg-white hover:border-neo-primary hover:text-neo-primary", "border-neo-border bg-white/5 hover:border-neo-primary hover:text-neo-primary")
+              }`}
+          >
+            {showSolution ? "Ocultar solución" : "Ver solución"}
+          </button>
+        )}
+      </div>
+
+      <div className={`text-sm ${tone('text-neo-text-secondary', 'text-neo-text-secondary')}`}>
+        {renderPrompt(prompt)}
+      </div>
+
+      {showSolution && solution && (
+        <div className="mt-4 pt-4 border-t border-neo-border/30">
+          <div className="mb-2 flex items-center gap-2">
+            <div className="h-1.5 w-1.5 rounded-full bg-neo-primary" />
+            <p className={`text-xs font-bold uppercase tracking-wider ${tone("text-neo-text-secondary", "text-neo-text-secondary")}`}>
+              Solución
+            </p>
+          </div>
+
+          <CodeBlock code={solution.code} language={solution.language} />
+
+          {(solution.explainEs || solution.explainEn) && (
+            <div className="mt-3 p-4 md:p-5 rounded-lg bg-neo-primary/5">
+              <p className={`text-sm leading-relaxed ${tone("text-neo-text-primary", "text-neo-text-primary")}`}>
+                <span className={`font-semibold ${tone("text-neo-primary", "text-neo-primary")}`}>💡 </span>
+                {solution.explainEs ?? solution.explainEn}
+              </p>
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
+type ExampleRowProps = {
+  example: TermExampleDTO;
+  variant: SearchBoxVariant;
+};
+
+function ExampleRow({ example, variant }: ExampleRowProps) {
+  const isLight = variant === "light";
+  const tone = (light: string, dark: string) => (isLight ? light : dark);
+  const title = example.title ?? example.titleEs ?? example.titleEn ?? "Ejemplo";
+  const note = example.note ?? example.noteEs ?? example.noteEn;
+
+  return (
+    <div className="space-y-3 pl-4 border-l-2 border-neo-border/50 hover:border-neo-primary transition-colors">
+      <p className="text-sm font-bold text-neo-text-primary">{title}</p>
+      {note ? <p className="text-sm text-neo-text-secondary">{note}</p> : null}
+      <CodeBlock code={example.code} label={title} />
     </div>
   );
 }
@@ -1167,9 +1233,8 @@ function CopyButton({ code }: { code: string }) {
     <button
       type="button"
       onClick={handleCopy}
-      className={`rounded-full border px-3 py-1 text-xs font-semibold transition ${
-        copied ? "border-accent-emerald/60 text-accent-emerald" : "border-white/20 text-white/70 hover:border-white/40"
-      }`}
+      className={`rounded-full border px-3 py-1 text-xs font-semibold transition ${copied ? "border-accent-emerald/60 text-accent-emerald" : "border-white/20 text-white/70 hover:border-white/40"
+        }`}
       aria-live="polite"
     >
       {copied ? t("common.copied") : t("common.copy")}

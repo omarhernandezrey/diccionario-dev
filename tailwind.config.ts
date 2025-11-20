@@ -6,35 +6,6 @@ const config: Config = {
   theme: {
     extend: {
       colors: {
-        slate: {
-          50: "#f8fafc",
-          100: "#f1f5f9",
-          200: "#e2e8f0",
-          300: "#cbd5e1",
-          400: "#94a3b8",
-          500: "#64748b",
-          600: "#475569",
-          700: "#334155",
-          800: "#1e293b",
-          900: "#0f172a",
-          950: "#020617",
-        },
-        neoDark: {
-          bg: "#0B0C10",
-          card: "#111217",
-          surface: "#1A1C22",
-          border: "#2A2D33",
-          "text-primary": "#F8F9FB",
-          "text-secondary": "#9BA0A8",
-          primary: "#4D9AFF",
-          "primary-dark": "#1A5FCC",
-          "primary-light": "#1E2A40",
-          "accent-pink": "#FF7CE7",
-          "accent-purple": "#A783FF",
-          "accent-cyan": "#39F5E2",
-          "accent-lime": "#DFFF57",
-          "accent-orange": "#FFCC7A",
-        },
         neo: {
           bg: "var(--neo-bg)",
           card: "var(--neo-card)",
@@ -50,16 +21,6 @@ const config: Config = {
           "accent-cyan": "var(--neo-accent-cyan)",
           "accent-lime": "var(--neo-accent-lime)",
           "accent-orange": "var(--neo-accent-orange)",
-        },
-        ink: {
-          950: "#04070f",
-          900: "#060b18",
-          800: "#0b1326",
-          700: "#111c36",
-          600: "#162448",
-          500: "#1f305f",
-          300: "#5f6b8c",
-          100: "#e5e7ff",
         },
         accent: {
           primary: "#6c63ff",
@@ -99,13 +60,7 @@ const config: Config = {
         "lg-light": "0 10px 15px -3px rgba(0,0,0,0.1)",
         "xl-card": "0 20px 25px -5px rgba(0,0,0,0.2)",
       },
-      animation: {
-        "pulse-slow": "pulse 6s ease-in-out infinite",
-        float: "float 8s ease-in-out infinite",
-        "fade-in": "fadeIn 0.5s ease-in-out",
-        "slide-up": "slideUp 0.4s ease-out",
-        "bounce-soft": "bounceSoft 2s ease-in-out infinite",
-      },
+
       keyframes: {
         float: {
           "0%, 100%": { transform: "translateY(0px)" },
@@ -123,6 +78,18 @@ const config: Config = {
           "0%, 100%": { transform: "translateY(0)" },
           "50%": { transform: "translateY(-4px)" },
         },
+        marquee: {
+          "0%": { transform: "translateX(0)" },
+          "100%": { transform: "translateX(-50%)" },
+        },
+      },
+      animation: {
+        "pulse-slow": "pulse 6s ease-in-out infinite",
+        float: "float 8s ease-in-out infinite",
+        "fade-in": "fadeIn 0.5s ease-in-out",
+        "slide-up": "slideUp 0.4s ease-out",
+        "bounce-soft": "bounceSoft 2s ease-in-out infinite",
+        marquee: "marquee 60s linear infinite",
       },
       backgroundImage: {
         "gradient-admin": "linear-gradient(135deg, #060b18 0%, #0b1326 100%)",

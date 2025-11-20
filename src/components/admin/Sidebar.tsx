@@ -37,17 +37,16 @@ export default function Sidebar() {
 
       {/* Sidebar */}
       <aside
-        className={`fixed left-0 top-0 z-40 h-screen w-64 border-r border-neo-border bg-white transition-all duration-300 ease-out lg:sticky lg:translate-x-0 ${
-          collapsed ? "-translate-x-full" : "translate-x-0"
-        }`}
+        className={`fixed left-0 top-0 z-40 h-screen w-64 border-r border-neo-border bg-neo-card transition-all duration-300 ease-out lg:sticky lg:translate-x-0 ${collapsed ? "-translate-x-full" : "translate-x-0"
+          }`}
       >
         <div className="flex h-full flex-col">
           {/* Header */}
           <div className="flex items-center justify-between border-b border-neo-border bg-neo-bg p-4">
             <div className="flex items-center gap-3">
-                <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-gradient-to-br from-neo-primary to-neo-accent-purple text-white">
-                  <Icon library="lucide" name="BookOpen" className="h-6 w-6" />
-                </div>
+              <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-gradient-to-br from-neo-primary to-neo-accent-purple text-white">
+                <Icon library="lucide" name="BookOpen" className="h-6 w-6" />
+              </div>
               <div className="hidden sm:block">
                 <div className="text-sm font-bold text-neo-text-primary">Diccionario</div>
                 <div className="text-xs text-neo-text-secondary">Admin Panel</div>
@@ -69,11 +68,10 @@ export default function Sidebar() {
                 <Link
                   key={section.href}
                   href={section.href}
-                  className={`group flex items-center gap-3 rounded-lg px-3 py-2.5 transition-all duration-200 ${
-                    active
+                  className={`group flex items-center gap-3 rounded-lg px-3 py-2.5 transition-all duration-200 ${active
                       ? "bg-gradient-to-r from-neo-primary to-neo-accent-purple text-white shadow-lg shadow-neo-primary/30"
                       : "text-neo-text-secondary hover:bg-neo-surface hover:text-neo-text-primary"
-                  }`}
+                    }`}
                 >
                   <Icon library="lucide" name={section.icon} className="h-5 w-5 flex-shrink-0" />
                   <span className="text-sm font-medium">{section.label}</span>

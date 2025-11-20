@@ -179,20 +179,23 @@ select:focus-visible {
     padding: 0.75rem 1.5rem;
     font-weight: 600;
     color: #ffffff;
-    background-color: #000;
+    background-color: var(--neo-primary);
     transition: all 200ms ease;
     border: 1px solid transparent;
   }
+
   .btn-primary:focus-visible {
     outline: none;
-    box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.25);
+    box-shadow: 0 0 0 3px rgba(26, 115, 232, 0.25);
   }
+
   .btn-primary:disabled {
     cursor: not-allowed;
     opacity: 0.5;
   }
+
   .btn-primary:hover:not(:disabled) {
-    background-color: #111;
+    background-color: var(--neo-primary-dark);
   }
 
   .btn-secondary {
@@ -207,10 +210,12 @@ select:focus-visible {
     background-color: transparent;
     transition: background 200ms ease, color 200ms ease;
   }
+
   .btn-secondary:hover:not(:disabled) {
     background-color: #f3f4f6;
     color: #0f172a;
   }
+
   .btn-secondary:disabled {
     cursor: not-allowed;
     opacity: 0.5;
@@ -229,21 +234,25 @@ select:focus-visible {
     border: none;
     transition: color 200ms ease;
   }
+
   .btn-ghost:disabled {
     opacity: 0.5;
   }
-.btn-ghost:hover:not(:disabled) {
-  color: #111;
-}
+
+  .btn-ghost:hover:not(:disabled) {
+    color: #111;
+  }
 
   .motion-elevate {
     transition: transform 200ms ease, box-shadow 200ms ease;
     will-change: transform, box-shadow;
   }
+
   .motion-elevate:hover {
     transform: translateY(-4px);
     box-shadow: 0 12px 35px rgba(15, 23, 42, 0.35);
   }
+
   .motion-elevate:active {
     transform: translateY(-2px);
   }
@@ -257,6 +266,7 @@ select:focus-visible {
     backdrop-filter: blur(24px);
     transition: transform 220ms ease, box-shadow 220ms ease;
   }
+
   .motion-card:hover {
     transform: translateY(-3px);
     box-shadow: 0 24px 50px rgba(15, 23, 42, 0.25);
@@ -277,6 +287,7 @@ select:focus-visible {
   .scroll-silent {
     scrollbar-width: none;
   }
+
   .scroll-silent::-webkit-scrollbar {
     display: none;
   }
@@ -287,10 +298,12 @@ select:focus-visible {
     opacity: 0;
     transform: translateY(24px);
   }
+
   60% {
     opacity: 1;
     transform: translateY(-4px);
   }
+
   100% {
     opacity: 1;
     transform: translateY(0);
@@ -298,112 +311,13 @@ select:focus-visible {
 }
 
 @media (prefers-reduced-motion: reduce) {
+
   .motion-elevate,
   .motion-card,
   .motion-fade-up {
     transition: none;
     animation: none;
   }
-}
-
-.admin-theme {
-  background-color: var(--neo-bg);
-  color: var(--neo-text-primary);
-}
-
-.admin-theme .text-ink-900 {
-  color: var(--neo-text-primary) !important;
-}
-
-.admin-theme .bg-white {
-  background-color: var(--neo-card) !important;
-}
-
-.admin-theme .bg-white\/20 {
-  background-color: var(--admin-layer-strong) !important;
-}
-
-.admin-theme .bg-white\/10 {
-  background-color: var(--admin-layer) !important;
-}
-
-.admin-theme .bg-white\/5 {
-  background-color: var(--admin-layer-soft) !important;
-}
-
-.admin-theme .bg-white\/2 {
-  background-color: var(--admin-layer-muted) !important;
-}
-
-.admin-theme .bg-white\/80 {
-  background-color: var(--admin-glass) !important;
-  backdrop-filter: blur(24px);
-}
-
-.admin-theme .border-white\/40 {
-  border-color: var(--admin-border-muted) !important;
-}
-
-.admin-theme .border-white\/30 {
-  border-color: var(--admin-border-soft) !important;
-}
-
-.admin-theme .border-white\/20 {
-  border-color: var(--admin-border-strong) !important;
-}
-
-.admin-theme .border-white\/15,
-.admin-theme .border-white\/10 {
-  border-color: var(--admin-border-soft) !important;
-}
-
-.admin-theme .bg-ink-950,
-.admin-theme .bg-ink-900,
-.admin-theme .bg-ink-800,
-.admin-theme .bg-ink-900\/80,
-.admin-theme .bg-ink-900\/70 {
-  background-color: var(--admin-layer-strong) !important;
-}
-
-.admin-theme .bg-ink-900\/60,
-.admin-theme .bg-ink-950\/60 {
-  background-color: var(--admin-layer) !important;
-}
-
-.admin-theme .bg-ink-900\/50,
-.admin-theme .bg-ink-900\/40 {
-  background-color: var(--admin-layer-soft) !important;
-}
-
-.admin-theme .bg-ink-950\/90 {
-  background-color: var(--admin-backdrop) !important;
-}
-
-.admin-theme [class*="bg-[#050915]"],
-.admin-theme [class*="bg-[#0d1424]"] {
-  background-color: var(--admin-layer) !important;
-}
-
-.admin-theme .bg-gradient-to-br {
-  background-color: var(--admin-layer-strong);
-}
-
-.admin-theme .from-ink-900 {
-  --tw-gradient-from: color-mix(in srgb, var(--neo-primary-light) 40%, var(--neo-bg) 60%) !important;
-  --tw-gradient-to: rgb(255 255 255 / 0);
-  --tw-gradient-stops: var(--tw-gradient-from), var(--tw-gradient-to);
-}
-
-.admin-theme .via-ink-800 {
-  --tw-gradient-stops: var(--tw-gradient-from), color-mix(in srgb, var(--neo-primary) 45%, var(--neo-accent-purple) 20%), var(--tw-gradient-to, rgb(255 255 255 / 0));
-}
-
-.admin-theme .via-ink-900 {
-  --tw-gradient-stops: var(--tw-gradient-from), color-mix(in srgb, var(--neo-primary) 60%, var(--neo-accent-purple) 25%), var(--tw-gradient-to, rgb(255 255 255 / 0));
-}
-
-.admin-theme .to-ink-900 {
-  --tw-gradient-to: color-mix(in srgb, var(--neo-primary) 55%, var(--neo-primary-light) 45%) !important;
 }
 
 .bg-grad-1 {
@@ -427,4 +341,59 @@ select:focus-visible {
   background-color: rgba(0, 0, 0, 0.4);
   border-color: rgba(255, 255, 255, 0.1);
   box-shadow: 0 18px 40px rgba(0, 0, 0, 0.45);
+}
+
+@keyframes marquee {
+  0% {
+    transform: translateX(0);
+  }
+  100% {
+    transform: translateX(-50%);
+  }
+}
+
+  .animate-marquee {
+    animation: marquee 60s linear infinite;
+  }
+
+@media (prefers-reduced-motion: reduce) {
+  .animate-marquee {
+    animation: none;
+  }
+}
+
+@keyframes float {
+  0% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-4px);
+  }
+  100% {
+    transform: translateY(0);
+  }
+}
+
+@keyframes pulseBorder {
+  0% {
+    opacity: 0.15;
+    border-width: 1px;
+  }
+  50% {
+    opacity: 0.4;
+    border-width: 2px;
+  }
+  100% {
+    opacity: 0.15;
+    border-width: 1px;
+  }
+}
+
+@layer utilities {
+  .animate-floating {
+    animation: float 6s ease-in-out infinite;
+  }
+  .animate-pulse-border {
+    animation: pulseBorder 5s ease-in-out infinite;
+  }
 }

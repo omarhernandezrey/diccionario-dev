@@ -643,24 +643,24 @@ export function AdminConsole({ initialView = "overview" }: AdminConsoleProps) {
 
   return (
     <div className="space-y-8 text-neo-text-primary">
-      <section className="relative overflow-hidden rounded-[32px] border border-white/10 bg-gradient-to-br from-ink-900 via-ink-800 to-ink-900 p-8 shadow-glow-card">
-        <div className="absolute inset-y-0 right-0 hidden w-1/3 bg-gradient-to-l from-accent-secondary/10 to-transparent blur-3xl lg:block" />
+      <section className="relative overflow-hidden rounded-[32px] border border-neo-border bg-neo-card p-8 shadow-glow-card">
+        <div className="absolute inset-y-0 right-0 hidden w-1/3 bg-gradient-to-l from-neo-primary/10 to-transparent blur-3xl lg:block" />
         <div className="flex flex-wrap items-center gap-4">
-          <div className="rounded-3xl border border-white/20 bg-white/10 p-3 shadow-glow-card">
+          <div className="rounded-3xl border border-neo-border bg-neo-surface p-3 shadow-glow-card">
             <Icon library="lucide" name="BookOpenCheck" className="h-7 w-7 text-neo-text-primary" />
           </div>
           <div>
             <p className="text-xs uppercase tracking-[0.3em] text-neo-text-secondary">Panel de control</p>
             <h1 className="text-3xl font-semibold">Diccionario Dev · Admin</h1>
           </div>
-          <div className="ml-auto flex items-center gap-3 rounded-full border border-white/15 bg-ink-900/60 px-4 py-2 text-xs text-neo-text-secondary">
+          <div className="ml-auto flex items-center gap-3 rounded-full border border-neo-border bg-neo-surface px-4 py-2 text-xs text-neo-text-secondary">
             <Icon
               library="lucide"
               name="ShieldCheck"
               className={`h-4 w-4 ${session ? "text-accent-emerald" : "text-accent-danger"}`}
             />
             <span>{session ? `Activo: ${session.username} (${session.role})` : "Acceso restringido"}</span>
-            <button type="button" className="text-accent-secondary underline-offset-2 hover:underline" onClick={() => handleViewChange("team")}>
+            <button type="button" className="text-neo-primary underline-offset-2 hover:underline" onClick={() => handleViewChange("team")}>
               Gestionar
             </button>
           </div>
@@ -672,9 +672,9 @@ export function AdminConsole({ initialView = "overview" }: AdminConsoleProps) {
           {adminHeroStats.map((stat) => {
             const iconName = HERO_STAT_ICONS[stat.label] || "ActivitySquare";
             return (
-              <div key={stat.label} className="flex flex-col gap-3 rounded-3xl border border-white/10 bg-ink-900/60 p-4 shadow-inner">
-                <div className="inline-flex h-10 w-10 items-center justify-center rounded-2xl bg-white/10">
-                  <Icon library="lucide" name={iconName} className="h-5 w-5 text-accent-secondary" />
+              <div key={stat.label} className="flex flex-col gap-3 rounded-3xl border border-neo-border bg-neo-surface p-4 shadow-inner">
+                <div className="inline-flex h-10 w-10 items-center justify-center rounded-2xl bg-neo-card">
+                  <Icon library="lucide" name={iconName} className="h-5 w-5 text-neo-primary" />
                 </div>
                 <dt className="text-xs uppercase tracking-wide text-neo-text-secondary">{stat.label}</dt>
                 <dd className="text-3xl font-semibold text-neo-text-primary">{stat.value}</dd>
@@ -861,7 +861,7 @@ type AuthCardProps = {
 function AuthCard({ form, onChange, onSubmit }: AuthCardProps) {
   const disabled = !form.username.trim() || !form.password.trim();
   return (
-    <section className="glass-panel space-y-4">
+    <section className="glass-panel space-y-4 border border-neo-border bg-neo-card">
       <header>
         <p className="text-xs uppercase tracking-wide text-neo-text-secondary">Acceso</p>
         <h2 className="text-xl font-semibold">Iniciar sesión</h2>
@@ -871,7 +871,7 @@ function AuthCard({ form, onChange, onSubmit }: AuthCardProps) {
         <label className="text-sm text-neo-text-secondary">
           Usuario
           <input
-            className="mt-1 w-full rounded-2xl border border-white/10 bg-transparent px-4 py-2 text-neo-text-primary focus:border-accent-secondary focus:outline-none"
+            className="mt-1 w-full rounded-2xl border border-neo-border bg-transparent px-4 py-2 text-neo-text-primary focus:border-accent-secondary focus:outline-none"
             value={form.username}
             onChange={(event) => onChange({ ...form, username: event.target.value })}
           />
@@ -880,7 +880,7 @@ function AuthCard({ form, onChange, onSubmit }: AuthCardProps) {
           Contraseña
           <input
             type="password"
-            className="mt-1 w-full rounded-2xl border border-white/10 bg-transparent px-4 py-2 text-neo-text-primary focus:border-accent-secondary focus:outline-none"
+            className="mt-1 w-full rounded-2xl border border-neo-border bg-transparent px-4 py-2 text-neo-text-primary focus:border-accent-secondary focus:outline-none"
             value={form.password}
             onChange={(event) => onChange({ ...form, password: event.target.value })}
           />
@@ -903,7 +903,7 @@ type RegisterCardProps = {
 function RegisterCard({ form, onChange, onSubmit, allowBootstrap }: RegisterCardProps) {
   const disabled = !form.username.trim() || !form.password.trim();
   return (
-    <section className="glass-panel space-y-4">
+    <section className="glass-panel space-y-4 border border-neo-border bg-neo-card">
       <header>
         <p className="text-xs uppercase tracking-wide text-neo-text-secondary">Usuarios</p>
         <h2 className="text-xl font-semibold">
@@ -919,7 +919,7 @@ function RegisterCard({ form, onChange, onSubmit, allowBootstrap }: RegisterCard
         <label className="text-sm text-neo-text-secondary">
           Usuario
           <input
-            className="mt-1 w-full rounded-2xl border border-white/10 bg-transparent px-4 py-2 text-neo-text-primary focus:border-accent-secondary focus:outline-none"
+            className="mt-1 w-full rounded-2xl border border-neo-border bg-transparent px-4 py-2 text-neo-text-primary focus:border-accent-secondary focus:outline-none"
             value={form.username}
             onChange={(event) => onChange({ ...form, username: event.target.value })}
           />
@@ -927,7 +927,7 @@ function RegisterCard({ form, onChange, onSubmit, allowBootstrap }: RegisterCard
         <label className="text-sm text-neo-text-secondary">
           Email (opcional)
           <input
-            className="mt-1 w-full rounded-2xl border border-white/10 bg-transparent px-4 py-2 text-neo-text-primary focus:border-accent-secondary focus:outline-none"
+            className="mt-1 w-full rounded-2xl border border-neo-border bg-transparent px-4 py-2 text-neo-text-primary focus:border-accent-secondary focus:outline-none"
             value={form.email}
             onChange={(event) => onChange({ ...form, email: event.target.value })}
           />
@@ -936,7 +936,7 @@ function RegisterCard({ form, onChange, onSubmit, allowBootstrap }: RegisterCard
           Contraseña
           <input
             type="password"
-            className="mt-1 w-full rounded-2xl border border-white/10 bg-transparent px-4 py-2 text-neo-text-primary focus:border-accent-secondary focus:outline-none"
+            className="mt-1 w-full rounded-2xl border border-neo-border bg-transparent px-4 py-2 text-neo-text-primary focus:border-accent-secondary focus:outline-none"
             value={form.password}
             onChange={(event) => onChange({ ...form, password: event.target.value })}
           />
@@ -945,7 +945,7 @@ function RegisterCard({ form, onChange, onSubmit, allowBootstrap }: RegisterCard
           <label className="text-sm text-neo-text-secondary">
             Rol
             <select
-              className="mt-1 w-full rounded-2xl border border-white/10 bg-ink-900/70 px-4 py-2 text-neo-text-primary focus:border-accent-secondary focus:outline-none"
+              className="mt-1 w-full rounded-2xl border border-neo-border bg-neo-surface px-4 py-2 text-neo-text-primary focus:border-accent-secondary focus:outline-none"
               value={form.role}
               onChange={(event) => onChange({ ...form, role: event.target.value as "admin" | "user" })}
             >
@@ -986,16 +986,15 @@ function TeamPlaybookPanel({
   onSyncAlerts,
 }: TeamPlaybookPanelProps) {
   return (
-    <section className="rounded-3xl border border-white/10 bg-ink-900/60 p-6 shadow-glow-card">
+    <section className="rounded-3xl border border-neo-border bg-neo-surface p-6 shadow-glow-card">
       <header className="flex flex-wrap items-center justify-between gap-3">
         <div>
           <p className="text-xs uppercase tracking-wide text-neo-text-secondary">Operaciones del equipo</p>
           <h2 className="text-lg font-semibold">{session ? `Hola ${session.username}` : "Gestiona los accesos"}</h2>
         </div>
         <span
-          className={`inline-flex items-center rounded-full px-3 py-1 text-xs font-semibold ${
-            authLoading ? "bg-white/10 text-neo-text-secondary" : session ? "bg-accent-emerald/20 text-accent-emerald" : "bg-accent-danger/20 text-accent-danger"
-          }`}
+          className={`inline-flex items-center rounded-full px-3 py-1 text-xs font-semibold ${authLoading ? "bg-neo-surface text-neo-text-secondary" : session ? "bg-accent-emerald/20 text-accent-emerald" : "bg-accent-danger/20 text-accent-danger"
+            }`}
         >
           {authLoading ? "Validando…" : session ? "Sesión activa" : "Sin sesión"}
         </span>
@@ -1008,19 +1007,19 @@ function TeamPlaybookPanel({
             : "Inicia sesión con tu usuario o solicita un acceso administrador."}
       </p>
       <dl className="mt-4 grid gap-4 sm:grid-cols-3">
-        <div className="rounded-2xl border border-white/10 bg-white/5 p-3">
+        <div className="rounded-2xl border border-neo-border bg-neo-card p-3">
           <dt className="text-xs uppercase tracking-wide text-neo-text-secondary">Rol</dt>
           <dd className="text-sm font-semibold text-neo-text-primary">{session ? session.role : "Invitado"}</dd>
         </div>
-        <div className="rounded-2xl border border-white/10 bg-white/5 p-3">
+        <div className="rounded-2xl border border-neo-border bg-neo-card p-3">
           <dt className="text-xs uppercase tracking-wide text-neo-text-secondary">Bootstrap</dt>
           <dd className="text-sm font-semibold text-neo-text-primary">{allowBootstrap ? "Disponible" : "Cerrado"}</dd>
         </div>
-        <div className="rounded-2xl border border-white/10 bg-white/5 p-3">
+        <div className="rounded-2xl border border-neo-border bg-neo-card p-3">
           <dt className="text-xs uppercase tracking-wide text-neo-text-secondary">Sincronización</dt>
           <dd className="text-sm font-semibold text-neo-text-primary">{today}</dd>
         </div>
-        <div className="rounded-2xl border border-white/10 bg-white/5 p-3">
+        <div className="rounded-2xl border border-neo-border bg-neo-card p-3">
           <dt className="text-xs uppercase tracking-wide text-neo-text-secondary">Alertas activas</dt>
           <dd className="text-sm font-semibold text-neo-text-primary">{alertsSyncing ? "Sync…" : alertCount}</dd>
         </div>
@@ -1067,20 +1066,18 @@ function ViewSwitcher({ activeView, onChange, itemsCount, pendingCount, session,
             key={view.id}
             type="button"
             onClick={() => onChange(view.id)}
-            className={`flex flex-col gap-3 rounded-3xl border p-5 text-left transition-all ${
-              isActive
-                ? "border-accent-secondary/60 bg-gradient-to-br from-accent-secondary/20 via-ink-900/60 to-ink-900/60 shadow-lg shadow-accent-secondary/30"
-                : "border-white/10 bg-ink-900/40 hover:border-white/30"
-            }`}
+            className={`flex flex-col gap-3 rounded-3xl border p-5 text-left transition-all ${isActive
+              ? "border-accent-secondary/60 bg-gradient-to-br from-accent-secondary/20 via-neo-surface to-neo-surface shadow-lg shadow-accent-secondary/30"
+              : "border-neo-border bg-neo-surface hover:border-neo-primary/30"
+              }`}
           >
             <div className="flex items-center gap-3">
-                <span
-                  className={`inline-flex h-10 w-10 items-center justify-center rounded-2xl ${
-                    isActive ? "bg-white text-ink-900" : "bg-white/10 text-neo-text-primary"
+              <span
+                className={`inline-flex h-10 w-10 items-center justify-center rounded-2xl ${isActive ? "bg-white text-neo-bg" : "bg-neo-card text-neo-text-primary"
                   }`}
-                >
-                  <Icon library="lucide" name={view.iconName} className="h-5 w-5" />
-                </span>
+              >
+                <Icon library="lucide" name={view.iconName} className="h-5 w-5" />
+              </span>
               <div>
                 <p className="text-sm font-semibold">{view.label}</p>
                 <p className="text-xs text-neo-text-secondary">{view.description}</p>
@@ -1108,7 +1105,7 @@ type SelectionToolbarProps = {
 
 function SelectionToolbar({ count, allSelected, selectionDisabled, canEdit, onToggleAll, onBulkDelete }: SelectionToolbarProps) {
   return (
-    <section className="flex flex-col gap-4 rounded-3xl border border-white/10 bg-gradient-to-br from-ink-900/80 via-ink-800/70 to-ink-900/70 p-6 shadow-glow-card md:flex-row md:items-center md:justify-between">
+    <section className="flex flex-col gap-4 rounded-3xl border border-neo-border bg-neo-surface p-6 shadow-glow-card md:flex-row md:items-center md:justify-between">
       <div>
         <p className="text-xs uppercase tracking-wide text-neo-text-secondary">Selección actual</p>
         <div className="flex items-baseline gap-2">
@@ -1173,7 +1170,7 @@ function TermsTable({
   lastAutoRefreshTime,
 }: TermsTableProps) {
   return (
-    <section className="space-y-6 rounded-3xl border border-white/10 bg-ink-900/60 p-6 shadow-glow-card">
+    <section className="space-y-6 rounded-3xl border border-neo-border bg-neo-surface p-6 shadow-glow-card">
       <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
         <div>
           <p className="text-xs uppercase tracking-wide text-neo-text-secondary">Catálogo</p>
@@ -1192,7 +1189,7 @@ function TermsTable({
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
           <label className="w-full text-sm text-neo-text-secondary sm:w-64">
             <span className="sr-only">Buscar término</span>
-            <div className="flex items-center gap-2 rounded-2xl border border-white/10 bg-ink-900/50 px-3 py-2">
+            <div className="flex items-center gap-2 rounded-2xl border border-neo-border bg-neo-card px-3 py-2">
               <span aria-hidden>🔍</span>
               <input
                 className="w-full bg-transparent text-sm text-neo-text-primary focus:outline-none"
@@ -1206,7 +1203,7 @@ function TermsTable({
           <label className="text-sm text-neo-text-secondary">
             Estado
             <select
-              className="mt-1 rounded-2xl border border-white/10 bg-ink-900/50 px-3 py-2 text-neo-text-primary focus:border-accent-secondary focus:outline-none"
+              className="mt-1 rounded-2xl border border-neo-border bg-neo-card px-3 py-2 text-neo-text-primary focus:border-accent-secondary focus:outline-none"
               value={statusFilter}
               onChange={(event) => onStatusFilterChange(event.target.value as ReviewStatus | "all")}
             >
@@ -1223,9 +1220,9 @@ function TermsTable({
           </button>
         </div>
       </div>
-      <div className="overflow-x-auto rounded-3xl border border-white/10 bg-ink-900/80">
-        <table className="min-w-[720px] divide-y divide-white/10 text-sm">
-          <thead className="bg-white/5 text-left text-xs uppercase tracking-wide text-neo-text-secondary">
+      <div className="overflow-x-auto rounded-3xl border border-neo-border bg-neo-surface">
+        <table className="min-w-[720px] divide-y divide-neo-border text-sm">
+          <thead className="bg-neo-card text-left text-xs uppercase tracking-wide text-neo-text-secondary">
             <tr>
               <th className="px-4 py-3">
                 <input
@@ -1234,7 +1231,7 @@ function TermsTable({
                   checked={allSelected && !!items.length}
                   onChange={() => onToggleAll()}
                   disabled={selectionDisabled}
-                  className="h-4 w-4 rounded border-white/40 bg-transparent"
+                  className="h-4 w-4 rounded border-neo-border bg-transparent"
                 />
               </th>
               <th className="px-4 py-3">#</th>
@@ -1245,10 +1242,10 @@ function TermsTable({
               <th className="px-4 py-3">Acciones</th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-white/5">
+          <tbody className="divide-y divide-neo-border">
             {items.length ? (
               items.map((item) => (
-                <tr key={item.id} className="bg-white/2">
+                <tr key={item.id} className="bg-neo-surface hover:bg-neo-card transition-colors">
                   <td className="px-4 py-3">
                     <input
                       type="checkbox"
@@ -1256,7 +1253,7 @@ function TermsTable({
                       checked={selectedIds.includes(item.id)}
                       onChange={() => onToggleItem(item.id)}
                       disabled={!canEdit}
-                      className="h-4 w-4 rounded border-white/40 bg-transparent"
+                      className="h-4 w-4 rounded border-neo-border bg-transparent"
                     />
                   </td>
                   <td className="px-4 py-3 text-neo-text-secondary">{item.id}</td>
@@ -1268,7 +1265,7 @@ function TermsTable({
                     </span>
                   </td>
                   <td className="px-4 py-3">
-                    <span className="rounded-full bg-white/10 px-2 py-1 text-xs capitalize text-neo-text-secondary">{item.category}</span>
+                    <span className="rounded-full bg-neo-card px-2 py-1 text-xs capitalize text-neo-text-secondary">{item.category}</span>
                   </td>
                   <td className="px-4 py-3">
                     <div className="flex flex-wrap gap-2">
@@ -1319,7 +1316,7 @@ function TermPipelinePanel({ statusSummary, categories }: TermPipelinePanelProps
   const topCategories = categories.slice(0, 4);
 
   return (
-    <section className="rounded-3xl border border-white/10 bg-ink-900/60 p-6 shadow-glow-card">
+    <section className="rounded-3xl border border-neo-border bg-neo-surface p-6 shadow-glow-card">
       <header className="flex items-center justify-between">
         <div>
           <p className="text-xs uppercase tracking-wide text-neo-text-secondary">Pipeline editorial</p>
@@ -1338,21 +1335,21 @@ function TermPipelinePanel({ statusSummary, categories }: TermPipelinePanelProps
                   <span>{status.label}</span>
                   <span>{count}</span>
                 </div>
-                <div className="mt-2 h-2 w-full rounded-full bg-white/5">
+                <div className="mt-2 h-2 w-full rounded-full bg-neo-card">
                   <div className={`h-full rounded-full bg-gradient-to-r ${status.accent}`} style={{ width: `${pct}%` }} />
                 </div>
               </div>
             );
           })}
         </div>
-        <div className="rounded-2xl border border-white/10 bg-ink-900/80 p-4">
+        <div className="rounded-2xl border border-neo-border bg-neo-card p-4">
           <p className="text-xs uppercase tracking-wide text-neo-text-secondary">Categorías más consultadas</p>
           {topCategories.length ? (
             <ul className="mt-4 space-y-3 text-sm text-neo-text-secondary">
               {topCategories.map((entry) => (
                 <li key={entry.category} className="flex items-center justify-between">
                   <span className="capitalize">{entry.category}</span>
-                  <span className="inline-flex items-center rounded-full bg-white/10 px-2 py-0.5 text-xs text-neo-text-secondary">
+                  <span className="inline-flex items-center rounded-full bg-neo-surface px-2 py-0.5 text-xs text-neo-text-secondary">
                     {entry.value}
                   </span>
                 </li>
@@ -1404,7 +1401,7 @@ function QuickActionsPanel({
           : "text-neo-text-secondary";
 
   return (
-    <section className="rounded-3xl border border-white/10 bg-ink-900/60 p-6 shadow-glow-card">
+    <section className="rounded-3xl border border-neo-border bg-neo-surface p-6 shadow-glow-card">
       <header className="flex items-center justify-between">
         <div>
           <p className="text-xs uppercase tracking-wide text-neo-text-secondary">Operaciones rápidas</p>
@@ -1412,19 +1409,18 @@ function QuickActionsPanel({
         </div>
       </header>
       <div className="mt-6 grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-        <article className="rounded-2xl border border-white/10 bg-white/5 p-4">
+        <article className="rounded-2xl border border-neo-border bg-neo-card p-4">
           <div className="flex items-center justify-between">
             <p className="text-sm font-semibold">Autorefresco</p>
             <button
               type="button"
               aria-pressed={autoRefresh}
               onClick={onToggleAutoRefresh}
-              className={`relative h-6 w-12 rounded-full transition ${autoRefresh ? "bg-accent-secondary" : "bg-white/10"}`}
+              className={`relative h-6 w-12 rounded-full transition ${autoRefresh ? "bg-accent-secondary" : "bg-neo-surface"}`}
             >
               <span
-                className={`absolute top-1/2 h-4 w-4 -translate-y-1/2 rounded-full bg-white transition ${
-                  autoRefresh ? "right-1" : "left-1"
-                }`}
+                className={`absolute top-1/2 h-4 w-4 -translate-y-1/2 rounded-full bg-white transition ${autoRefresh ? "right-1" : "left-1"
+                  }`}
               />
             </button>
           </div>
@@ -1432,7 +1428,7 @@ function QuickActionsPanel({
             {autoRefresh ? `Pulso cada 30s${lastAutoRefresh ? ` · último a las ${lastAutoRefresh}` : ""}` : "Pulse manual para evitar ruido"}
           </p>
         </article>
-        <article className="rounded-2xl border border-white/10 bg-white/5 p-4">
+        <article className="rounded-2xl border border-neo-border bg-neo-card p-4">
           <div className="flex items-center justify-between">
             <p className="text-sm font-semibold">Sincronizar catálogo</p>
             <Icon library="lucide" name="RefreshCcw" className="h-4 w-4 text-accent-secondary" />
@@ -1442,7 +1438,7 @@ function QuickActionsPanel({
             Forzar refresco
           </button>
         </article>
-        <article className="rounded-2xl border border-white/10 bg-white/5 p-4">
+        <article className="rounded-2xl border border-neo-border bg-neo-card p-4">
           <div className="flex items-center justify-between">
             <p className="text-sm font-semibold">Exportar catálogo</p>
             <Icon library="lucide" name="Download" className="h-4 w-4 text-accent-secondary" />
@@ -1452,7 +1448,7 @@ function QuickActionsPanel({
             {exporting ? "Generando..." : "Descargar JSON"}
           </button>
         </article>
-        <article className="rounded-2xl border border-white/10 bg-white/5 p-4">
+        <article className="rounded-2xl border border-neo-border bg-neo-card p-4">
           <div className="flex items-center justify-between">
             <p className="text-sm font-semibold">Validar analytics</p>
             <span className={`text-xs font-semibold ${analyticsBadge}`}>
@@ -1512,7 +1508,7 @@ function OpsTimelinePanel({ items, notifications, lastManualRefresh, lastAutoRef
   }, [items, notifications, lastManualRefresh, lastAutoRefresh, lastExportedAt]);
 
   return (
-    <section className="rounded-3xl border border-white/10 bg-ink-900/60 p-6 shadow-glow-card">
+    <section className="rounded-3xl border border-neo-border bg-neo-surface p-6 shadow-glow-card">
       <header className="flex items-center justify-between">
         <div>
           <p className="text-xs uppercase tracking-wide text-neo-text-secondary">Timeline operativo</p>
@@ -1522,11 +1518,10 @@ function OpsTimelinePanel({ items, notifications, lastManualRefresh, lastAutoRef
       <ul className="mt-4 space-y-3">
         {timeline.length ? (
           timeline.map((event, index) => (
-            <li key={`${event.title}-${index}`} className="flex items-center gap-3 rounded-2xl border border-white/10 bg-white/5 px-4 py-3">
+            <li key={`${event.title}-${index}`} className="flex items-center gap-3 rounded-2xl border border-neo-border bg-neo-card px-4 py-3">
               <span
-                className={`h-2.5 w-2.5 rounded-full ${
-                  event.tone === "alert" ? "bg-accent-danger" : event.tone === "success" ? "bg-accent-emerald" : "bg-accent-secondary"
-                }`}
+                className={`h-2.5 w-2.5 rounded-full ${event.tone === "alert" ? "bg-accent-danger" : event.tone === "success" ? "bg-accent-emerald" : "bg-accent-secondary"
+                  }`}
               />
               <div className="flex-1">
                 <p className="text-sm font-semibold text-neo-text-primary">{event.title}</p>
@@ -1536,7 +1531,7 @@ function OpsTimelinePanel({ items, notifications, lastManualRefresh, lastAutoRef
             </li>
           ))
         ) : (
-          <li className="rounded-2xl border border-white/10 bg-white/5 px-4 py-6 text-center text-xs text-neo-text-secondary">Sin eventos recientes.</li>
+          <li className="rounded-2xl border border-neo-border bg-neo-card px-4 py-6 text-center text-xs text-neo-text-secondary">Sin eventos recientes.</li>
         )}
       </ul>
     </section>
@@ -1567,29 +1562,29 @@ function IntegrationsStatusPanel({
   const analyticsTone: IntegrationStatus =
     analyticsStatus === "loading" ? "loading" : analyticsStatus === "error" ? "error" : analyticsStatus === "ok" ? "ok" : "warning";
 
-const cards: Array<{ label: string; detail: string; status: IntegrationStatus; iconName: string; meta?: string }> = [
-  { label: "API términos", detail: termsStatus === "ok" ? "Online" : "Sin datos recientes", status: termsStatus, iconName: "BookOpenCheck", meta: lastAutoRefresh || "—" },
-  {
-    label: "Analytics",
-    detail: analyticsStatus === "loading" ? "Sincronizando…" : analyticsStatus === "ok" ? "Coherente" : analyticsStatus === "error" ? "Fallo" : "En espera",
-    status: analyticsTone,
-    iconName: "Signal",
-    meta: lastAnalyticsPing || "—",
-  },
-  {
-    label: "Alertas",
-    detail: notificationsStatus === "ok" ? "Monitor activo" : notificationsStatus === "warning" ? "Alertas pendientes" : notificationsStatus === "loading" ? "Cargando" : "Fallo",
-    status: notificationsStatus,
-    iconName: "Link2",
-  },
-  {
-    label: "Autenticación",
-    detail: authStatus === "ok" ? "Sesión válida" : authStatus === "loading" ? "Validando…" : "No autenticado",
-    status: authStatus,
-    iconName: "ShieldCheck",
-    meta: allowBootstrap ? "Bootstrap abierto" : "Bootstrap cerrado",
-  },
-];
+  const cards: Array<{ label: string; detail: string; status: IntegrationStatus; iconName: string; meta?: string }> = [
+    { label: "API términos", detail: termsStatus === "ok" ? "Online" : "Sin datos recientes", status: termsStatus, iconName: "BookOpenCheck", meta: lastAutoRefresh || "—" },
+    {
+      label: "Analytics",
+      detail: analyticsStatus === "loading" ? "Sincronizando…" : analyticsStatus === "ok" ? "Coherente" : analyticsStatus === "error" ? "Fallo" : "En espera",
+      status: analyticsTone,
+      iconName: "Signal",
+      meta: lastAnalyticsPing || "—",
+    },
+    {
+      label: "Alertas",
+      detail: notificationsStatus === "ok" ? "Monitor activo" : notificationsStatus === "warning" ? "Alertas pendientes" : notificationsStatus === "loading" ? "Cargando" : "Fallo",
+      status: notificationsStatus,
+      iconName: "Link2",
+    },
+    {
+      label: "Autenticación",
+      detail: authStatus === "ok" ? "Sesión válida" : authStatus === "loading" ? "Validando…" : "No autenticado",
+      status: authStatus,
+      iconName: "ShieldCheck",
+      meta: allowBootstrap ? "Bootstrap abierto" : "Bootstrap cerrado",
+    },
+  ];
 
   const badgeClass = (status: IntegrationStatus) => {
     switch (status) {
@@ -1607,17 +1602,17 @@ const cards: Array<{ label: string; detail: string; status: IntegrationStatus; i
   };
 
   return (
-    <section className="rounded-3xl border border-white/10 bg-ink-900/60 p-6 shadow-glow-card">
+    <section className="rounded-3xl border border-neo-border bg-neo-surface p-6 shadow-glow-card">
       <header>
         <p className="text-xs uppercase tracking-wide text-neo-text-secondary">Integraciones críticas</p>
         <h2 className="text-lg font-semibold">Salud de servicios</h2>
       </header>
       <div className="mt-4 grid gap-4 md:grid-cols-2">
         {cards.map((card) => (
-          <article key={card.label} className="rounded-2xl border border-white/10 bg-white/5 p-4">
+          <article key={card.label} className="rounded-2xl border border-neo-border bg-neo-card p-4">
             <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2 text-sm font-semibold text-neo-text-primary">
-                  <Icon library="lucide" name={card.iconName} className="h-4 w-4 text-accent-secondary" />
+              <div className="flex items-center gap-2 text-sm font-semibold text-neo-text-primary">
+                <Icon library="lucide" name={card.iconName} className="h-4 w-4 text-accent-secondary" />
                 {card.label}
               </div>
               <span className={`text-xs font-semibold ${badgeClass(card.status)}`}>{card.detail}</span>
@@ -1641,7 +1636,7 @@ function statusBadgeClass(status: ReviewStatus) {
     case "rejected":
       return "border border-accent-danger/40 bg-accent-danger/10 text-accent-danger";
     default:
-      return "border border-white/20 bg-white/10 text-neo-text-secondary";
+      return "border border-neo-border bg-neo-surface text-neo-text-secondary";
   }
 }
 
@@ -1672,7 +1667,7 @@ function LeaderboardPanel() {
   }, []);
 
   return (
-    <section className="rounded-3xl border border-white/10 bg-ink-900/60 p-6 shadow-glow-card">
+    <section className="rounded-3xl border border-neo-border bg-neo-surface p-6 shadow-glow-card">
       <header className="flex items-center justify-between">
         <div>
           <p className="text-xs uppercase tracking-wide text-neo-text-secondary">Gamificación</p>
@@ -1685,7 +1680,7 @@ function LeaderboardPanel() {
       ) : entries.length ? (
         <ul className="mt-4 space-y-3">
           {entries.map((entry, index) => (
-            <li key={entry.id} className="flex items-center justify-between rounded-2xl border border-white/10 bg-ink-900/60 px-4 py-3">
+            <li key={entry.id} className="flex items-center justify-between rounded-2xl border border-neo-border bg-neo-card px-4 py-3">
               <div>
                 <p className="text-sm font-semibold text-neo-text-primary">
                   #{index + 1} {entry.username || entry.displayName || entry.id}
@@ -1716,7 +1711,7 @@ type EditorSheetProps = {
 function EditorSheet({ term, onCancel, onSave }: EditorSheetProps) {
   const [val, setVal] = useState(term);
   const baseFieldClasses =
-    "mt-1 w-full rounded-2xl border border-white/15 bg-[#0d1424] px-4 py-2 text-neo-text-primary shadow-inner focus:border-accent-secondary focus:outline-none placeholder-neo-text-secondary";
+    "mt-1 w-full rounded-2xl border border-neo-border bg-neo-surface px-4 py-2 text-neo-text-primary shadow-inner focus:border-accent-secondary focus:outline-none placeholder-neo-text-secondary";
 
   useEffect(() => {
     setVal(term);
@@ -1725,8 +1720,8 @@ function EditorSheet({ term, onCancel, onSave }: EditorSheetProps) {
   const requiredFilled = Boolean(val.term.trim() && val.translation.trim() && val.meaning.trim() && val.what.trim() && val.how.trim());
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-ink-950/90 px-4 py-6 backdrop-blur">
-      <section className="max-h-[90vh] w-full max-w-5xl overflow-y-auto rounded-3xl border border-white/15 bg-[#050915] p-6 shadow-glow-card">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-[var(--admin-backdrop)] px-4 py-6 backdrop-blur-sm">
+      <section className="max-h-[90vh] w-full max-w-5xl overflow-y-auto rounded-3xl border border-neo-border bg-neo-card p-6 shadow-glow-card">
         <header className="flex flex-wrap items-center justify-between gap-4">
           <div>
             <p className="text-xs uppercase tracking-wide text-neo-text-secondary">{val.id ? "Editar término" : "Nuevo término"}</p>
@@ -1758,12 +1753,12 @@ function EditorSheet({ term, onCancel, onSave }: EditorSheetProps) {
           <label className="text-sm text-neo-text-secondary">
             Categoría
             <select
-              className={`${baseFieldClasses} bg-ink-800`}
+              className={`${baseFieldClasses} bg-neo-surface`}
               value={val.category}
               onChange={(event) => setVal({ ...val, category: event.target.value as Term["category"] })}
             >
               {CATS.map((category) => (
-                <option key={category} value={category} className="bg-ink-900 text-neo-text-primary">
+                <option key={category} value={category} className="bg-neo-card text-neo-text-primary">
                   {category}
                 </option>
               ))}
@@ -1772,12 +1767,12 @@ function EditorSheet({ term, onCancel, onSave }: EditorSheetProps) {
           <label className="text-sm text-neo-text-secondary">
             Estado
             <select
-              className={`${baseFieldClasses} bg-ink-800`}
+              className={`${baseFieldClasses} bg-neo-surface`}
               value={val.status}
               onChange={(event) => setVal({ ...val, status: event.target.value as ReviewStatus })}
             >
               {STATUS_OPTIONS.map((status) => (
-                <option key={status} value={status} className="bg-ink-900 text-neo-text-primary">
+                <option key={status} value={status} className="bg-neo-card text-neo-text-primary">
                   {status}
                 </option>
               ))}
@@ -1809,7 +1804,7 @@ function EditorSheet({ term, onCancel, onSave }: EditorSheetProps) {
         <label className="mt-4 block text-sm text-neo-text-secondary">
           Cómo se usa
           <textarea
-            className={`${baseFieldClasses} min-h-[160px] bg-ink-900 font-mono text-sm`}
+            className={`${baseFieldClasses} min-h-[160px] bg-neo-surface font-mono text-sm`}
             rows={5}
             required
             value={val.how}
@@ -1889,9 +1884,9 @@ function ChipInput({ label, placeholder, values, onChange }: ChipInputProps) {
   return (
     <label className="text-sm text-neo-text-secondary">
       {label}
-      <div className="mt-1 flex flex-wrap gap-2 rounded-2xl border border-white/15 bg-[#0d1424] px-3 py-2 shadow-inner">
+      <div className="mt-1 flex flex-wrap gap-2 rounded-2xl border border-neo-border bg-neo-surface px-3 py-2 shadow-inner">
         {values.map((value) => (
-          <span key={value} className="inline-flex items-center gap-2 rounded-full bg-white/20 px-3 py-1 text-xs text-neo-text-primary">
+          <span key={value} className="inline-flex items-center gap-2 rounded-full bg-neo-bg px-3 py-1 text-xs text-neo-text-primary">
             {value}
             <button type="button" aria-label={`Eliminar ${value}`} onClick={() => removeChip(value)} className="text-neo-text-secondary hover:text-neo-text-primary">
               ✕
@@ -1967,7 +1962,7 @@ function ExamplesEditor({ value, onChange }: ExamplesEditorProps) {
       {list.length ? (
         <div className="space-y-4">
           {list.map((example, index) => (
-            <div key={`${example.title}-${index}`} className="rounded-2xl border border-white/15 bg-[#050915] p-4 shadow-inner">
+            <div key={`${example.title}-${index}`} className="rounded-2xl border border-neo-border bg-neo-card p-4 shadow-inner">
               <div className="flex flex-wrap items-center justify-between gap-3">
                 <p className="text-sm font-semibold text-neo-text-primary">Bloque #{index + 1}</p>
                 <div className="flex gap-2">
@@ -1986,7 +1981,7 @@ function ExamplesEditor({ value, onChange }: ExamplesEditorProps) {
                 <label className="text-xs uppercase tracking-wide text-neo-text-secondary">
                   Título
                   <input
-                    className="mt-1 w-full rounded-2xl border border-white/15 bg-[#0d1424] px-3 py-2 text-sm text-neo-text-primary shadow-inner focus:border-accent-secondary focus:outline-none"
+                    className="mt-1 w-full rounded-2xl border border-neo-border bg-neo-surface px-3 py-2 text-sm text-neo-text-primary shadow-inner focus:border-accent-secondary focus:outline-none"
                     value={example.title}
                     onChange={(event) => update(index, { title: event.target.value })}
                   />
@@ -1994,7 +1989,7 @@ function ExamplesEditor({ value, onChange }: ExamplesEditorProps) {
                 <label className="text-xs uppercase tracking-wide text-neo-text-secondary">
                   Nota
                   <input
-                    className="mt-1 w-full rounded-2xl border border-white/15 bg-[#0d1424] px-3 py-2 text-sm text-neo-text-primary shadow-inner focus:border-accent-secondary focus:outline-none"
+                    className="mt-1 w-full rounded-2xl border border-neo-border bg-neo-surface px-3 py-2 text-sm text-neo-text-primary shadow-inner focus:border-accent-secondary focus:outline-none"
                     value={example.note || ""}
                     onChange={(event) => update(index, { note: event.target.value })}
                   />
@@ -2003,7 +1998,7 @@ function ExamplesEditor({ value, onChange }: ExamplesEditorProps) {
               <label className="mt-3 block text-xs uppercase tracking-wide text-neo-text-secondary">
                 Código
                 <textarea
-                  className="mt-1 w-full rounded-2xl border border-white/15 bg-[#050915] px-3 py-2 font-mono text-xs text-neo-text-primary shadow-inner focus:border-accent-secondary focus:outline-none"
+                  className="mt-1 w-full rounded-2xl border border-neo-border bg-neo-surface px-3 py-2 font-mono text-xs text-neo-text-primary shadow-inner focus:border-accent-secondary focus:outline-none"
                   rows={4}
                   value={example.code}
                   onChange={(event) => update(index, { code: event.target.value })}
@@ -2013,7 +2008,7 @@ function ExamplesEditor({ value, onChange }: ExamplesEditorProps) {
           ))}
         </div>
       ) : (
-        <p className="rounded-2xl border border-dashed border-white/10 px-4 py-6 text-center text-sm text-neo-text-secondary">Sin ejemplos.</p>
+        <p className="rounded-2xl border border-dashed border-neo-border px-4 py-6 text-center text-sm text-neo-text-secondary">Sin ejemplos.</p>
       )}
     </div>
   );
@@ -2058,7 +2053,7 @@ function VariantsEditor({ value, onChange }: VariantsEditorProps) {
       {list.length ? (
         <div className="space-y-3">
           {list.map((variant, index) => (
-            <div key={`variant-${index}`} className="rounded-2xl border border-white/15 bg-[#050915] p-4 shadow-inner">
+            <div key={`variant-${index}`} className="rounded-2xl border border-neo-border bg-neo-card p-4 shadow-inner">
               <div className="flex flex-wrap items-center justify-between gap-3">
                 <p className="text-xs uppercase tracking-wide text-neo-text-secondary">Variante #{index + 1}</p>
                 <button className="btn-ghost" type="button" onClick={() => remove(index)}>
@@ -2069,7 +2064,7 @@ function VariantsEditor({ value, onChange }: VariantsEditorProps) {
                 <label className="text-xs text-neo-text-secondary">
                   Lenguaje
                   <select
-                    className="mt-1 w-full rounded-2xl border border-white/15 bg-ink-900 px-3 py-2 text-sm text-neo-text-primary focus:outline-none"
+                    className="mt-1 w-full rounded-2xl border border-neo-border bg-neo-surface px-3 py-2 text-sm text-neo-text-primary focus:outline-none"
                     value={variant.language}
                     onChange={(event) => update(index, { language: event.target.value })}
                   >
@@ -2083,7 +2078,7 @@ function VariantsEditor({ value, onChange }: VariantsEditorProps) {
                 <label className="text-xs text-neo-text-secondary">
                   Nivel
                   <select
-                    className="mt-1 w-full rounded-2xl border border-white/15 bg-ink-900 px-3 py-2 text-sm text-neo-text-primary focus:outline-none"
+                    className="mt-1 w-full rounded-2xl border border-neo-border bg-neo-surface px-3 py-2 text-sm text-neo-text-primary focus:outline-none"
                     value={variant.level || "intermediate"}
                     onChange={(event) => update(index, { level: event.target.value })}
                   >
@@ -2097,7 +2092,7 @@ function VariantsEditor({ value, onChange }: VariantsEditorProps) {
                 <label className="text-xs text-neo-text-secondary">
                   Estado
                   <select
-                    className="mt-1 w-full rounded-2xl border border-white/15 bg-ink-900 px-3 py-2 text-sm text-neo-text-primary focus:outline-none"
+                    className="mt-1 w-full rounded-2xl border border-neo-border bg-neo-surface px-3 py-2 text-sm text-neo-text-primary focus:outline-none"
                     value={variant.status || "pending"}
                     onChange={(event) => update(index, { status: event.target.value as ReviewStatus })}
                   >
@@ -2112,7 +2107,7 @@ function VariantsEditor({ value, onChange }: VariantsEditorProps) {
               <label className="mt-3 block text-xs text-neo-text-secondary">
                 Snippet
                 <textarea
-                  className="mt-1 w-full rounded-2xl border border-white/15 bg-[#050915] px-3 py-2 font-mono text-xs text-neo-text-primary focus:outline-none"
+                  className="mt-1 w-full rounded-2xl border border-neo-border bg-neo-surface px-3 py-2 font-mono text-xs text-neo-text-primary focus:outline-none"
                   rows={3}
                   value={variant.snippet}
                   onChange={(event) => update(index, { snippet: event.target.value })}
@@ -2121,7 +2116,7 @@ function VariantsEditor({ value, onChange }: VariantsEditorProps) {
               <label className="mt-3 block text-xs text-neo-text-secondary">
                 Notas
                 <input
-                  className="mt-1 w-full rounded-2xl border border-white/15 bg-[#0d1424] px-3 py-2 text-sm text-neo-text-primary focus:outline-none"
+                  className="mt-1 w-full rounded-2xl border border-neo-border bg-neo-surface px-3 py-2 text-sm text-neo-text-primary focus:outline-none"
                   value={variant.notes || ""}
                   onChange={(event) => update(index, { notes: event.target.value })}
                 />
@@ -2130,7 +2125,7 @@ function VariantsEditor({ value, onChange }: VariantsEditorProps) {
           ))}
         </div>
       ) : (
-        <p className="rounded-2xl border border-dashed border-white/10 px-4 py-6 text-center text-sm text-neo-text-secondary">Sin variantes aún.</p>
+        <p className="rounded-2xl border border-dashed border-neo-border px-4 py-6 text-center text-sm text-neo-text-secondary">Sin variantes aún.</p>
       )}
     </section>
   );
@@ -2177,7 +2172,7 @@ function UseCasesEditor({ value, onChange }: UseCasesEditorProps) {
       {list.length ? (
         <div className="space-y-3">
           {list.map((useCase, index) => (
-            <div key={`usecase-${index}`} className="rounded-2xl border border-white/15 bg-[#050915] p-4 shadow-inner">
+            <div key={`usecase-${index}`} className="rounded-2xl border border-neo-border bg-neo-card p-4 shadow-inner">
               <div className="flex flex-wrap items-center justify-between gap-3">
                 <p className="text-xs uppercase tracking-wide text-neo-text-secondary">Caso #{index + 1}</p>
                 <button className="btn-ghost" type="button" onClick={() => remove(index)}>
@@ -2188,7 +2183,7 @@ function UseCasesEditor({ value, onChange }: UseCasesEditorProps) {
                 <label className="text-xs text-neo-text-secondary">
                   Contexto
                   <select
-                    className="mt-1 w-full rounded-2xl border border-white/15 bg-ink-900 px-3 py-2 text-sm text-neo-text-primary focus:outline-none"
+                    className="mt-1 w-full rounded-2xl border border-neo-border bg-neo-surface px-3 py-2 text-sm text-neo-text-primary focus:outline-none"
                     value={useCase.context}
                     onChange={(event) => update(index, { context: event.target.value })}
                   >
@@ -2202,7 +2197,7 @@ function UseCasesEditor({ value, onChange }: UseCasesEditorProps) {
                 <label className="text-xs text-neo-text-secondary">
                   Estado
                   <select
-                    className="mt-1 w-full rounded-2xl border border-white/15 bg-ink-900 px-3 py-2 text-sm text-neo-text-primary focus:outline-none"
+                    className="mt-1 w-full rounded-2xl border border-neo-border bg-neo-surface px-3 py-2 text-sm text-neo-text-primary focus:outline-none"
                     value={useCase.status || "pending"}
                     onChange={(event) => update(index, { status: event.target.value as ReviewStatus })}
                   >
@@ -2216,7 +2211,7 @@ function UseCasesEditor({ value, onChange }: UseCasesEditorProps) {
                 <label className="text-xs text-neo-text-secondary">
                   Tips
                   <input
-                    className="mt-1 w-full rounded-2xl border border-white/15 bg-[#0d1424] px-3 py-2 text-sm text-neo-text-primary focus:outline-none"
+                    className="mt-1 w-full rounded-2xl border border-neo-border bg-neo-surface px-3 py-2 text-sm text-neo-text-primary focus:outline-none"
                     value={useCase.tips || ""}
                     onChange={(event) => update(index, { tips: event.target.value })}
                   />
@@ -2225,7 +2220,7 @@ function UseCasesEditor({ value, onChange }: UseCasesEditorProps) {
               <label className="mt-3 block text-xs text-neo-text-secondary">
                 Resumen
                 <textarea
-                  className="mt-1 w-full rounded-2xl border border-white/15 bg-[#050915] px-3 py-2 text-sm text-neo-text-primary focus:outline-none"
+                  className="mt-1 w-full rounded-2xl border border-neo-border bg-neo-surface px-3 py-2 text-sm text-neo-text-primary focus:outline-none"
                   rows={3}
                   value={useCase.summary}
                   onChange={(event) => update(index, { summary: event.target.value })}
@@ -2243,7 +2238,7 @@ function UseCasesEditor({ value, onChange }: UseCasesEditorProps) {
                     <label className="text-xs text-neo-text-secondary">
                       ES
                       <input
-                        className="mt-1 w-full rounded-2xl border border-white/15 bg-[#0d1424] px-3 py-2 text-sm text-neo-text-primary focus:outline-none"
+                        className="mt-1 w-full rounded-2xl border border-neo-border bg-neo-surface px-3 py-2 text-sm text-neo-text-primary focus:outline-none"
                         value={step.es || ""}
                         onChange={(event) => updateStep(index, stepIndex, { es: event.target.value })}
                       />
@@ -2252,7 +2247,7 @@ function UseCasesEditor({ value, onChange }: UseCasesEditorProps) {
                       <label className="flex-1 text-xs text-neo-text-secondary">
                         EN
                         <input
-                          className="mt-1 w-full rounded-2xl border border-white/15 bg-[#0d1424] px-3 py-2 text-sm text-neo-text-primary focus:outline-none"
+                          className="mt-1 w-full rounded-2xl border border-neo-border bg-neo-surface px-3 py-2 text-sm text-neo-text-primary focus:outline-none"
                           value={step.en || ""}
                           onChange={(event) => updateStep(index, stepIndex, { en: event.target.value })}
                         />
@@ -2268,7 +2263,7 @@ function UseCasesEditor({ value, onChange }: UseCasesEditorProps) {
           ))}
         </div>
       ) : (
-        <p className="rounded-2xl border border-dashed border-white/10 px-4 py-6 text-center text-sm text-neo-text-secondary">Sin casos de uso todavía.</p>
+        <p className="rounded-2xl border border-dashed border-neo-border px-4 py-6 text-center text-sm text-neo-text-secondary">Sin casos de uso todavía.</p>
       )}
     </section>
   );
@@ -2303,7 +2298,7 @@ function FaqsEditor({ value, onChange }: FaqsEditorProps) {
       {list.length ? (
         <div className="space-y-3">
           {list.map((faq, index) => (
-            <div key={`faq-${index}`} className="rounded-2xl border border-white/15 bg-[#050915] p-4 shadow-inner">
+            <div key={`faq-${index}`} className="rounded-2xl border border-neo-border bg-neo-card p-4 shadow-inner">
               <div className="flex flex-wrap items-center justify-between gap-3">
                 <p className="text-xs uppercase tracking-wide text-neo-text-secondary">FAQ #{index + 1}</p>
                 <button className="btn-ghost" type="button" onClick={() => remove(index)}>
@@ -2314,7 +2309,7 @@ function FaqsEditor({ value, onChange }: FaqsEditorProps) {
                 <label className="text-xs text-neo-text-secondary">
                   Pregunta (ES)
                   <input
-                    className="mt-1 w-full rounded-2xl border border-white/15 bg-[#0d1424] px-3 py-2 text-sm text-neo-text-primary focus:outline-none"
+                    className="mt-1 w-full rounded-2xl border border-neo-border bg-neo-surface px-3 py-2 text-sm text-neo-text-primary focus:outline-none"
                     value={faq.questionEs}
                     onChange={(event) => update(index, { questionEs: event.target.value })}
                   />
@@ -2322,7 +2317,7 @@ function FaqsEditor({ value, onChange }: FaqsEditorProps) {
                 <label className="text-xs text-neo-text-secondary">
                   Pregunta (EN)
                   <input
-                    className="mt-1 w-full rounded-2xl border border-white/15 bg-[#0d1424] px-3 py-2 text-sm text-neo-text-primary focus:outline-none"
+                    className="mt-1 w-full rounded-2xl border border-neo-border bg-neo-surface px-3 py-2 text-sm text-neo-text-primary focus:outline-none"
                     value={faq.questionEn || ""}
                     onChange={(event) => update(index, { questionEn: event.target.value })}
                   />
@@ -2332,7 +2327,7 @@ function FaqsEditor({ value, onChange }: FaqsEditorProps) {
                 <label className="text-xs text-neo-text-secondary">
                   Respuesta (ES)
                   <textarea
-                    className="mt-1 w-full rounded-2xl border border-white/15 bg-[#050915] px-3 py-2 text-sm text-neo-text-primary focus:outline-none"
+                    className="mt-1 w-full rounded-2xl border border-neo-border bg-neo-surface px-3 py-2 text-sm text-neo-text-primary focus:outline-none"
                     rows={3}
                     value={faq.answerEs}
                     onChange={(event) => update(index, { answerEs: event.target.value })}
@@ -2341,7 +2336,7 @@ function FaqsEditor({ value, onChange }: FaqsEditorProps) {
                 <label className="text-xs text-neo-text-secondary">
                   Respuesta (EN)
                   <textarea
-                    className="mt-1 w-full rounded-2xl border border-white/15 bg-[#050915] px-3 py-2 text-sm text-neo-text-primary focus:outline-none"
+                    className="mt-1 w-full rounded-2xl border border-neo-border bg-neo-surface px-3 py-2 text-sm text-neo-text-primary focus:outline-none"
                     rows={3}
                     value={faq.answerEn || ""}
                     onChange={(event) => update(index, { answerEn: event.target.value })}
@@ -2352,7 +2347,7 @@ function FaqsEditor({ value, onChange }: FaqsEditorProps) {
                 <label className="text-xs text-neo-text-secondary">
                   Snippet
                   <input
-                    className="mt-1 w-full rounded-2xl border border-white/15 bg-[#0d1424] px-3 py-2 text-sm text-neo-text-primary focus:outline-none"
+                    className="mt-1 w-full rounded-2xl border border-neo-border bg-neo-surface px-3 py-2 text-sm text-neo-text-primary focus:outline-none"
                     value={faq.snippet || ""}
                     onChange={(event) => update(index, { snippet: event.target.value })}
                   />
@@ -2360,7 +2355,7 @@ function FaqsEditor({ value, onChange }: FaqsEditorProps) {
                 <label className="text-xs text-neo-text-secondary">
                   Categoría
                   <input
-                    className="mt-1 w-full rounded-2xl border border-white/15 bg-[#0d1424] px-3 py-2 text-sm text-neo-text-primary focus:outline-none"
+                    className="mt-1 w-full rounded-2xl border border-neo-border bg-neo-surface px-3 py-2 text-sm text-neo-text-primary focus:outline-none"
                     value={faq.category || ""}
                     onChange={(event) => update(index, { category: event.target.value })}
                   />
@@ -2368,7 +2363,7 @@ function FaqsEditor({ value, onChange }: FaqsEditorProps) {
                 <label className="text-xs text-neo-text-secondary">
                   Estado
                   <select
-                    className="mt-1 w-full rounded-2xl border border-white/15 bg-ink-900 px-3 py-2 text-sm text-neo-text-primary focus:outline-none"
+                    className="mt-1 w-full rounded-2xl border border-neo-border bg-neo-surface px-3 py-2 text-sm text-neo-text-primary focus:outline-none"
                     value={faq.status || "pending"}
                     onChange={(event) => update(index, { status: event.target.value as ReviewStatus })}
                   >
@@ -2383,7 +2378,7 @@ function FaqsEditor({ value, onChange }: FaqsEditorProps) {
               <label className="mt-3 block text-xs text-neo-text-secondary">
                 Cómo explicarlo
                 <textarea
-                  className="mt-1 w-full rounded-2xl border border-white/15 bg-[#050915] px-3 py-2 text-sm text-neo-text-primary focus:outline-none"
+                  className="mt-1 w-full rounded-2xl border border-neo-border bg-neo-surface px-3 py-2 text-sm text-neo-text-primary focus:outline-none"
                   rows={2}
                   value={faq.howToExplain || ""}
                   onChange={(event) => update(index, { howToExplain: event.target.value })}
@@ -2393,7 +2388,7 @@ function FaqsEditor({ value, onChange }: FaqsEditorProps) {
           ))}
         </div>
       ) : (
-        <p className="rounded-2xl border border-dashed border-white/10 px-4 py-6 text-center text-sm text-neo-text-secondary">Sin FAQs.</p>
+        <p className="rounded-2xl border border-dashed border-neo-border px-4 py-6 text-center text-sm text-neo-text-secondary">Sin FAQs.</p>
       )}
     </section>
   );
@@ -2431,7 +2426,7 @@ function ExercisesEditor({ value, onChange }: ExercisesEditorProps) {
       {list.length ? (
         <div className="space-y-3">
           {list.map((exercise, index) => (
-            <div key={`exercise-${index}`} className="rounded-2xl border border-white/15 bg-[#050915] p-4 shadow-inner">
+            <div key={`exercise-${index}`} className="rounded-2xl border border-neo-border bg-neo-card p-4 shadow-inner">
               <div className="flex flex-wrap items-center justify-between gap-3">
                 <p className="text-xs uppercase tracking-wide text-neo-text-secondary">Ejercicio #{index + 1}</p>
                 <button className="btn-ghost" type="button" onClick={() => remove(index)}>
@@ -2442,7 +2437,7 @@ function ExercisesEditor({ value, onChange }: ExercisesEditorProps) {
                 <label className="text-xs text-neo-text-secondary">
                   Título (ES)
                   <input
-                    className="mt-1 w-full rounded-2xl border border-white/15 bg-[#0d1424] px-3 py-2 text-sm text-neo-text-primary focus:outline-none"
+                    className="mt-1 w-full rounded-2xl border border-neo-border bg-neo-surface px-3 py-2 text-sm text-neo-text-primary focus:outline-none"
                     value={exercise.titleEs}
                     onChange={(event) => update(index, { titleEs: event.target.value })}
                   />
@@ -2450,7 +2445,7 @@ function ExercisesEditor({ value, onChange }: ExercisesEditorProps) {
                 <label className="text-xs text-neo-text-secondary">
                   Título (EN)
                   <input
-                    className="mt-1 w-full rounded-2xl border border-white/15 bg-[#0d1424] px-3 py-2 text-sm text-neo-text-primary focus:outline-none"
+                    className="mt-1 w-full rounded-2xl border border-neo-border bg-neo-surface px-3 py-2 text-sm text-neo-text-primary focus:outline-none"
                     value={exercise.titleEn || ""}
                     onChange={(event) => update(index, { titleEn: event.target.value })}
                   />
@@ -2460,7 +2455,7 @@ function ExercisesEditor({ value, onChange }: ExercisesEditorProps) {
                 <label className="text-xs text-neo-text-secondary">
                   Prompt (ES)
                   <textarea
-                    className="mt-1 w-full rounded-2xl border border-white/15 bg-[#050915] px-3 py-2 text-sm text-neo-text-primary focus:outline-none"
+                    className="mt-1 w-full rounded-2xl border border-neo-border bg-neo-surface px-3 py-2 text-sm text-neo-text-primary focus:outline-none"
                     rows={2}
                     value={exercise.promptEs}
                     onChange={(event) => update(index, { promptEs: event.target.value })}
@@ -2469,7 +2464,7 @@ function ExercisesEditor({ value, onChange }: ExercisesEditorProps) {
                 <label className="text-xs text-neo-text-secondary">
                   Prompt (EN)
                   <textarea
-                    className="mt-1 w-full rounded-2xl border border-white/15 bg-[#050915] px-3 py-2 text-sm text-neo-text-primary focus:outline-none"
+                    className="mt-1 w-full rounded-2xl border border-neo-border bg-neo-surface px-3 py-2 text-sm text-neo-text-primary focus:outline-none"
                     rows={2}
                     value={exercise.promptEn || ""}
                     onChange={(event) => update(index, { promptEn: event.target.value })}
@@ -2480,7 +2475,7 @@ function ExercisesEditor({ value, onChange }: ExercisesEditorProps) {
                 <label className="text-xs text-neo-text-secondary">
                   Dificultad
                   <select
-                    className="mt-1 w-full rounded-2xl border border-white/15 bg-ink-900 px-3 py-2 text-sm text-neo-text-primary focus:outline-none"
+                    className="mt-1 w-full rounded-2xl border border-neo-border bg-neo-surface px-3 py-2 text-sm text-neo-text-primary focus:outline-none"
                     value={exercise.difficulty}
                     onChange={(event) => update(index, { difficulty: event.target.value })}
                   >
@@ -2494,7 +2489,7 @@ function ExercisesEditor({ value, onChange }: ExercisesEditorProps) {
                 <label className="text-xs text-neo-text-secondary">
                   Estado
                   <select
-                    className="mt-1 w-full rounded-2xl border border-white/15 bg-ink-900 px-3 py-2 text-sm text-neo-text-primary focus:outline-none"
+                    className="mt-1 w-full rounded-2xl border border-neo-border bg-neo-surface px-3 py-2 text-sm text-neo-text-primary focus:outline-none"
                     value={exercise.status || "pending"}
                     onChange={(event) => update(index, { status: event.target.value as ReviewStatus })}
                   >
@@ -2511,7 +2506,7 @@ function ExercisesEditor({ value, onChange }: ExercisesEditorProps) {
           ))}
         </div>
       ) : (
-        <p className="rounded-2xl border border-dashed border-white/10 px-4 py-6 text-center text-sm text-neo-text-secondary">Sin ejercicios.</p>
+        <p className="rounded-2xl border border-dashed border-neo-border px-4 py-6 text-center text-sm text-neo-text-secondary">Sin ejercicios.</p>
       )}
     </section>
   );
@@ -2544,12 +2539,12 @@ function SolutionsEditor({ value, onChange }: SolutionsEditorProps) {
         </button>
       </div>
       {list.map((solution, index) => (
-        <div key={`solution-${index}`} className="rounded-2xl border border-white/10 bg-ink-900/50 p-3">
+        <div key={`solution-${index}`} className="rounded-2xl border border-neo-border bg-neo-surface p-3">
           <div className="flex flex-wrap items-center justify-between gap-2">
             <label className="text-xs text-neo-text-secondary">
               Lenguaje
               <select
-                className="mt-1 rounded-2xl border border-white/10 bg-ink-900 px-2 py-1 text-xs text-neo-text-primary focus:outline-none"
+                className="mt-1 rounded-2xl border border-neo-border bg-neo-bg px-2 py-1 text-xs text-neo-text-primary focus:outline-none"
                 value={solution.language}
                 onChange={(event) => update(index, { language: event.target.value })}
               >
@@ -2567,7 +2562,7 @@ function SolutionsEditor({ value, onChange }: SolutionsEditorProps) {
           <label className="mt-2 block text-xs text-neo-text-secondary">
             Código
             <textarea
-              className="mt-1 w-full rounded-2xl border border-white/15 bg-[#050915] px-3 py-2 font-mono text-xs text-neo-text-primary focus:outline-none"
+              className="mt-1 w-full rounded-2xl border border-neo-border bg-neo-bg px-3 py-2 font-mono text-xs text-neo-text-primary focus:outline-none"
               rows={3}
               value={solution.code}
               onChange={(event) => update(index, { code: event.target.value })}
@@ -2576,7 +2571,7 @@ function SolutionsEditor({ value, onChange }: SolutionsEditorProps) {
           <label className="mt-2 block text-xs text-neo-text-secondary">
             Explicación (ES)
             <textarea
-              className="mt-1 w-full rounded-2xl border border-white/15 bg-[#0d1424] px-3 py-2 text-xs text-neo-text-primary focus:outline-none"
+              className="mt-1 w-full rounded-2xl border border-neo-border bg-neo-bg px-3 py-2 text-xs text-neo-text-primary focus:outline-none"
               rows={2}
               value={solution.explainEs}
               onChange={(event) => update(index, { explainEs: event.target.value })}
@@ -2585,7 +2580,7 @@ function SolutionsEditor({ value, onChange }: SolutionsEditorProps) {
           <label className="mt-2 block text-xs text-neo-text-secondary">
             Explicación (EN)
             <textarea
-              className="mt-1 w-full rounded-2xl border border-white/15 bg-[#0d1424] px-3 py-2 text-xs text-neo-text-primary focus:outline-none"
+              className="mt-1 w-full rounded-2xl border border-neo-border bg-neo-bg px-3 py-2 text-xs text-neo-text-primary focus:outline-none"
               rows={2}
               value={solution.explainEn || ""}
               onChange={(event) => update(index, { explainEn: event.target.value })}
@@ -2610,8 +2605,8 @@ type ConfirmDialogProps = {
 
 function ConfirmDialog({ title, description, preview, confirmLabel, cancelLabel = "Cancelar", loading, onConfirm, onCancel }: ConfirmDialogProps) {
   return (
-    <div className="fixed inset-0 z-40 flex items-center justify-center bg-black/70 px-4">
-      <section className="w-full max-w-lg space-y-4 rounded-3xl border border-white/10 bg-ink-900 p-6 shadow-glow-card" role="dialog" aria-modal="true">
+    <div className="fixed inset-0 z-40 flex items-center justify-center bg-[var(--admin-backdrop)] px-4 backdrop-blur-sm">
+      <section className="w-full max-w-lg space-y-4 rounded-3xl border border-neo-border bg-neo-card p-6 shadow-glow-card" role="dialog" aria-modal="true">
         <header>
           <p className="text-xs uppercase tracking-wide text-neo-text-secondary">Confirmación requerida</p>
           <h2 className="text-2xl font-semibold">{title}</h2>
@@ -2620,12 +2615,12 @@ function ConfirmDialog({ title, description, preview, confirmLabel, cancelLabel 
         {preview?.length ? (
           <div className="flex flex-wrap gap-2">
             {preview.slice(0, 3).map((item) => (
-              <span key={item} className="rounded-full border border-white/10 bg-white/5 px-3 py-1 text-xs text-neo-text-secondary">
+              <span key={item} className="rounded-full border border-neo-border bg-neo-surface px-3 py-1 text-xs text-neo-text-secondary">
                 {item}
               </span>
             ))}
             {preview.length > 3 && (
-              <span className="rounded-full border border-white/10 bg-white/5 px-3 py-1 text-xs text-neo-text-secondary">
+              <span className="rounded-full border border-neo-border bg-neo-surface px-3 py-1 text-xs text-neo-text-secondary">
                 +{preview.length - 3} más
               </span>
             )}

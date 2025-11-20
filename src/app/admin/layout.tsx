@@ -6,7 +6,7 @@ import { AdminProviders } from "@/components/admin/AdminProviders";
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
   return (
     <AdminProviders>
-      <div className="admin-theme flex min-h-screen bg-neo-bg text-neo-text-primary">
+      <div className="flex min-h-screen bg-neo-bg text-neo-text-primary">
         <Sidebar />
         <div className="flex flex-1 flex-col lg:ml-0">
           <Topbar />

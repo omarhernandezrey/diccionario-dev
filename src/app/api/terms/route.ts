@@ -20,6 +20,8 @@ import { serializeTerm, type PrismaTermWithRelations } from "@/lib/term-serializ
 
 export const dynamic = "force-dynamic";
 
+
+
 const noStoreHeaders = { "Cache-Control": "no-store" } as const;
 const DEFAULT_PAGE_SIZE = 50;
 const RATE_LIMIT_PREFIX = "terms:list";
@@ -277,68 +279,68 @@ export async function POST(req: NextRequest) {
         updatedById: admin.id,
         variants: t.variants?.length
           ? {
-              create: t.variants.map((variant) => {
-                const status = normalizeReviewStatus(variant.status as string);
-                return {
-                  language: variant.language as Language,
-                  snippet: variant.snippet,
-                  notes: variant.notes,
-                  level: (variant.level as SkillLevel) ?? SkillLevel.intermediate,
-                  status,
-                  ...buildReviewMetadata(status, admin.id),
-                };
-              }),
-            }
+            create: t.variants.map((variant) => {
+              const status = normalizeReviewStatus(variant.status as string);
+              return {
+                language: variant.language as Language,
+                snippet: variant.snippet,
+                notes: variant.notes,
+                level: (variant.level as SkillLevel) ?? SkillLevel.intermediate,
+                status,
+                ...buildReviewMetadata(status, admin.id),
+              };
+            }),
+          }
           : undefined,
         useCases: t.useCases?.length
           ? {
-              create: t.useCases.map((useCase) => {
-                const status = normalizeReviewStatus(useCase.status as string);
-                return {
-                  context: useCase.context,
-                  summary: useCase.summary,
-                  steps: useCase.steps,
-                  tips: useCase.tips,
-                  status,
-                  ...buildReviewMetadata(status, admin.id),
-                };
-              }),
-            }
+            create: t.useCases.map((useCase) => {
+              const status = normalizeReviewStatus(useCase.status as string);
+              return {
+                context: useCase.context,
+                summary: useCase.summary,
+                steps: useCase.steps,
+                tips: useCase.tips,
+                status,
+                ...buildReviewMetadata(status, admin.id),
+              };
+            }),
+          }
           : undefined,
         faqs: t.faqs?.length
           ? {
-              create: t.faqs.map((faq) => {
-                const status = normalizeReviewStatus(faq.status as string);
-                return {
-                  questionEs: faq.questionEs,
-                  questionEn: faq.questionEn,
-                  answerEs: faq.answerEs,
-                  answerEn: faq.answerEn,
-                  snippet: faq.snippet,
-                  category: faq.category,
-                  howToExplain: faq.howToExplain,
-                  status,
-                  ...buildReviewMetadata(status, admin.id),
-                };
-              }),
-            }
+            create: t.faqs.map((faq) => {
+              const status = normalizeReviewStatus(faq.status as string);
+              return {
+                questionEs: faq.questionEs,
+                questionEn: faq.questionEn,
+                answerEs: faq.answerEs,
+                answerEn: faq.answerEn,
+                snippet: faq.snippet,
+                category: faq.category,
+                howToExplain: faq.howToExplain,
+                status,
+                ...buildReviewMetadata(status, admin.id),
+              };
+            }),
+          }
           : undefined,
         exercises: t.exercises?.length
           ? {
-              create: t.exercises.map((exercise) => {
-                const status = normalizeReviewStatus(exercise.status as string);
-                return {
-                  titleEs: exercise.titleEs,
-                  titleEn: exercise.titleEn,
-                  promptEs: exercise.promptEs,
-                  promptEn: exercise.promptEn,
-                  difficulty: exercise.difficulty,
-                  solutions: exercise.solutions,
-                  status,
-                  ...buildReviewMetadata(status, admin.id),
-                };
-              }),
-            }
+            create: t.exercises.map((exercise) => {
+              const status = normalizeReviewStatus(exercise.status as string);
+              return {
+                titleEs: exercise.titleEs,
+                titleEn: exercise.titleEn,
+                promptEs: exercise.promptEs,
+                promptEn: exercise.promptEn,
+                difficulty: exercise.difficulty,
+                solutions: exercise.solutions,
+                status,
+                ...buildReviewMetadata(status, admin.id),
+              };
+            }),
+          }
           : undefined,
       },
       include: { variants: true, useCases: true, faqs: true, exercises: true },
@@ -482,7 +484,7 @@ async function fetchTermsWithFilters(query: TermsQueryInput) {
     items = orderedIds
       .map(id => map.get(id))
       .filter((term): term is PrismaTermWithRelations => Boolean(term))
-  .map(term => serializeTerm(term));
+      .map(term => serializeTerm(term));
   }
 
   return { items, total };

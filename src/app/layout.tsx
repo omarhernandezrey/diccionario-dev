@@ -35,7 +35,7 @@ export default function RootLayout({
   return (
     <html lang="es">
       <body
-        className={`${inter.variable} ${spaceGrotesk.variable} ${jetbrains.variable} bg-neo-bg text-neo-text-primary antialiased dark:bg-neoDark-bg dark:text-neoDark-text-primary`}
+        className={`${inter.variable} ${spaceGrotesk.variable} ${jetbrains.variable} bg-neo-bg text-neo-text-primary antialiased`}
       >
         <AppProviders>{children}</AppProviders>
       </body>

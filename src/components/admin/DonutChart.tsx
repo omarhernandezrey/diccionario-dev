@@ -49,11 +49,12 @@ export default function DonutChart({
           <Tooltip
             formatter={(value) => `${value} items`}
             contentStyle={{
-              backgroundColor: "#0f172a",
-              border: "1px solid #334155",
+              backgroundColor: "var(--neo-card)",
+              border: "1px solid var(--neo-border)",
               borderRadius: "8px",
+              color: "var(--neo-text-primary)",
             }}
-            labelStyle={{ color: "#94a3b8" }}
+            labelStyle={{ color: "var(--neo-text-secondary)" }}
           />
         </PieChart>
       </ResponsiveContainer>

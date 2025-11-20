@@ -4,6 +4,7 @@ import React, { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Icon } from "@/components/Icon";
 import { useNotifications } from "@/components/admin/NotificationsProvider";
+import ThemeToggle from "@/components/ThemeToggle";
 
 export default function Topbar() {
   const router = useRouter();
@@ -26,7 +27,7 @@ export default function Topbar() {
   };
 
   return (
-    <header className="sticky top-0 z-30 border-b border-neo-border bg-white/80 backdrop-blur-md">
+    <header className="sticky top-0 z-30 border-b border-neo-border bg-neo-bg/80 backdrop-blur-md">
       <div className="flex items-center justify-between px-6 py-3">
         {/* Left side - Search */}
         <div className="flex flex-1 items-center gap-4">
@@ -42,6 +43,7 @@ export default function Topbar() {
 
         {/* Right side - Actions */}
         <div className="flex items-center gap-3">
+          <ThemeToggle />
           {/* Notifications */}
           <div className="relative">
             <button
@@ -57,7 +59,7 @@ export default function Topbar() {
             </button>
 
             {notificationsOpen && (
-              <div className="absolute right-0 mt-2 w-80 rounded-2xl border border-neo-border bg-white p-3 shadow-xl animate-slide-up">
+              <div className="absolute right-0 mt-2 w-80 rounded-2xl border border-neo-border bg-neo-card p-3 shadow-xl animate-slide-up">
                 <div className="flex items-center justify-between">
                   <p className="text-sm font-semibold text-neo-text-primary">Notificaciones</p>
                   <div className="flex items-center gap-2">
@@ -79,11 +81,10 @@ export default function Topbar() {
                     notifications.map((notif) => (
                       <li
                         key={notif.id}
-                        className={`flex gap-3 rounded-xl border px-3 py-2 text-sm ${
-                          notif.read
-                            ? "border-neo-border bg-neo-surface text-neo-text-secondary"
-                            : "border-neo-primary bg-neo-primary-light/70 text-neo-text-primary"
-                        }`}
+                        className={`flex gap-3 rounded-xl border px-3 py-2 text-sm ${notif.read
+                          ? "border-neo-border bg-neo-surface text-neo-text-secondary"
+                          : "border-neo-primary bg-neo-primary-light/70 text-neo-text-primary"
+                          }`}
                       >
                         <button
                           type="button"
@@ -92,9 +93,9 @@ export default function Topbar() {
                         >
                           <div className="flex items-center gap-2 text-xs uppercase tracking-wide">
                             {notif.type === "alert" ? (
-                            <Icon library="lucide" name="AlertTriangle" className="h-3.5 w-3.5 text-accent-rose" />
+                              <Icon library="lucide" name="AlertTriangle" className="h-3.5 w-3.5 text-accent-rose" />
                             ) : (
-                            <Icon library="lucide" name="CheckCircle2" className="h-3.5 w-3.5 text-accent-emerald" />
+                              <Icon library="lucide" name="CheckCircle2" className="h-3.5 w-3.5 text-accent-emerald" />
                             )}
                             <span>{notif.title}</span>
                           </div>
@@ -143,7 +144,7 @@ export default function Topbar() {
 
             {/* Dropdown Menu */}
             {dropdownOpen && (
-              <div className="absolute right-0 mt-2 w-48 rounded-lg border border-neo-border bg-white shadow-xl animate-slide-up">
+              <div className="absolute right-0 mt-2 w-48 rounded-lg border border-neo-border bg-neo-card shadow-xl animate-slide-up">
                 <button
                   className="flex w-full items-center gap-3 px-4 py-2.5 text-sm text-neo-text-secondary transition hover:bg-neo-surface hover:text-neo-text-primary"
                   onClick={() => {

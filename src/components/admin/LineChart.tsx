@@ -31,23 +31,24 @@ export default function LineChartComponent({
         <LineChart data={data} margin={{ top: 5, right: 30, left: 0, bottom: 5 }}>
           <CartesianGrid
             strokeDasharray="3 3"
-            stroke="#334155"
+            stroke="var(--neo-border)"
             opacity={0.3}
           />
           <XAxis
             dataKey="name"
-            stroke="#64748b"
+            stroke="var(--neo-text-secondary)"
             style={{ fontSize: "12px" }}
           />
-          <YAxis stroke="#64748b" style={{ fontSize: "12px" }} />
+          <YAxis stroke="var(--neo-text-secondary)" style={{ fontSize: "12px" }} />
           <Tooltip
             contentStyle={{
-              backgroundColor: "#0f172a",
-              border: "1px solid #334155",
+              backgroundColor: "var(--neo-card)",
+              border: "1px solid var(--neo-border)",
               borderRadius: "8px",
+              color: "var(--neo-text-primary)",
             }}
-            labelStyle={{ color: "#94a3b8" }}
-            cursor={{ stroke: "#475569", strokeWidth: 2 }}
+            labelStyle={{ color: "var(--neo-text-secondary)" }}
+            cursor={{ stroke: "var(--neo-border)", strokeWidth: 2 }}
           />
           <Line
             type="monotone"
