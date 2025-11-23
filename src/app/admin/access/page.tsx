@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useTransition } from "react";
 import { Icon } from "@/components/Icon";
+import { notifySessionChange } from "@/components/admin/SessionProvider";
 
 type SessionUser = {
   id: number;
@@ -68,6 +69,7 @@ export default function AdminAccessPage() {
         }
         setLoginForm({ username: "", password: "" });
         setMessage(`Bienvenido ${data.user?.username || ""}`);
+        notifySessionChange(); // Notificar cambio de sesión
         refreshSession();
       } catch {
         setError("No se pudo contactar el servidor");
@@ -110,21 +112,22 @@ export default function AdminAccessPage() {
     await fetch("/api/auth", { method: "DELETE", credentials: "include" });
     setSession(null);
     setMessage("Sesión cerrada");
+    notifySessionChange(); // Notificar cambio de sesión
     refreshSession();
   }
 
   return (
     <div className="space-y-8 text-neo-text-primary">
-      <section className="rounded-[32px] border border-white/10 bg-gradient-to-br from-ink-900 via-ink-800 to-ink-900 p-8 shadow-glow-card">
+      <section className="rounded-[32px] border border-neo-border bg-neo-card p-8 shadow-glow-card">
         <div className="flex flex-wrap items-center gap-4">
-          <div className="rounded-3xl border border-white/20 bg-white/10 p-3 shadow-glow-card">
+          <div className="rounded-3xl border border-neo-border bg-neo-surface p-3 shadow-glow-card">
             <Icon library="lucide" name="ShieldCheck" className="h-7 w-7 text-accent-emerald" />
           </div>
           <div>
             <p className="text-xs uppercase tracking-[0.3em] text-neo-text-secondary">Control de acceso</p>
             <h1 className="text-3xl font-semibold">Autenticación avanzada</h1>
           </div>
-          <div className="ml-auto flex items-center gap-2 rounded-full border border-white/15 bg-ink-900/60 px-4 py-2 text-xs text-neo-text-secondary">
+          <div className="ml-auto flex items-center gap-2 rounded-full border border-neo-border bg-neo-surface px-4 py-2 text-xs text-neo-text-secondary">
             {session ? (
               <Icon library="lucide" name="CheckCircle2" className="h-4 w-4 text-accent-emerald" />
             ) : authLoading ? (
@@ -159,7 +162,7 @@ export default function AdminAccessPage() {
           <label className="text-sm text-neo-text-secondary">
             Usuario
             <input
-              className="mt-1 w-full rounded-2xl border border-white/10 bg-transparent px-4 py-2 text-neo-text-primary focus:border-accent-secondary focus:outline-none"
+              className="mt-1 w-full rounded-2xl border border-neo-border bg-transparent px-4 py-2 text-neo-text-primary focus:border-neo-primary focus:outline-none"
               value={loginForm.username}
               onChange={(event) => setLoginForm({ ...loginForm, username: event.target.value })}
             />
@@ -168,7 +171,7 @@ export default function AdminAccessPage() {
             Contraseña
             <input
               type="password"
-              className="mt-1 w-full rounded-2xl border border-white/10 bg-transparent px-4 py-2 text-neo-text-primary focus:border-accent-secondary focus:outline-none"
+              className="mt-1 w-full rounded-2xl border border-neo-border bg-transparent px-4 py-2 text-neo-text-primary focus:border-neo-primary focus:outline-none"
               value={loginForm.password}
               onChange={(event) => setLoginForm({ ...loginForm, password: event.target.value })}
             />
@@ -189,7 +192,7 @@ export default function AdminAccessPage() {
             <label className="text-sm text-neo-text-secondary">
               Usuario
               <input
-                className="mt-1 w-full rounded-2xl border border-white/10 bg-transparent px-4 py-2 text-neo-text-primary focus:border-accent-secondary focus:outline-none"
+                className="mt-1 w-full rounded-2xl border border-neo-border bg-transparent px-4 py-2 text-neo-text-primary focus:border-neo-primary focus:outline-none"
                 value={registerForm.username}
                 onChange={(event) => setRegisterForm({ ...registerForm, username: event.target.value })}
               />
@@ -197,7 +200,7 @@ export default function AdminAccessPage() {
             <label className="text-sm text-neo-text-secondary">
               Correo (opcional)
               <input
-                className="mt-1 w-full rounded-2xl border border-white/10 bg-transparent px-4 py-2 text-neo-text-primary focus:border-accent-secondary focus:outline-none"
+                className="mt-1 w-full rounded-2xl border border-neo-border bg-transparent px-4 py-2 text-neo-text-primary focus:border-neo-primary focus:outline-none"
                 value={registerForm.email}
                 onChange={(event) => setRegisterForm({ ...registerForm, email: event.target.value })}
               />
@@ -208,7 +211,7 @@ export default function AdminAccessPage() {
               Contraseña
               <input
                 type="password"
-                className="mt-1 w-full rounded-2xl border border-white/10 bg-transparent px-4 py-2 text-neo-text-primary focus:border-accent-secondary focus:outline-none"
+                className="mt-1 w-full rounded-2xl border border-neo-border bg-transparent px-4 py-2 text-neo-text-primary focus:border-neo-primary focus:outline-none"
                 value={registerForm.password}
                 onChange={(event) => setRegisterForm({ ...registerForm, password: event.target.value })}
               />
@@ -217,7 +220,7 @@ export default function AdminAccessPage() {
               <label className="text-sm text-neo-text-secondary">
                 Rol
                 <select
-                  className="mt-1 w-full rounded-2xl border border-white/10 bg-ink-900/70 px-4 py-2 text-neo-text-primary focus:border-accent-secondary focus:outline-none"
+                  className="mt-1 w-full rounded-2xl border border-neo-border bg-neo-surface px-4 py-2 text-neo-text-primary focus:border-neo-primary focus:outline-none"
                   value={registerForm.role}
                   onChange={(event) => setRegisterForm({ ...registerForm, role: event.target.value as "admin" | "user" })}
                 >
@@ -230,7 +233,7 @@ export default function AdminAccessPage() {
         </AuthCard>
       </div>
 
-      <section className="rounded-3xl border border-white/10 bg-ink-900/60 p-6 shadow-glow-card">
+      <section className="rounded-3xl border border-neo-border bg-neo-card p-6 shadow-glow-card">
         <header className="flex items-center justify-between">
           <div>
             <p className="text-xs uppercase tracking-wide text-neo-text-secondary">Sesión actual</p>
@@ -254,17 +257,17 @@ export default function AdminAccessPage() {
         </div>
       </section>
 
-      <section className="rounded-3xl border border-white/10 bg-ink-900/60 p-6 shadow-glow-card">
+      <section className="rounded-3xl border border-neo-border bg-neo-card p-6 shadow-glow-card">
         <header>
           <p className="text-xs uppercase tracking-wide text-neo-text-secondary">Playbook</p>
           <h2 className="text-lg font-semibold">Protocolos rápidos</h2>
         </header>
         <ul className="mt-4 grid gap-4 md:grid-cols-2">
-          <li className="rounded-2xl border border-white/10 bg-white/5 p-4">
+          <li className="rounded-2xl border border-neo-border bg-neo-surface p-4">
             <p className="text-sm font-semibold text-neo-text-primary">Bloquear acceso inmediato</p>
             <p className="mt-1 text-xs text-neo-text-secondary">Reinicia sesiones cerrando manualmente desde esta vista.</p>
           </li>
-          <li className="rounded-2xl border border-white/10 bg-white/5 p-4">
+          <li className="rounded-2xl border border-neo-border bg-neo-surface p-4">
             <p className="text-sm font-semibold text-neo-text-primary">Bootstrap seguro</p>
             <p className="mt-1 text-xs text-neo-text-secondary">Utiliza el token `NEXT_PUBLIC_ADMIN_TOKEN` para validar la primera cuenta.</p>
           </li>
@@ -286,7 +289,7 @@ type AuthCardProps = {
 
 function AuthCard({ title, description, children, onSubmit, actionLabel, disabled, isPending }: AuthCardProps) {
   return (
-    <section className="space-y-4 rounded-3xl border border-white/10 bg-ink-900/60 p-6 shadow-glow-card">
+    <section className="space-y-4 rounded-3xl border border-neo-border bg-neo-card p-6 shadow-glow-card">
       <header>
         <p className="text-xs uppercase tracking-wide text-neo-text-secondary">Autenticación</p>
         <h2 className="text-xl font-semibold">{title}</h2>
@@ -308,8 +311,8 @@ type MetricPillProps = {
 
 function MetricPill({ label, value, icon }: MetricPillProps) {
   return (
-    <div className="flex items-center gap-3 rounded-2xl border border-white/10 bg-white/5 px-4 py-3">
-      <span className="rounded-2xl bg-white/10 p-2">{icon}</span>
+    <div className="flex items-center gap-3 rounded-2xl border border-neo-border bg-neo-surface px-4 py-3">
+      <span className="rounded-2xl bg-neo-bg p-2">{icon}</span>
       <div>
         <p className="text-xs uppercase tracking-wide text-neo-text-secondary">{label}</p>
         <p className="text-sm font-semibold text-neo-text-primary">{value}</p>
@@ -322,9 +325,9 @@ type StatusCardProps = { label: string; value: string; helper?: string };
 
 function StatusCard({ label, value, helper }: StatusCardProps) {
   return (
-    <div className="rounded-2xl border border-white/10 bg-white/5 px-4 py-3">
+    <div className="rounded-2xl border border-neo-border bg-neo-surface px-4 py-3">
       <p className="text-xs uppercase tracking-wide text-neo-text-secondary">{label}</p>
-      <p className="text-sm font-semibold text-neo-text-primary">{value}</p>
+      <p className="text-sm font-semibold text-neo-text-primary" suppressHydrationWarning>{value}</p>
       {helper ? <p className="text-xs text-neo-text-secondary">{helper}</p> : null}
     </div>
   );

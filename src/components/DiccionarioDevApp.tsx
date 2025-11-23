@@ -543,6 +543,16 @@ export default function DiccionarioDevApp() {
                                     </span>
                                 </button>
                             ))}
+                            {/* Admin Access Button */}
+                            <a
+                                href="/admin"
+                                className="group flex items-center gap-2 rounded-full border border-purple-500/30 bg-purple-500/10 px-4 py-1.5 text-sm font-medium transition-all hover:border-purple-500/50 hover:bg-purple-500/20 active:scale-95"
+                            >
+                                <Settings className="h-4 w-4 text-purple-400" />
+                                <span className="text-purple-300 group-hover:text-purple-200">
+                                    Admin
+                                </span>
+                            </a>
                         </div>
                     </div>
 

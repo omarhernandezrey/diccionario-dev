@@ -54,26 +54,49 @@ export async function POST(req: NextRequest) {
   }
   const data = payload as Record<string, unknown>;
   const templateId = Number(data.templateId);
-  const answers = Array.isArray(data.answers) ? data.answers : [];
-  const score = Number(data.score);
-  const totalQuestions = Number(data.totalQuestions);
-  if (!templateId || !Number.isFinite(score) || !Number.isFinite(totalQuestions)) {
+  const userAnswers = Array.isArray(data.userAnswers) ? (data.userAnswers as (number | null)[]) : [];
+
+  if (!templateId) {
     return NextResponse.json({ ok: false, error: "Datos incompletos" }, { status: 400, headers: noStore });
   }
+
   try {
     const template = await prisma.quizTemplate.findUnique({ where: { id: templateId } });
     if (!template) {
       return NextResponse.json({ ok: false, error: "Quiz no encontrado" }, { status: 404, headers: noStore });
     }
+
+    // Server-side score calculation
+    const items = Array.isArray(template.items) ? (template.items as any[]) : [];
+    const totalQuestions = items.length;
+    let score = 0;
+
+    // Reconstruct the detailed answers object for storage
+    const storedAnswers = items.map((item, index) => {
+      const selectedIndex = userAnswers[index] ?? null;
+      const correctIndex = Number(item.answerIndex);
+
+      if (selectedIndex === correctIndex) {
+        score++;
+      }
+
+      return {
+        question: item.questionEs,
+        selectedIndex,
+        correctIndex,
+      };
+    });
+
     const created = await prisma.quizAttempt.create({
       data: {
         templateId,
         score,
         totalQuestions,
-        answers,
+        answers: storedAnswers,
       },
       include: { template: { select: { title: true, slug: true } } },
     });
+
     return NextResponse.json({ ok: true, item: serializeAttempt(created) }, { status: 201, headers: noStore });
   } catch (error) {
     logger.error({ err: error }, "quizzes.attempt_create_failed");

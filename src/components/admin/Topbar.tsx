@@ -4,6 +4,7 @@ import React, { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Icon } from "@/components/Icon";
 import { useNotifications } from "@/components/admin/NotificationsProvider";
+import { useSession, notifySessionChange } from "@/components/admin/SessionProvider";
 import ThemeToggle from "@/components/ThemeToggle";
 
 export default function Topbar() {
@@ -11,6 +12,7 @@ export default function Topbar() {
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const [notificationsOpen, setNotificationsOpen] = useState(false);
   const [signingOut, setSigningOut] = useState(false);
+  const { session, loading: sessionLoading } = useSession();
   const { notifications, unreadCount, markAsRead, markAllRead, refresh, loading } = useNotifications();
 
   const handleSignOut = async () => {
@@ -19,6 +21,7 @@ export default function Topbar() {
     try {
       await fetch("/api/auth", { method: "DELETE", credentials: "include" });
       setDropdownOpen(false);
+      notifySessionChange(); // Notificar a todos los componentes
       router.push("/admin");
       router.refresh();
     } finally {
@@ -124,61 +127,70 @@ export default function Topbar() {
 
           {/* User Menu */}
           <div className="relative">
-            <button
-              onClick={() => setDropdownOpen(!dropdownOpen)}
-              className="flex items-center gap-2 rounded-lg px-3 py-1.5 text-sm font-medium text-neo-text-secondary transition hover:bg-neo-surface hover:text-neo-text-primary"
-            >
-              <div className="flex h-7 w-7 items-center justify-center rounded-full bg-gradient-to-br from-neo-primary to-neo-accent-purple text-xs font-bold text-white">
-                OH
+            {sessionLoading ? (
+              <div className="flex items-center gap-2 rounded-lg px-3 py-1.5">
+                <Icon library="lucide" name="Loader2" className="h-5 w-5 animate-spin text-neo-text-secondary" />
+                <span className="text-sm text-neo-text-secondary">Cargando...</span>
               </div>
-              <div className="hidden sm:flex flex-col leading-tight">
-                <span className="text-sm font-semibold text-neo-text-primary">Omar Hernandez Rey</span>
-                <span className="text-[11px] uppercase tracking-wide text-neo-text-secondary">Perfil</span>
-              </div>
-              <Icon
-                library="lucide"
-                name="ChevronDown"
-                className={`h-4 w-4 transition-transform duration-200 ${dropdownOpen ? "rotate-180" : ""}`}
-              />
-            </button>
+            ) : session ? (
+              <>
+                <button
+                  onClick={() => setDropdownOpen(!dropdownOpen)}
+                  className="flex items-center gap-2 rounded-lg px-3 py-1.5 text-sm font-medium text-neo-text-secondary transition hover:bg-neo-surface hover:text-neo-text-primary"
+                >
+                  <div className="relative flex h-8 w-8 items-center justify-center rounded-full bg-gradient-to-br from-neo-primary to-neo-accent-purple text-xs font-bold text-white">
+                    {session.username.substring(0, 2).toUpperCase()}
+                    {/* Indicador "en línea" - bolita verde */}
+                    <span className="absolute bottom-0 right-0 h-2.5 w-2.5 rounded-full bg-[#10b981] ring-2 ring-white dark:ring-neo-bg"></span>
+                  </div>
+                  <div className="hidden sm:flex flex-col leading-tight">
+                    <span className="text-sm font-semibold text-neo-text-primary">{session.username}</span>
+                    <span className="text-[10px] text-[#10b981] font-medium">● En línea</span>
+                  </div>
+                  <Icon
+                    library="lucide"
+                    name="ChevronDown"
+                    className={`h-4 w-4 transition-transform duration-200 ${dropdownOpen ? "rotate-180" : ""}`}
+                  />
+                </button>
 
-            {/* Dropdown Menu */}
-            {dropdownOpen && (
-              <div className="absolute right-0 mt-2 w-48 rounded-lg border border-neo-border bg-neo-card shadow-xl animate-slide-up">
-                <button
-                  className="flex w-full items-center gap-3 px-4 py-2.5 text-sm text-neo-text-secondary transition hover:bg-neo-surface hover:text-neo-text-primary"
-                  onClick={() => {
-                    router.push("/admin/profile");
-                    setDropdownOpen(false);
-                  }}
-                >
-                  <Icon library="lucide" name="User" className="h-4 w-4" />
-                  Perfil
-                </button>
-                <button
-                  className="flex w-full items-center gap-3 px-4 py-2.5 text-sm text-neo-text-secondary transition hover:bg-neo-surface hover:text-neo-text-primary"
-                  onClick={() => {
-                    router.push("/admin/settings");
-                    setDropdownOpen(false);
-                  }}
-                >
-                  <Icon library="lucide" name="Settings" className="h-4 w-4" />
-                  Preferencias
-                </button>
-                <div className="border-t border-neo-border" />
-                <button
-                  className="flex w-full items-center gap-3 px-4 py-2.5 text-sm text-accent-rose transition hover:bg-neo-surface disabled:opacity-60"
-                  onClick={handleSignOut}
-                  disabled={signingOut}
-                >
-                  {signingOut ? (
-                    <Icon library="lucide" name="Loader2" className="h-4 w-4 animate-spin" />
-                  ) : (
-                    <Icon library="lucide" name="LogOut" className="h-4 w-4" />
-                  )}
-                  {signingOut ? "Saliendo…" : "Salir"}
-                </button>
-              </div>
+                {/* Dropdown Menu */}
+                {dropdownOpen && (
+                  <div className="absolute right-0 mt-2 w-48 rounded-lg border border-neo-border bg-neo-card shadow-xl animate-slide-up">
+                    <button
+                      className="flex w-full items-center gap-3 px-4 py-2.5 text-sm text-neo-text-secondary transition hover:bg-neo-surface hover:text-neo-text-primary"
+                      onClick={() => {
+                        router.push("/admin/settings");
+                        setDropdownOpen(false);
+                      }}
+                    >
+                      <Icon library="lucide" name="Settings" className="h-4 w-4" />
+                      Preferencias
+                    </button>
+                    <div className="border-t border-neo-border" />
+                    <button
+                      className="flex w-full items-center gap-3 px-4 py-2.5 text-sm text-accent-rose transition hover:bg-neo-surface disabled:opacity-60"
+                      onClick={handleSignOut}
+                      disabled={signingOut}
+                    >
+                      {signingOut ? (
+                        <Icon library="lucide" name="Loader2" className="h-4 w-4 animate-spin" />
+                      ) : (
+                        <Icon library="lucide" name="LogOut" className="h-4 w-4" />
+                      )}
+                      {signingOut ? "Saliendo…" : "Salir"}
+                    </button>
+                  </div>
+                )}
+              </>
+            ) : (
+              <button
+                onClick={() => router.push("/admin/access")}
+                className="flex items-center gap-2 rounded-lg bg-neo-primary px-4 py-2 text-sm font-semibold text-white transition hover:bg-neo-primary/90"
+              >
+                <Icon library="lucide" name="LogIn" className="h-4 w-4" />
+                Iniciar sesión
+              </button>
             )}
           </div>
         </div>

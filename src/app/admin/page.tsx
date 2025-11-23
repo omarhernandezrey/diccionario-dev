@@ -173,13 +173,7 @@ export function AdminConsole({ initialView = "overview" }: AdminConsoleProps) {
   const [authLoading, setAuthLoading] = useState(true);
   const [authError, setAuthError] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
-  const [loginForm, setLoginForm] = useState({ username: "", password: "" });
-  const [registerForm, setRegisterForm] = useState({
-    username: "",
-    password: "",
-    email: "",
-    role: "admin" as "admin" | "user",
-  });
+
   const [selectedIds, setSelectedIds] = useState<number[]>([]);
   const [deleteDialog, setDeleteDialog] = useState<DeleteDialogState | null>(null);
   const [deleteLoading, setDeleteLoading] = useState(false);
@@ -444,54 +438,11 @@ export function AdminConsole({ initialView = "overview" }: AdminConsoleProps) {
     }
   }, []);
 
-  async function login() {
-    setAuthError(null);
-    setMessage(null);
-    const res = await fetch("/api/auth/login", {
-      method: "POST",
-      credentials: "include",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(loginForm),
-    });
-    const data = await res.json().catch(() => ({}));
-    if (!res.ok) {
-      setAuthError(data?.error || "Credenciales inválidas");
-      return;
-    }
-    setLoginForm({ username: "", password: "" });
-    setMessage(`Bienvenido ${data.user?.username}`);
-    await refreshSession();
-  }
-
   async function logout() {
     await fetch("/api/auth", { method: "DELETE", credentials: "include" });
     setSession(null);
     setMessage("Sesión cerrada");
     await refreshSession();
-  }
-
-  async function register() {
-    setAuthError(null);
-    const headers: Record<string, string> = { "Content-Type": "application/json" };
-    if (typeof process !== "undefined" && process.env?.NEXT_PUBLIC_ADMIN_TOKEN) {
-      headers["x-admin-token"] = process.env.NEXT_PUBLIC_ADMIN_TOKEN as string;
-    }
-    const res = await fetch("/api/auth/register", {
-      method: "POST",
-      credentials: "include",
-      headers,
-      body: JSON.stringify(registerForm),
-    });
-    const data = await res.json().catch(() => ({}));
-    if (!res.ok) {
-      setAuthError(data?.error || "No se pudo registrar");
-      return;
-    }
-    setMessage(`Usuario ${data.user?.username} creado`);
-    if (allowBootstrap) {
-      refreshSession();
-    }
-    setRegisterForm({ username: "", password: "", email: "", role: "user" });
   }
 
   const requestDeletion = (targetIds: number[], context: "single" | "bulk") => {
@@ -649,21 +600,47 @@ export function AdminConsole({ initialView = "overview" }: AdminConsoleProps) {
           <div className="rounded-3xl border border-neo-border bg-neo-surface p-3 shadow-glow-card">
             <Icon library="lucide" name="BookOpenCheck" className="h-7 w-7 text-neo-text-primary" />
           </div>
-          <div>
+          <div className="flex-1">
             <p className="text-xs uppercase tracking-[0.3em] text-neo-text-secondary">Panel de control</p>
             <h1 className="text-3xl font-semibold">Diccionario Dev · Admin</h1>
           </div>
-          <div className="ml-auto flex items-center gap-3 rounded-full border border-neo-border bg-neo-surface px-4 py-2 text-xs text-neo-text-secondary">
-            <Icon
-              library="lucide"
-              name="ShieldCheck"
-              className={`h-4 w-4 ${session ? "text-accent-emerald" : "text-accent-danger"}`}
-            />
-            <span>{session ? `Activo: ${session.username} (${session.role})` : "Acceso restringido"}</span>
-            <button type="button" className="text-neo-primary underline-offset-2 hover:underline" onClick={() => handleViewChange("team")}>
-              Gestionar
-            </button>
-          </div>
+          {authLoading ? (
+            <div className="flex items-center gap-3 rounded-full border border-neo-border bg-neo-surface px-4 py-2 text-xs text-neo-text-secondary">
+              <Icon library="lucide" name="Loader2" className="h-4 w-4 animate-spin" />
+              <span>Verificando sesión...</span>
+            </div>
+          ) : session ? (
+            <div className="flex items-center gap-3 rounded-full border border-neo-border bg-neo-surface px-4 py-2 text-xs">
+              <div className="relative flex h-6 w-6 items-center justify-center rounded-full bg-gradient-to-br from-neo-primary to-neo-accent-purple text-[10px] font-bold text-white">
+                {session.username.substring(0, 2).toUpperCase()}
+                {/* Indicador "en línea" */}
+                <span className="absolute bottom-0 right-0 h-2 w-2 rounded-full bg-[#10b981] ring-1 ring-white dark:ring-neo-surface"></span>
+              </div>
+              <div className="flex flex-col">
+                <span className="font-semibold text-neo-text-primary">{session.username}</span>
+                <span className="text-[10px] text-[#10b981] font-medium">● {session.role.toUpperCase()}</span>
+              </div>
+              <button
+                type="button"
+                className="ml-2 text-neo-primary underline-offset-2 hover:underline transition-colors"
+                onClick={() => handleViewChange("team")}
+              >
+                Gestionar
+              </button>
+            </div>
+          ) : (
+            <div className="flex items-center gap-3 rounded-full border border-accent-danger/40 bg-accent-danger/10 px-4 py-2 text-xs">
+              <Icon library="lucide" name="AlertCircle" className="h-4 w-4 text-accent-danger" />
+              <span className="text-accent-danger font-medium">Sin sesión activa</span>
+              <button
+                type="button"
+                className="ml-2 text-accent-danger underline-offset-2 hover:underline transition-colors"
+                onClick={() => handleViewChange("team")}
+              >
+                Iniciar sesión
+              </button>
+            </div>
+          )}
         </div>
         <p className="mt-4 max-w-3xl text-sm text-neo-text-secondary">
           Controla el glosario técnico, detecta huecos y administra accesos en un solo flujo operacional.
@@ -683,13 +660,25 @@ export function AdminConsole({ initialView = "overview" }: AdminConsoleProps) {
           })}
         </dl>
         <div className="mt-8 flex flex-wrap gap-3">
-          <button className="btn-primary" type="button" onClick={handleCreateTerm} disabled={!canEdit}>
-            Nuevo término
-          </button>
-          <button className="btn-ghost" type="button" onClick={() => handleViewChange("terms")}>
-            Revisar catálogo
-          </button>
+          {canEdit ? (
+            <>
+              <button className="btn-primary" type="button" onClick={handleCreateTerm}>
+                <Icon library="lucide" name="Plus" className="h-4 w-4 mr-2" />
+                Nuevo término
+              </button>
+              <button className="btn-ghost" type="button" onClick={() => handleViewChange("terms")}>
+                <Icon library="lucide" name="List" className="h-4 w-4 mr-2" />
+                Revisar catálogo
+              </button>
+            </>
+          ) : (
+            <div className="rounded-lg border border-neo-border bg-neo-surface px-4 py-2 text-sm text-neo-text-secondary">
+              <Icon library="lucide" name="Lock" className="h-4 w-4 inline mr-2" />
+              Inicia sesión como admin para gestionar términos
+            </div>
+          )}
           <button className="btn-ghost" type="button" onClick={refreshSession}>
+            <Icon library="lucide" name="RefreshCw" className="h-4 w-4 mr-2" />
             Revalidar sesión
           </button>
         </div>
@@ -792,14 +781,31 @@ export function AdminConsole({ initialView = "overview" }: AdminConsoleProps) {
             alertsSyncing={notificationsLoading}
             onSyncAlerts={refreshNotifications}
           />
-          <div className="grid gap-6 lg:grid-cols-2">
-            {!session && <AuthCard form={loginForm} onChange={setLoginForm} onSubmit={login} />}
-            {showRegisterCard && (
-              <RegisterCard form={registerForm} onChange={setRegisterForm} onSubmit={register} allowBootstrap={allowBootstrap} />
-            )}
-            <div className="lg:col-span-2">
-              <LeaderboardPanel />
-            </div>
+
+          {/* Enlace a la página de autenticación dedicada */}
+          {!session && (
+            <section className="rounded-3xl border border-neo-border bg-neo-surface p-6 shadow-glow-card">
+              <div className="flex items-center gap-4">
+                <div className="rounded-2xl border border-accent-secondary/40 bg-accent-secondary/10 p-3">
+                  <Icon library="lucide" name="ShieldCheck" className="h-8 w-8 text-accent-secondary" />
+                </div>
+                <div className="flex-1">
+                  <h3 className="text-lg font-semibold text-neo-text-primary">Gestión de autenticación</h3>
+                  <p className="text-sm text-neo-text-secondary">
+                    Inicia sesión o crea una cuenta desde la página dedicada de autenticación.
+                  </p>
+                </div>
+              </div>
+              <div className="mt-4 flex gap-3">
+                <a href="/admin/access" className="btn-primary">
+                  Ir a Autenticación
+                </a>
+              </div>
+            </section>
+          )}
+
+          <div className="grid gap-6 lg:grid-cols-1">
+            <LeaderboardPanel />
           </div>
         </div>
       ) : null}
@@ -852,116 +858,6 @@ function ToastStack({ error, message, onClearError, onClearMessage }: ToastStack
   );
 }
 
-type AuthCardProps = {
-  form: { username: string; password: string };
-  onChange: (next: { username: string; password: string }) => void;
-  onSubmit: () => void;
-};
-
-function AuthCard({ form, onChange, onSubmit }: AuthCardProps) {
-  const disabled = !form.username.trim() || !form.password.trim();
-  return (
-    <section className="glass-panel space-y-4 border border-neo-border bg-neo-card">
-      <header>
-        <p className="text-xs uppercase tracking-wide text-neo-text-secondary">Acceso</p>
-        <h2 className="text-xl font-semibold">Iniciar sesión</h2>
-        <p className="text-sm text-neo-text-secondary">Accede con tus credenciales de administrador.</p>
-      </header>
-      <div className="space-y-3">
-        <label className="text-sm text-neo-text-secondary">
-          Usuario
-          <input
-            className="mt-1 w-full rounded-2xl border border-neo-border bg-transparent px-4 py-2 text-neo-text-primary focus:border-accent-secondary focus:outline-none"
-            value={form.username}
-            onChange={(event) => onChange({ ...form, username: event.target.value })}
-          />
-        </label>
-        <label className="text-sm text-neo-text-secondary">
-          Contraseña
-          <input
-            type="password"
-            className="mt-1 w-full rounded-2xl border border-neo-border bg-transparent px-4 py-2 text-neo-text-primary focus:border-accent-secondary focus:outline-none"
-            value={form.password}
-            onChange={(event) => onChange({ ...form, password: event.target.value })}
-          />
-        </label>
-      </div>
-      <button className="btn-primary w-full" type="button" onClick={onSubmit} disabled={disabled}>
-        Entrar
-      </button>
-    </section>
-  );
-}
-
-type RegisterCardProps = {
-  form: { username: string; password: string; email: string; role: "admin" | "user" };
-  onChange: (next: { username: string; password: string; email: string; role: "admin" | "user" }) => void;
-  onSubmit: () => void;
-  allowBootstrap: boolean;
-};
-
-function RegisterCard({ form, onChange, onSubmit, allowBootstrap }: RegisterCardProps) {
-  const disabled = !form.username.trim() || !form.password.trim();
-  return (
-    <section className="glass-panel space-y-4 border border-neo-border bg-neo-card">
-      <header>
-        <p className="text-xs uppercase tracking-wide text-neo-text-secondary">Usuarios</p>
-        <h2 className="text-xl font-semibold">
-          {allowBootstrap ? "Crear administrador inicial" : "Registrar usuario"}
-        </h2>
-        <p className="text-sm text-neo-text-secondary">
-          {allowBootstrap
-            ? "El primer usuario será administrador automáticamente."
-            : "Solo los administradores autenticados pueden crear nuevas cuentas."}
-        </p>
-      </header>
-      <div className="grid gap-3 md:grid-cols-2">
-        <label className="text-sm text-neo-text-secondary">
-          Usuario
-          <input
-            className="mt-1 w-full rounded-2xl border border-neo-border bg-transparent px-4 py-2 text-neo-text-primary focus:border-accent-secondary focus:outline-none"
-            value={form.username}
-            onChange={(event) => onChange({ ...form, username: event.target.value })}
-          />
-        </label>
-        <label className="text-sm text-neo-text-secondary">
-          Email (opcional)
-          <input
-            className="mt-1 w-full rounded-2xl border border-neo-border bg-transparent px-4 py-2 text-neo-text-primary focus:border-accent-secondary focus:outline-none"
-            value={form.email}
-            onChange={(event) => onChange({ ...form, email: event.target.value })}
-          />
-        </label>
-        <label className="text-sm text-neo-text-secondary">
-          Contraseña
-          <input
-            type="password"
-            className="mt-1 w-full rounded-2xl border border-neo-border bg-transparent px-4 py-2 text-neo-text-primary focus:border-accent-secondary focus:outline-none"
-            value={form.password}
-            onChange={(event) => onChange({ ...form, password: event.target.value })}
-          />
-        </label>
-        {!allowBootstrap && (
-          <label className="text-sm text-neo-text-secondary">
-            Rol
-            <select
-              className="mt-1 w-full rounded-2xl border border-neo-border bg-neo-surface px-4 py-2 text-neo-text-primary focus:border-accent-secondary focus:outline-none"
-              value={form.role}
-              onChange={(event) => onChange({ ...form, role: event.target.value as "admin" | "user" })}
-            >
-              <option value="admin">Admin</option>
-              <option value="user">User</option>
-            </select>
-          </label>
-        )}
-      </div>
-      <button className="btn-primary w-full" type="button" onClick={onSubmit} disabled={disabled}>
-        {allowBootstrap ? "Crear administrador" : "Registrar usuario"}
-      </button>
-    </section>
-  );
-}
-
 type TeamPlaybookPanelProps = {
   session: SessionUser | null;
   authLoading: boolean;
@@ -990,13 +886,23 @@ function TeamPlaybookPanel({
       <header className="flex flex-wrap items-center justify-between gap-3">
         <div>
           <p className="text-xs uppercase tracking-wide text-neo-text-secondary">Operaciones del equipo</p>
-          <h2 className="text-lg font-semibold">{session ? `Hola ${session.username}` : "Gestiona los accesos"}</h2>
+          <h2 className="text-lg font-semibold">
+            {session ? (
+              <span className="inline-flex items-center gap-2">
+                Hola {session.username}
+                <span className="inline-flex h-2 w-2 rounded-full bg-[#10b981]"></span>
+              </span>
+            ) : (
+              "Gestiona los accesos"
+            )}
+          </h2>
         </div>
         <span
-          className={`inline-flex items-center rounded-full px-3 py-1 text-xs font-semibold ${authLoading ? "bg-neo-surface text-neo-text-secondary" : session ? "bg-accent-emerald/20 text-accent-emerald" : "bg-accent-danger/20 text-accent-danger"
+          className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-semibold ${authLoading ? "bg-neo-surface text-neo-text-secondary" : session ? "bg-[#10b981]/20 text-[#10b981]" : "bg-accent-danger/20 text-accent-danger"
             }`}
         >
-          {authLoading ? "Validando…" : session ? "Sesión activa" : "Sin sesión"}
+          {session && <span className="h-1.5 w-1.5 rounded-full bg-[#10b981]"></span>}
+          {authLoading ? "Validando…" : session ? "En línea" : "Sin sesión"}
         </span>
       </header>
       <p className="mt-2 text-sm text-neo-text-secondary">
@@ -1178,7 +1084,7 @@ function TermsTable({
           <p className="text-sm text-neo-text-secondary">Controla y sincroniza el glosario completo en tiempo real.</p>
           <p className="text-xs text-neo-text-secondary">
             {autoRefreshEnabled ? (
-              <span className="text-accent-secondary">
+              <span className="text-accent-secondary" suppressHydrationWarning>
                 Autorefresco cada 30s{lastAutoRefreshTime ? ` · último a las ${lastAutoRefreshTime}` : ""}
               </span>
             ) : (
@@ -1237,6 +1143,7 @@ function TermsTable({
               <th className="px-4 py-3">#</th>
               <th className="px-4 py-3">Traducción</th>
               <th className="px-4 py-3">Término</th>
+              <th className="px-4 py-3">Ejercicios</th>
               <th className="px-4 py-3">Estado</th>
               <th className="px-4 py-3">Categoría</th>
               <th className="px-4 py-3">Acciones</th>
@@ -1259,6 +1166,15 @@ function TermsTable({
                   <td className="px-4 py-3 text-neo-text-secondary">{item.id}</td>
                   <td className="px-4 py-3 font-semibold text-neo-text-primary">{item.translation}</td>
                   <td className="px-4 py-3 text-neo-text-secondary">{item.term}</td>
+                  <td className="px-4 py-3">
+                    {item.exercises && item.exercises.length > 0 ? (
+                      <span className="inline-flex items-center rounded-full bg-accent-secondary/10 px-2 py-1 text-xs font-medium text-accent-secondary">
+                        {item.exercises.length}
+                      </span>
+                    ) : (
+                      <span className="text-xs text-neo-text-secondary">-</span>
+                    )}
+                  </td>
                   <td className="px-4 py-3">
                     <span className={`rounded-full px-2 py-1 text-xs font-semibold ${statusBadgeClass(item.status)}`}>
                       {item.status}
@@ -1424,7 +1340,7 @@ function QuickActionsPanel({
               />
             </button>
           </div>
-          <p className="mt-3 text-xs text-neo-text-secondary">
+          <p className="mt-3 text-xs text-neo-text-secondary" suppressHydrationWarning>
             {autoRefresh ? `Pulso cada 30s${lastAutoRefresh ? ` · último a las ${lastAutoRefresh}` : ""}` : "Pulse manual para evitar ruido"}
           </p>
         </article>
@@ -1433,7 +1349,7 @@ function QuickActionsPanel({
             <p className="text-sm font-semibold">Sincronizar catálogo</p>
             <Icon library="lucide" name="RefreshCcw" className="h-4 w-4 text-accent-secondary" />
           </div>
-          <p className="mt-2 text-xs text-neo-text-secondary">{lastManualRefresh ? `Última manual: ${lastManualRefresh}` : "Sin ejecutar hoy."}</p>
+          <p className="mt-2 text-xs text-neo-text-secondary" suppressHydrationWarning>{lastManualRefresh ? `Última manual: ${lastManualRefresh}` : "Sin ejecutar hoy."}</p>
           <button className="btn-ghost mt-3 w-full text-sm" type="button" onClick={onManualRefresh}>
             Forzar refresco
           </button>
@@ -1443,7 +1359,7 @@ function QuickActionsPanel({
             <p className="text-sm font-semibold">Exportar catálogo</p>
             <Icon library="lucide" name="Download" className="h-4 w-4 text-accent-secondary" />
           </div>
-          <p className="mt-2 text-xs text-neo-text-secondary">{lastExportedAt ? `Último export: ${lastExportedAt}` : "Aún sin exportar esta sesión."}</p>
+          <p className="mt-2 text-xs text-neo-text-secondary" suppressHydrationWarning>{lastExportedAt ? `Último export: ${lastExportedAt}` : "Aún sin exportar esta sesión."}</p>
           <button className="btn-primary mt-3 w-full text-sm" type="button" onClick={onExport} disabled={exporting}>
             {exporting ? "Generando..." : "Descargar JSON"}
           </button>
@@ -1527,7 +1443,7 @@ function OpsTimelinePanel({ items, notifications, lastManualRefresh, lastAutoRef
                 <p className="text-sm font-semibold text-neo-text-primary">{event.title}</p>
                 <p className="text-xs text-neo-text-secondary">{event.detail}</p>
               </div>
-              <span className="text-xs text-neo-text-secondary">{event.time}</span>
+              <span className="text-xs text-neo-text-secondary" suppressHydrationWarning>{event.time}</span>
             </li>
           ))
         ) : (
@@ -1617,7 +1533,7 @@ function IntegrationsStatusPanel({
               </div>
               <span className={`text-xs font-semibold ${badgeClass(card.status)}`}>{card.detail}</span>
             </div>
-            {card.meta ? <p className="mt-1 text-xs text-neo-text-secondary">{card.meta}</p> : null}
+            {card.meta ? <p className="mt-1 text-xs text-neo-text-secondary" suppressHydrationWarning>{card.meta}</p> : null}
           </article>
         ))}
       </div>
@@ -1717,7 +1633,26 @@ function EditorSheet({ term, onCancel, onSave }: EditorSheetProps) {
     setVal(term);
   }, [term]);
 
-  const requiredFilled = Boolean(val.term.trim() && val.translation.trim() && val.meaning.trim() && val.what.trim() && val.how.trim());
+  const exercisesValid = useMemo(() => {
+    if (!val.exercises || val.exercises.length === 0) return true;
+    return val.exercises.every((ex) => {
+      const basicValid = ex.titleEs.trim() && ex.promptEs.trim();
+      const solutionsValid =
+        ex.solutions &&
+        ex.solutions.length > 0 &&
+        ex.solutions.every((sol) => sol.code.trim() && sol.explainEs.trim());
+      return basicValid && solutionsValid;
+    });
+  }, [val.exercises]);
+
+  const requiredFilled = Boolean(
+    val.term.trim() &&
+      val.translation.trim() &&
+      val.meaning.trim() &&
+      val.what.trim() &&
+      val.how.trim() &&
+      exercisesValid,
+  );
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-[var(--admin-backdrop)] px-4 py-6 backdrop-blur-sm">
@@ -1842,7 +1777,13 @@ function EditorSheet({ term, onCancel, onSave }: EditorSheetProps) {
           <FaqsEditor value={val.faqs} onChange={(faqs) => setVal({ ...val, faqs })} />
           <ExercisesEditor value={val.exercises} onChange={(exercises) => setVal({ ...val, exercises })} />
         </div>
-        {!requiredFilled && <p className="mt-3 text-sm text-accent-danger">Completa traducción, término, significado, qué hace y cómo se usa.</p>}
+        {!requiredFilled && (
+          <p className="mt-3 text-sm text-accent-danger">
+            {!exercisesValid
+              ? "Revisa los ejercicios: faltan títulos, prompts o soluciones completas."
+              : "Completa traducción, término, significado, qué hace y cómo se usa."}
+          </p>
+        )}
         <div className="mt-6 flex flex-wrap justify-end gap-3">
           <button className="btn-ghost" type="button" onClick={onCancel}>
             Cancelar
@@ -2435,9 +2376,11 @@ function ExercisesEditor({ value, onChange }: ExercisesEditorProps) {
               </div>
               <div className="mt-3 grid gap-3 md:grid-cols-2">
                 <label className="text-xs text-neo-text-secondary">
-                  Título (ES)
+                  Título (ES) <span className="text-accent-danger">*</span>
                   <input
-                    className="mt-1 w-full rounded-2xl border border-neo-border bg-neo-surface px-3 py-2 text-sm text-neo-text-primary focus:outline-none"
+                    className={`mt-1 w-full rounded-2xl border bg-neo-surface px-3 py-2 text-sm text-neo-text-primary focus:outline-none ${
+                      !exercise.titleEs.trim() ? "border-accent-danger/50" : "border-neo-border"
+                    }`}
                     value={exercise.titleEs}
                     onChange={(event) => update(index, { titleEs: event.target.value })}
                   />
@@ -2453,9 +2396,11 @@ function ExercisesEditor({ value, onChange }: ExercisesEditorProps) {
               </div>
               <div className="mt-3 grid gap-3 md:grid-cols-2">
                 <label className="text-xs text-neo-text-secondary">
-                  Prompt (ES)
+                  Prompt (ES) <span className="text-accent-danger">*</span>
                   <textarea
-                    className="mt-1 w-full rounded-2xl border border-neo-border bg-neo-surface px-3 py-2 text-sm text-neo-text-primary focus:outline-none"
+                    className={`mt-1 w-full rounded-2xl border bg-neo-surface px-3 py-2 text-sm text-neo-text-primary focus:outline-none ${
+                      !exercise.promptEs.trim() ? "border-accent-danger/50" : "border-neo-border"
+                    }`}
                     rows={2}
                     value={exercise.promptEs}
                     onChange={(event) => update(index, { promptEs: event.target.value })}
@@ -2560,18 +2505,22 @@ function SolutionsEditor({ value, onChange }: SolutionsEditorProps) {
             </button>
           </div>
           <label className="mt-2 block text-xs text-neo-text-secondary">
-            Código
+            Código <span className="text-accent-danger">*</span>
             <textarea
-              className="mt-1 w-full rounded-2xl border border-neo-border bg-neo-bg px-3 py-2 font-mono text-xs text-neo-text-primary focus:outline-none"
+              className={`mt-1 w-full rounded-2xl border bg-neo-bg px-3 py-2 font-mono text-xs text-neo-text-primary focus:outline-none ${
+                !solution.code.trim() ? "border-accent-danger/50" : "border-neo-border"
+              }`}
               rows={3}
               value={solution.code}
               onChange={(event) => update(index, { code: event.target.value })}
             />
           </label>
           <label className="mt-2 block text-xs text-neo-text-secondary">
-            Explicación (ES)
+            Explicación (ES) <span className="text-accent-danger">*</span>
             <textarea
-              className="mt-1 w-full rounded-2xl border border-neo-border bg-neo-bg px-3 py-2 text-xs text-neo-text-primary focus:outline-none"
+              className={`mt-1 w-full rounded-2xl border bg-neo-bg px-3 py-2 text-xs text-neo-text-primary focus:outline-none ${
+                !solution.explainEs.trim() ? "border-accent-danger/50" : "border-neo-border"
+              }`}
               rows={2}
               value={solution.explainEs}
               onChange={(event) => update(index, { explainEs: event.target.value })}

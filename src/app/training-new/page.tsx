@@ -12,35 +12,22 @@ export default function TrainingPage() {
   const [status, setStatus] = useState<"idle" | "submitting" | "ready">("idle");
   const [result, setResult] = useState<{ score: number; total: number } | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [offset, setOffset] = useState(0);
-  const [hasMore, setHasMore] = useState(true);
-  const [loadingMore, setLoadingMore] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    fetchQuizzes(0);
+    setLoadingQuizzes(true);
+    fetch("/api/quizzes?limit=8", { cache: "no-store" })
+      .then(async (res) => {
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        return res.json();
+      })
+      .then((payload) => {
+        const items = Array.isArray(payload?.items) ? (payload.items as QuizTemplateDTO[]) : [];
+        setQuizzes(items);
+      })
+      .catch((err) => setError(err?.message || "No se pudieron cargar los retos"))
+      .finally(() => setLoadingQuizzes(false));
   }, []);
-
-  async function fetchQuizzes(currentOffset: number) {
-    if (currentOffset === 0) setLoadingQuizzes(true);
-    else setLoadingMore(true);
-
-    try {
-      const res = await fetch(`/api/quizzes?limit=8&offset=${currentOffset}`, { cache: "no-store" });
-      if (!res.ok) throw new Error(`HTTP ${res.status}`);
-      const payload = await res.json();
-      const items = Array.isArray(payload?.items) ? (payload.items as QuizTemplateDTO[]) : [];
-
-      setQuizzes((prev) => (currentOffset === 0 ? items : [...prev, ...items]));
-      setHasMore(items.length === 8);
-      setOffset(currentOffset);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "No se pudieron cargar los retos");
-    } finally {
-      setLoadingQuizzes(false);
-      setLoadingMore(false);
-    }
-  }
 
   useEffect(() => {
     if (!selected && quizzes.length) {
@@ -73,8 +60,7 @@ export default function TrainingPage() {
 
   async function refreshAttempts() {
     try {
-      // Fetch more attempts to calculate best scores client-side
-      const res = await fetch(`/api/quizzes/attempts?limit=50&t=${Date.now()}`, { cache: "no-store" });
+      const res = await fetch("/api/quizzes/attempts?limit=5", { cache: "no-store" });
       if (!res.ok) throw new Error("Historial no disponible");
       const payload = await res.json();
       setAttempts(Array.isArray(payload?.items) ? (payload.items as QuizAttemptDTO[]) : []);
@@ -82,18 +68,6 @@ export default function TrainingPage() {
       console.warn(err);
     }
   }
-
-  const bestScores = useMemo(() => {
-    const scores: Record<number, number> = {};
-    attempts.forEach((attempt) => {
-      const currentBest = scores[attempt.templateId] || 0;
-      const percentage = Math.round((attempt.score / attempt.totalQuestions) * 100);
-      if (percentage > currentBest) {
-        scores[attempt.templateId] = percentage;
-      }
-    });
-    return scores;
-  }, [attempts]);
 
   async function submit() {
     if (!selected || !allAnswered) return;
@@ -142,7 +116,7 @@ export default function TrainingPage() {
         <section className="w-full rounded-3xl border border-neo-border bg-neo-card p-6 shadow-xl lg:w-1/3">
           <header className="mb-4">
             <p className="text-xs uppercase tracking-wide text-neo-text-secondary">Modo entrenamiento</p>
-            <h1 className="text-2xl font-semibold text-neo-text-primary">Quizzes de Entrenamiento</h1>
+            <h1 className="text-2xl font-bold text-accent-rose">PRUEBA DE NUEVA VISTA</h1>
             <p className="text-sm text-neo-text-secondary">Selecciona un quiz y responde acompañado de explicaciones.</p>
           </header>
           {error ? <p className="text-xs text-accent-danger">{error}</p> : null}
@@ -151,58 +125,32 @@ export default function TrainingPage() {
               Array.from({ length: 4 }).map((_, i) => (
                 <li key={i} className="h-20 w-full animate-pulse rounded-2xl bg-neo-surface" />
               ))
-            ) : quizzes.length > 0 ? (
-              <>
-                {quizzes.map((quiz) => {
-                  const active = selected?.id === quiz.id;
-                  const bestScore = bestScores[quiz.id];
-
-                  return (
-                    <li key={quiz.id}>
-                      <button
-                        type="button"
-                        className={`w-full rounded-2xl border px-4 py-3 text-left text-sm transition ${active
-                          ? "border-neo-primary bg-neo-primary-light text-neo-text-primary shadow-lg shadow-neo-primary/25"
-                          : "border-neo-border hover:border-neo-primary hover:bg-neo-surface"
-                          }`}
-                        onClick={() => setSelected(quiz)}
-                      >
-                        <div className="flex justify-between items-start mb-1">
-                          <p className="font-semibold text-neo-text-primary">{quiz.title}</p>
-                          {bestScore !== undefined && (
-                            <span className="inline-flex items-center rounded-full bg-emerald-100 px-2 py-0.5 text-xs font-medium text-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-200">
-                              Mejor: {bestScore}%
-                            </span>
-                          )}
-                        </div>
-                        <p className="text-xs text-neo-text-secondary">{quiz.description}</p>
-                      </button>
-                    </li>
-                  );
-                })}
-                {hasMore && (
-                  <li>
+            ) : (
+              quizzes.map((quiz) => {
+                const active = selected?.id === quiz.id;
+                return (
+                  <li key={quiz.id}>
                     <button
-                      onClick={() => fetchQuizzes(offset + 8)}
-                      disabled={loadingMore}
-                      className="w-full rounded-xl border border-dashed border-neo-border p-3 text-xs font-medium text-neo-text-secondary hover:border-neo-primary hover:text-neo-primary disabled:opacity-50"
+                      type="button"
+                      className={`w-full rounded-2xl border px-4 py-3 text-left text-sm transition ${active
+                        ? "border-neo-primary bg-neo-primary-light text-neo-text-primary shadow-lg shadow-neo-primary/25"
+                        : "border-neo-border hover:border-neo-primary hover:bg-neo-surface"
+                        }`}
+                      onClick={() => setSelected(quiz)}
                     >
-                      {loadingMore ? "Cargando..." : "Cargar más quizzes"}
+                      <p className="font-semibold text-neo-text-primary">{quiz.title}</p>
+                      <p className="text-xs text-neo-text-secondary">{quiz.description}</p>
                     </button>
                   </li>
-                )}
-              </>
-            ) : (
-              <li className="rounded-2xl border border-dashed border-neo-border p-8 text-center">
-                <p className="text-sm text-neo-text-secondary">No hay quizzes disponibles por el momento.</p>
-              </li>
+                );
+              })
             )}
           </ul>
           <section className="mt-6 rounded-2xl border border-neo-border bg-neo-surface p-4">
             <p className="text-xs uppercase tracking-wide text-neo-text-secondary">Historial</p>
             <ul className="mt-3 space-y-2 text-xs text-neo-text-secondary">
               {attempts.length ? (
-                attempts.slice(0, 5).map((attempt) => (
+                attempts.map((attempt) => (
                   <li key={attempt.id} className="flex items-center justify-between">
                     <span className="truncate pr-2">{attempt.templateTitle}</span>
                     <span>
@@ -259,7 +207,7 @@ function QuizDetail({ quiz, answers, onSelect, onSubmit, disabled, result, onRet
           <p className="text-xs uppercase tracking-wide text-neo-text-secondary">{quiz.difficulty.toUpperCase()} · {quiz.tags.join(", ")}</p>
           <div className="flex items-center gap-2 text-xs font-medium text-neo-text-secondary">
             <span>{answeredCount} / {quiz.items.length}</span>
-            <div className="h-2.5 w-32 overflow-hidden rounded-full bg-neo-surface border border-neo-border">
+            <div className="h-2 w-32 overflow-hidden rounded-full bg-neo-surface border border-neo-border">
               <div className="h-full bg-gradient-to-r from-neo-primary to-accent-secondary transition-all duration-500 ease-out" style={{ width: `${progress}%` }} />
             </div>
           </div>
@@ -280,14 +228,14 @@ function QuizDetail({ quiz, answers, onSelect, onSubmit, disabled, result, onRet
 
                 if (result) {
                   if (isCorrect) {
-                    optionClass = "border-2 border-emerald-500 bg-emerald-50 text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-400 font-bold shadow-sm";
+                    optionClass = "border-2 border-accent-emerald bg-accent-emerald/15 text-accent-emerald font-bold shadow-[0_0_15px_rgba(16,185,129,0.2)]";
                   } else if (isSelected && !isCorrect) {
-                    optionClass = "border-2 border-rose-500 bg-rose-50 text-rose-700 dark:bg-rose-500/10 dark:text-rose-400 font-medium shadow-sm";
+                    optionClass = "border-2 border-accent-rose bg-accent-rose/15 text-accent-rose font-medium";
                   } else {
-                    optionClass = "border border-neo-border bg-white dark:bg-neo-card text-neo-text-secondary opacity-50 grayscale transition-opacity";
+                    optionClass = "border border-neo-border bg-neo-card text-neo-text-secondary opacity-40 grayscale";
                   }
                 } else if (isSelected) {
-                  optionClass = "border-2 border-blue-600 bg-blue-50 text-blue-800 dark:border-blue-500 dark:bg-blue-900/30 dark:text-blue-300 shadow-md shadow-blue-100 dark:shadow-blue-500/20 transform scale-[1.005]";
+                  optionClass = "border-2 border-neo-primary bg-neo-primary-light text-neo-text-primary shadow-md shadow-neo-primary/20 transform scale-[1.01]";
                 }
 
                 return (
@@ -308,21 +256,9 @@ function QuizDetail({ quiz, answers, onSelect, onSubmit, disabled, result, onRet
               })}
             </div>
             {result ? (
-              <div className={`mt-3 rounded-xl p-4 text-sm border shadow-sm ${answers[index] === item.answerIndex ? "bg-emerald-50 border-emerald-200 text-emerald-900 dark:bg-emerald-900/30 dark:text-emerald-200 dark:border-emerald-800" : "bg-rose-50 border-rose-200 text-rose-900 dark:bg-rose-900/30 dark:text-rose-200 dark:border-rose-800"}`}>
-                <p className="font-bold mb-2 flex items-center gap-2 text-base">
-                  {answers[index] === item.answerIndex ? (
-                    <>
-                      <span className="flex h-6 w-6 items-center justify-center rounded-full bg-emerald-600 text-white text-sm shadow-sm">✓</span>
-                      <span className="text-emerald-800 dark:text-emerald-100">¡Correcto!</span>
-                    </>
-                  ) : (
-                    <>
-                      <span className="flex h-6 w-6 items-center justify-center rounded-full bg-rose-600 text-white text-sm shadow-sm">✕</span>
-                      <span className="text-rose-800 dark:text-rose-100">Incorrecto</span>
-                    </>
-                  )}
-                </p>
-                <p className="text-gray-800 dark:text-gray-200 leading-relaxed font-medium">{item.explanationEs}</p>
+              <div className={`mt-3 rounded-lg p-3 text-xs ${answers[index] === item.answerIndex ? "bg-accent-emerald/10 text-accent-emerald" : "bg-accent-rose/10 text-accent-rose"}`}>
+                <p className="font-semibold mb-1">{answers[index] === item.answerIndex ? "¡Correcto!" : "Incorrecto"}</p>
+                <p>{item.explanationEs}</p>
               </div>
             ) : null}
           </li>
@@ -341,7 +277,7 @@ function QuizDetail({ quiz, answers, onSelect, onSubmit, disabled, result, onRet
         ) : (
           <button
             type="button"
-            className="rounded-xl border border-gray-300 bg-white px-6 py-3 font-semibold text-gray-700 shadow-sm transition hover:bg-gray-50 dark:border-gray-600 dark:bg-gray-800 dark:text-white dark:hover:bg-gray-700"
+            className="btn-secondary"
             onClick={onRetry}
           >
             Intentar de nuevo

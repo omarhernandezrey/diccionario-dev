@@ -4,18 +4,29 @@ import React, { useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Icon } from "@/components/Icon";
+import { useSession } from "@/components/admin/SessionProvider";
 
-const sections = [
-  { href: "/admin", label: "Dashboard", icon: "LayoutDashboard" },
-  { href: "/admin/terms", label: "Términos", icon: "BookOpen" },
-  { href: "/training", label: "Training", icon: "Dumbbell" },
-  { href: "/interview/live", label: "Interview Live", icon: "Video" },
-  { href: "/admin/settings", label: "Settings", icon: "Settings" },
+type NavSection = {
+  href: string;
+  label: string;
+  icon: string;
+  adminOnly?: boolean;
+  requiresAuth?: boolean;
+};
+
+const sections: NavSection[] = [
+  { href: "/admin", label: "Dashboard", icon: "LayoutDashboard", adminOnly: true },
+  { href: "/admin/terms", label: "Términos", icon: "BookOpen", adminOnly: true },
+  { href: "/training", label: "Training", icon: "Dumbbell", requiresAuth: false },
+  { href: "/interview/live", label: "Interview Live", icon: "Video", requiresAuth: false },
+  { href: "/admin/settings", label: "Configuración", icon: "Settings", requiresAuth: true },
+  { href: "/admin/access", label: "Autenticación", icon: "ShieldCheck", requiresAuth: false },
 ];
 
 export default function Sidebar() {
   const pathname = usePathname();
   const [collapsed, setCollapsed] = useState(false);
+  const { session, loading: sessionLoading } = useSession();
 
   const isActive = (href: string) => {
     if (href === "/admin") {
@@ -24,6 +35,19 @@ export default function Sidebar() {
     return pathname.startsWith(href);
   };
 
+  // Filtrar secciones según permisos
+  const visibleSections = sections.filter((section) => {
+    // Si es solo para admin y el usuario no es admin, ocultar
+    if (section.adminOnly && session?.role !== "admin") {
+      return false;
+    }
+    // Si requiere autenticación y no hay sesión, ocultar
+    if (section.requiresAuth && !session) {
+      return false;
+    }
+    return true;
+  });
+
   return (
     <>
       {/* Mobile overlay */}
@@ -31,7 +55,6 @@ export default function Sidebar() {
         <button
           onClick={() => setCollapsed(true)}
           className="fixed inset-0 z-30 bg-black/50 lg:hidden"
-          aria-hidden="true"
         />
       )}
 
@@ -62,27 +85,54 @@ export default function Sidebar() {
 
           {/* Navigation */}
           <nav className="flex-1 space-y-1 overflow-y-auto px-3 py-6">
-            {sections.map((section) => {
-              const active = isActive(section.href);
-              return (
-                <Link
-                  key={section.href}
-                  href={section.href}
-                  className={`group flex items-center gap-3 rounded-lg px-3 py-2.5 transition-all duration-200 ${active
+            {sessionLoading ? (
+              <div className="space-y-2">
+                {[1, 2, 3, 4].map((i) => (
+                  <div key={i} className="h-10 rounded-lg bg-neo-surface animate-pulse" />
+                ))}
+              </div>
+            ) : visibleSections.length > 0 ? (
+              visibleSections.map((section) => {
+                const active = isActive(section.href);
+                return (
+                  <Link
+                    key={section.href}
+                    href={section.href}
+                    className={`group flex items-center gap-3 rounded-lg px-3 py-2.5 transition-all duration-200 ${active
                       ? "bg-gradient-to-r from-neo-primary to-neo-accent-purple text-white shadow-lg shadow-neo-primary/30"
                       : "text-neo-text-secondary hover:bg-neo-surface hover:text-neo-text-primary"
-                    }`}
-                >
-                  <Icon library="lucide" name={section.icon} className="h-5 w-5 flex-shrink-0" />
-                  <span className="text-sm font-medium">{section.label}</span>
-                  {active && <Icon library="lucide" name="ChevronDown" className="ml-auto h-4 w-4 rotate-180" />}
-                </Link>
-              );
-            })}
+                      }`}
+                  >
+                    <Icon library="lucide" name={section.icon} className="h-5 w-5 flex-shrink-0" />
+                    <span className="text-sm font-medium">{section.label}</span>
+                    {active && <Icon library="lucide" name="ChevronRight" className="ml-auto h-4 w-4" />}
+                  </Link>
+                );
+              })
+            ) : (
+              <div className="rounded-lg border border-neo-border bg-neo-bg p-4 text-center text-xs text-neo-text-secondary">
+                <p>Inicia sesión para ver más opciones</p>
+              </div>
+            )}
           </nav>
 
           {/* Footer */}
-          <div className="border-t border-neo-border p-4">
+          <div className="border-t border-neo-border p-4 space-y-3">
+            {session && (
+              <div className="rounded-lg border border-neo-border bg-neo-surface p-3">
+                <div className="flex items-center gap-2 mb-2">
+                  <div className="relative flex h-8 w-8 items-center justify-center rounded-full bg-gradient-to-br from-neo-primary to-neo-accent-purple text-xs font-bold text-white">
+                    {session.username.substring(0, 2).toUpperCase()}
+                    {/* Indicador "en línea" - bolita verde */}
+                    <span className="absolute bottom-0 right-0 h-2.5 w-2.5 rounded-full bg-[#10b981] ring-2 ring-neo-surface"></span>
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-xs font-semibold text-neo-text-primary truncate">{session.username}</p>
+                    <p className="text-[10px] text-[#10b981] font-medium uppercase">● {session.role}</p>
+                  </div>
+                </div>
+              </div>
+            )}
             <div className="rounded-lg border border-neo-border bg-neo-bg p-3 text-center text-xs text-neo-text-secondary">
               <div>© {new Date().getFullYear()}</div>
               <div className="font-semibold text-neo-text-primary">Diccionario Dev</div>

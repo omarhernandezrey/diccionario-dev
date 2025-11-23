@@ -419,54 +419,49 @@ function buildFtsQuery(raw: string) {
 }
 
 /**
- * Ejecuta la consulta principal sobre SQLite/FTS y devuelve items + total.
+ * Ejecuta la consulta principal sobre PostgreSQL y devuelve items + total.
  */
 async function fetchTermsWithFilters(query: TermsQueryInput) {
   const { category, tag, q, page, pageSize, sort } = query;
-  const useFts = Boolean(q);
   const termAlias = "t";
-  const searchTable = `"TermSearch"`;
   const filters: string[] = [];
   const params: Array<string | number> = [];
+  let paramIndex = 1;
 
   if (category) {
-    filters.push(`${termAlias}."category" = ?`);
+    filters.push(`${termAlias}."category" = $${paramIndex++}`);
     params.push(category);
   }
   if (tag) {
-    filters.push(`lower(CAST(${termAlias}."tags" AS TEXT)) LIKE ?`);
+    filters.push(`lower(CAST(${termAlias}."tags" AS TEXT)) LIKE $${paramIndex++}`);
     params.push(`%${tag.toLowerCase()}%`);
   }
-  if (useFts && q) {
-    filters.push(`${searchTable} MATCH ?`);
-    params.push(buildFtsQuery(q));
-  } else if (q) {
+  if (q) {
     const like = `%${q.toLowerCase()}%`;
     filters.push(`(
-      lower(${termAlias}."term") LIKE ? OR
-      lower(${termAlias}."translation") LIKE ? OR
-      lower(${termAlias}."meaning") LIKE ? OR
-      lower(${termAlias}."what") LIKE ? OR
-      lower(${termAlias}."how") LIKE ? OR
-      lower(CAST(${termAlias}."aliases" AS TEXT)) LIKE ? OR
-      lower(CAST(${termAlias}."tags" AS TEXT)) LIKE ? OR
-      lower(CAST(${termAlias}."examples" AS TEXT)) LIKE ?
+      lower(${termAlias}."term") ILIKE $${paramIndex} OR
+      lower(${termAlias}."translation") ILIKE $${paramIndex + 1} OR
+      lower(${termAlias}."meaning") ILIKE $${paramIndex + 2} OR
+      lower(${termAlias}."what") ILIKE $${paramIndex + 3} OR
+      lower(${termAlias}."how") ILIKE $${paramIndex + 4} OR
+      lower(CAST(${termAlias}."aliases" AS TEXT)) ILIKE $${paramIndex + 5} OR
+      lower(CAST(${termAlias}."tags" AS TEXT)) ILIKE $${paramIndex + 6} OR
+      lower(CAST(${termAlias}."examples" AS TEXT)) ILIKE $${paramIndex + 7}
     )`);
     params.push(like, like, like, like, like, like, like, like);
+    paramIndex += 8;
   }
 
   const whereClause = filters.length ? `WHERE ${filters.join(" AND ")}` : "";
-  const joinClause = useFts
-    ? `FROM ${searchTable} JOIN "Term" AS ${termAlias} ON ${termAlias}."id" = ${searchTable}."rowid"`
-    : `FROM "Term" AS ${termAlias}`;
-  const orderByClause = useFts ? `bm25(${searchTable}) ASC, ${resolveOrder(sort, termAlias)}` : resolveOrder(sort, termAlias);
+  const joinClause = `FROM "Term" AS ${termAlias}`;
+  const orderByClause = resolveOrder(sort, termAlias);
 
   const countSql = `SELECT COUNT(*) as count ${joinClause} ${whereClause};`;
   const countResult = await prisma.$queryRawUnsafe<{ count: bigint | number }[]>(countSql, ...params);
   const countValue = countResult?.[0]?.count ?? 0;
   const total = typeof countValue === "bigint" ? Number(countValue) : Number(countValue);
 
-  const listSql = `SELECT ${termAlias}."id" ${joinClause} ${whereClause} ORDER BY ${orderByClause} LIMIT ? OFFSET ?;`;
+  const listSql = `SELECT ${termAlias}."id" ${joinClause} ${whereClause} ORDER BY ${orderByClause} LIMIT $${paramIndex} OFFSET $${paramIndex + 1};`;
   const listParams: Array<string | number> = [...params, pageSize, (page - 1) * pageSize];
   const orderedIds = (await prisma.$queryRawUnsafe<{ id: number }[]>(listSql, ...listParams)).map(row => row.id);
   let items: TermDTO[] = [];
