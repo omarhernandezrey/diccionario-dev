@@ -15,11 +15,34 @@ export default function TrainingPage() {
   const [offset, setOffset] = useState(0);
   const [hasMore, setHasMore] = useState(true);
   const [loadingMore, setLoadingMore] = useState(false);
+  const [filterDifficulty, setFilterDifficulty] = useState<string>("all");
+  const [filterTag, setFilterTag] = useState<string>("all");
   const containerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     fetchQuizzes(0);
   }, []);
+
+  // Persistencia de respuestas
+  useEffect(() => {
+    if (!selected) return;
+    const key = `quiz_progress_${selected.id}`;
+    const saved = localStorage.getItem(key);
+    if (saved) {
+      try {
+        const parsed = JSON.parse(saved);
+        setAnswers(parsed);
+      } catch {
+        // Ignorar error de parseo
+      }
+    }
+  }, [selected]);
+
+  useEffect(() => {
+    if (!selected || Object.keys(answers).length === 0) return;
+    const key = `quiz_progress_${selected.id}`;
+    localStorage.setItem(key, JSON.stringify(answers));
+  }, [answers, selected]);
 
   async function fetchQuizzes(currentOffset: number) {
     if (currentOffset === 0) setLoadingQuizzes(true);
@@ -58,11 +81,7 @@ export default function TrainingPage() {
       setResult(null);
       return;
     }
-    const next: Record<number, number | null> = {};
-    selected.items.forEach((_, index) => {
-      next[index] = null;
-    });
-    setAnswers(next);
+    // Solo inicializar si no hay respuestas cargadas (la persistencia se encarga de cargar)
     setResult(null);
   }, [selected]);
 
@@ -122,6 +141,8 @@ export default function TrainingPage() {
       setResult({ score: attempt.score, total: attempt.totalQuestions });
       await refreshAttempts();
       setStatus("ready");
+      // Limpiar progreso guardado al finalizar con éxito
+      localStorage.removeItem(`quiz_progress_${selected.id}`);
       containerRef.current?.scrollTo({ top: 0, behavior: "smooth" });
     } catch (err) {
       setError(err instanceof Error ? err.message : "Intento fallido");
@@ -133,8 +154,26 @@ export default function TrainingPage() {
     setAnswers({});
     setResult(null);
     setStatus("idle");
+    if (selected) {
+      localStorage.removeItem(`quiz_progress_${selected.id}`);
+    }
     containerRef.current?.scrollTo({ top: 0, behavior: "smooth" });
   }
+
+  const filteredQuizzes = useMemo(() => {
+    return quizzes.filter((q) => {
+      const matchDiff = filterDifficulty === "all" || q.difficulty === filterDifficulty;
+      const matchTag =
+        filterTag === "all" || q.tags.some((t) => t.toLowerCase() === filterTag.toLowerCase());
+      return matchDiff && matchTag;
+    });
+  }, [quizzes, filterDifficulty, filterTag]);
+
+  const availableTags = useMemo(() => {
+    const tags = new Set<string>();
+    quizzes.forEach((q) => q.tags.forEach((t) => tags.add(t.toLowerCase())));
+    return Array.from(tags).sort();
+  }, [quizzes]);
 
   return (
     <main className="min-h-screen bg-neo-bg px-4 py-10 text-neo-text-primary">
@@ -145,15 +184,42 @@ export default function TrainingPage() {
             <h1 className="text-2xl font-semibold text-neo-text-primary">Quizzes de Entrenamiento</h1>
             <p className="text-sm text-neo-text-secondary">Selecciona un quiz y responde acompañado de explicaciones.</p>
           </header>
+
+          {/* Filtros */}
+          <div className="mb-4 flex flex-wrap gap-2">
+            <select
+              className="rounded-xl border border-neo-border bg-neo-surface px-3 py-2 text-xs text-neo-text-primary focus:outline-none"
+              value={filterDifficulty}
+              onChange={(e) => setFilterDifficulty(e.target.value)}
+            >
+              <option value="all">Dificultad: Todas</option>
+              <option value="easy">Fácil</option>
+              <option value="medium">Media</option>
+              <option value="hard">Difícil</option>
+            </select>
+            <select
+              className="rounded-xl border border-neo-border bg-neo-surface px-3 py-2 text-xs text-neo-text-primary focus:outline-none"
+              value={filterTag}
+              onChange={(e) => setFilterTag(e.target.value)}
+            >
+              <option value="all">Tema: Todos</option>
+              {availableTags.map((tag) => (
+                <option key={tag} value={tag} className="capitalize">
+                  {tag}
+                </option>
+              ))}
+            </select>
+          </div>
+
           {error ? <p className="text-xs text-accent-danger">{error}</p> : null}
           <ul className="space-y-3">
             {loadingQuizzes ? (
               Array.from({ length: 4 }).map((_, i) => (
                 <li key={i} className="h-20 w-full animate-pulse rounded-2xl bg-neo-surface" />
               ))
-            ) : quizzes.length > 0 ? (
+            ) : filteredQuizzes.length > 0 ? (
               <>
-                {quizzes.map((quiz) => {
+                {filteredQuizzes.map((quiz) => {
                   const active = selected?.id === quiz.id;
                   const bestScore = bestScores[quiz.id];
 
@@ -176,11 +242,18 @@ export default function TrainingPage() {
                           )}
                         </div>
                         <p className="text-xs text-neo-text-secondary">{quiz.description}</p>
+                        <div className="mt-2 flex flex-wrap gap-1">
+                          {quiz.tags.map((t) => (
+                            <span key={t} className="rounded bg-neo-surface px-1.5 py-0.5 text-[10px] text-neo-text-secondary border border-neo-border">
+                              {t}
+                            </span>
+                          ))}
+                        </div>
                       </button>
                     </li>
                   );
                 })}
-                {hasMore && (
+                {hasMore && filterDifficulty === "all" && filterTag === "all" && (
                   <li>
                     <button
                       onClick={() => fetchQuizzes(offset + 8)}
@@ -194,7 +267,7 @@ export default function TrainingPage() {
               </>
             ) : (
               <li className="rounded-2xl border border-dashed border-neo-border p-8 text-center">
-                <p className="text-sm text-neo-text-secondary">No hay quizzes disponibles por el momento.</p>
+                <p className="text-sm text-neo-text-secondary">No hay quizzes que coincidan con los filtros.</p>
               </li>
             )}
           </ul>
@@ -249,18 +322,36 @@ type QuizDetailProps = {
 };
 
 function QuizDetail({ quiz, answers, onSelect, onSubmit, disabled, result, onRetry }: QuizDetailProps) {
-  const answeredCount = Object.keys(answers).filter((k) => answers[Number(k)] !== null).length;
-  const progress = Math.round((answeredCount / quiz.items.length) * 100);
+  const answeredCount = useMemo(() => {
+    if (!quiz || !quiz.items) return 0;
+    return quiz.items.reduce((count, _, index) => {
+      const val = answers[index];
+      return val !== null && val !== undefined ? count + 1 : count;
+    }, 0);
+  }, [answers, quiz]);
+
+  const progress = useMemo(() => {
+    if (!quiz || !quiz.items.length) return 0;
+    const pct = Math.round((answeredCount / quiz.items.length) * 100);
+    return Math.min(100, Math.max(0, pct));
+  }, [answeredCount, quiz]);
 
   return (
     <div className="space-y-6">
       <header>
         <div className="mb-4 flex items-center justify-between">
-          <p className="text-xs uppercase tracking-wide text-neo-text-secondary">{quiz.difficulty.toUpperCase()} · {quiz.tags.join(", ")}</p>
-          <div className="flex items-center gap-2 text-xs font-medium text-neo-text-secondary">
-            <span>{answeredCount} / {quiz.items.length}</span>
-            <div className="h-2.5 w-32 overflow-hidden rounded-full bg-neo-surface border border-neo-border">
-              <div className="h-full bg-gradient-to-r from-neo-primary to-accent-secondary transition-all duration-500 ease-out" style={{ width: `${progress}%` }} />
+          <p className="text-xs uppercase tracking-wide text-neo-text-secondary">
+            {quiz.difficulty.toUpperCase()} · {quiz.tags.join(", ")}
+          </p>
+          <div className="flex items-center gap-3 text-xs font-medium text-neo-text-secondary">
+            <span>
+              {answeredCount} / {quiz.items.length} ({progress}%)
+            </span>
+            <div className="h-3 w-32 overflow-hidden rounded-full bg-neo-surface border border-neo-border">
+              <div
+                className="h-full bg-emerald-500 transition-all duration-500 ease-out"
+                style={{ width: `${progress}%` }}
+              />
             </div>
           </div>
         </div>
