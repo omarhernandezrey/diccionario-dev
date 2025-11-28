@@ -301,6 +301,7 @@ export default function TrainingPage() {
               disabled={!allAnswered || status === "submitting"}
               result={result}
               onRetry={handleRetry}
+              status={status}
             />
           ) : (
             <p className="text-sm text-neo-text-secondary">Selecciona un quiz para comenzar.</p>
@@ -319,9 +320,10 @@ type QuizDetailProps = {
   disabled: boolean;
   result: { score: number; total: number } | null;
   onRetry: () => void;
+  status: "idle" | "submitting" | "ready";
 };
 
-function QuizDetail({ quiz, answers, onSelect, onSubmit, disabled, result, onRetry }: QuizDetailProps) {
+function QuizDetail({ quiz, answers, onSelect, onSubmit, disabled, result, onRetry, status }: QuizDetailProps) {
   const answeredCount = useMemo(() => {
     if (!quiz || !quiz.items) return 0;
     return quiz.items.reduce((count, _, index) => {
@@ -335,6 +337,8 @@ function QuizDetail({ quiz, answers, onSelect, onSubmit, disabled, result, onRet
     const pct = Math.round((answeredCount / quiz.items.length) * 100);
     return Math.min(100, Math.max(0, pct));
   }, [answeredCount, quiz]);
+
+  const submitting = status === "submitting";
 
   return (
     <div className="space-y-6">
@@ -427,7 +431,7 @@ function QuizDetail({ quiz, answers, onSelect, onSubmit, disabled, result, onRet
             onClick={onSubmit}
             disabled={disabled}
           >
-            Enviar respuestas
+            {submitting ? "Enviando..." : "Enviar respuestas"}
           </button>
         ) : (
           <button
@@ -442,6 +446,10 @@ function QuizDetail({ quiz, answers, onSelect, onSubmit, disabled, result, onRet
         {result ? (
           <span className="text-sm font-medium text-neo-text-primary">
             Resultado: <span className={result.score === result.total ? "text-accent-emerald" : "text-neo-primary"}>{result.score}/{result.total}</span> aciertos.
+          </span>
+        ) : submitting ? (
+          <span className="text-xs text-neo-text-secondary" aria-live="polite">
+            Calificando respuestas…
           </span>
         ) : (
           <span className="text-xs text-neo-text-secondary">

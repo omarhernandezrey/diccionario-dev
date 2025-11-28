@@ -40,7 +40,7 @@ describe("auth helpers", () => {
     expect(cookie).toContain("admin_token=token123");
     expect(cookie).toContain("HttpOnly");
     expect(cookie).toContain("Max-Age=120");
-    expect(cookie).toContain("SameSite=Strict");
+    expect(cookie).toContain("SameSite=Lax");
     expect(cookie).not.toContain("Secure");
 
     const authProd = await loadAuth({ NODE_ENV: "production" });

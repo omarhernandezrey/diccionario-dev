@@ -51,7 +51,7 @@ describe("validation schemas", () => {
     expect(parsed.q).toBe("grid");
     expect(parsed.tag).toBe("layout");
     expect(parsed.page).toBe(1);
-    expect(parsed.pageSize).toBe(50);
+    expect(parsed.pageSize).toBe(25);
     expect(parsed.sort).toBe("term_asc");
   });
 });

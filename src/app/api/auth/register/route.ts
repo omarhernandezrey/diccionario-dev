@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { buildAuthCookie, hashPassword, requireAdmin, signJwt } from "@/lib/auth";
+import { ensureContributorProfile } from "@/lib/contributors";
 
 const registerSchema = z.object({
   username: z.string().min(3, "El usuario debe tener al menos 3 caracteres"),
@@ -91,6 +92,8 @@ export async function POST(req: NextRequest) {
       role: true,
     },
   });
+
+  await ensureContributorProfile(created.id, created.username);
 
   const res = NextResponse.json({ ok: true, user: created }, { status: 201 });
   if (bootstrap) {

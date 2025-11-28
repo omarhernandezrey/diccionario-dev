@@ -12,13 +12,8 @@ import {
     Code2,
     Copy,
     FileText,
-    Sparkles,
     Brain,
-    Zap,
     Check,
-    ChevronRight,
-    ChevronDown,
-    ChevronUp,
     History,
     Command,
     Mic,
@@ -32,7 +27,6 @@ import {
     Frown,
     FileJson,
     ThumbsUp,
-    ThumbsDown,
     Split,
     Rocket
 } from "lucide-react";
@@ -40,40 +34,156 @@ import { Prism as SyntaxHighlighter } from "react-syntax-highlighter";
 import { dracula } from "react-syntax-highlighter/dist/cjs/styles/prism";
 import type { TermDTO } from "@/types/term";
 
-// --- Mock Data for "Vs" Feature (Simulating Backend Data) ---
-const termComparisons: Record<string, { bad: string; good: string; badDesc: string; goodDesc: string }> = {
-    useState: {
-        bad: `// ❌ Mal: Mutación directa
-count = count + 1;
-// React no se entera del cambio`,
-        badDesc: "Nunca modifiques el estado directamente. React no detectará el cambio y no re-renderizará el componente.",
-        good: `// ✅ Bien: Usando el setter
-setCount(prev => prev + 1);
-// Trigger de re-render seguro`,
-        goodDesc: "Usa siempre la función setter. Para actualizaciones basadas en el estado anterior, usa la forma funcional."
-    },
-    useEffect: {
-        bad: `// ❌ Mal: Sin dependencias
-useEffect(() => {
-  fetchData();
-}); // Se ejecuta en CADA render`,
-        badDesc: "Omitir el array de dependencias causa que el efecto corra en cada render, provocando loops infinitos o baja performance.",
-        good: `// ✅ Bien: Dependencias explícitas
-useEffect(() => {
-  fetchData();
-}, []); // Solo al montar`,
-        goodDesc: "Define explícitamente tus dependencias. Usa un array vacío [] para ejecutar solo al montar el componente."
-    },
-    map: {
-        bad: `// ❌ Mal: Modificando el array original
-const newArr = [];
-arr.forEach(item => newArr.push(item * 2));`,
-        badDesc: "Usar forEach o push para transformar datos es imperativo y más propenso a errores de mutación.",
-        good: `// ✅ Bien: Retornando nuevo array
-const newArr = arr.map(item => item * 2);`,
-        goodDesc: "Map es declarativo, inmutable y retorna una nueva instancia del array transformada."
+function toPascal(value?: string | null) {
+    if (!value) return "Concept";
+    return value
+        .replace(/[^a-zA-Z0-9]+/g, " ")
+        .split(" ")
+        .filter(Boolean)
+        .map(w => w.charAt(0).toUpperCase() + w.slice(1))
+        .join("");
+}
+
+function getDisplayLanguage(term: TermDTO | null, variant?: { language?: string | null }) {
+    const tags = (term?.tags || []).map(tag => tag.toLowerCase());
+
+    // Si el término contiene "-", probablemente es una propiedad CSS (align-items, flex-basis, etc)
+    if (term?.term?.includes("-")) return "css";
+
+    // Priorizar tags específicos de CSS
+    if (tags.some(t => t.includes("css") || t.includes("tailwind") || t.includes("flexbox") || t.includes("grid"))) {
+        return "css";
     }
-};
+
+    // Tags de HTML/A11y
+    if (tags.some(t => t.includes("html") || t.includes("a11y"))) return "html";
+
+    // Tags de React
+    if (tags.some(t => t.includes("react") || t.includes("hooks") || t.includes("hook"))) {
+        return "typescript";
+    }
+
+    // Usar variante si existe
+    if (variant?.language) return variant.language;
+
+    // Fallback a JavaScript
+    return "javascript";
+}
+
+function buildDefaultSnippet(term: TermDTO | null, language: string, label: string) {
+    const name = term?.term || label || "demo";
+    if (language === "css") {
+        return `.demo { ${name}: center; }`;
+    }
+    if (language === "html") {
+        return `<div ${name}="value">Contenido de ${name}</div>`;
+    }
+    if (language === "typescript" || language === "javascript") {
+        return `// Ejemplo de ${name}\nconsole.log("${name} listo");`;
+    }
+    return `// Ejemplo de ${name}`;
+}
+
+function buildResetSnippet(term: TermDTO | null, language: string) {
+    const prop = term?.term || "prop";
+
+    // Buscar FAQ de "reset" específicamente (categoría "reset")
+    const resetFaq = term?.faqs?.find(faq =>
+        faq.category?.toLowerCase() === "reset" ||
+        faq.questionEs?.toLowerCase().includes("reiniciar") ||
+        (faq.questionEs?.toLowerCase().includes("reset") && !faq.questionEs?.toLowerCase().includes("entrevista"))
+    );
+
+    if (resetFaq?.snippet) {
+        return resetFaq.snippet;
+    }
+
+    // Buscar un variant para este lenguaje si no hay FAQ
+    const variantForLanguage = term?.variants?.find(v =>
+        v.language?.toLowerCase() === language.toLowerCase()
+    );
+
+    if (variantForLanguage?.snippet) {
+        // Si es CSS, asegurar que muestra reset a initial
+        if (language === "css" && !variantForLanguage.snippet.includes("initial")) {
+            return `.demo { ${prop}: initial; }`;
+        }
+        return variantForLanguage.snippet;
+    }
+
+    // Generar según lenguaje si no hay snippet específico
+    if (language === "css") return `.demo { ${prop}: initial; }`;
+    if (language === "html") return `<div ${prop}="">Contenido</div>`;
+    return `function reset${toPascal(prop)}() {\n  // Reinicia ${prop} a su valor inicial\n}\n`;
+}
+
+function buildCallbackSnippet(term: TermDTO | null, language: string, isReact: boolean) {
+    const name = term?.term || "callback";
+
+    // Buscar FAQ de "buenas prácticas" específicamente (categoría "best-practices")
+    const bestPracticeFaq = term?.faqs?.find(faq =>
+        faq.category?.toLowerCase() === "best-practices" ||
+        faq.questionEs?.toLowerCase().includes("buena") ||
+        (faq.questionEs?.toLowerCase().includes("práctica") && !faq.questionEs?.toLowerCase().includes("entrevista"))
+    );
+
+    if (bestPracticeFaq?.snippet) {
+        return bestPracticeFaq.snippet;
+    }
+
+    // Buscar un variant para este lenguaje si no hay FAQ
+    const variantForLanguage = term?.variants?.find(v =>
+        v.language?.toLowerCase() === language.toLowerCase()
+    );
+
+    if (variantForLanguage?.snippet) {
+        return variantForLanguage.snippet;
+    }
+
+    // Verificar lenguaje PRIMERO, independientemente de isReact
+    if (language === "css") {
+        return `.component {\n  /* Aplica ${name} de forma consistente */\n  ${name}: var(--${name.replace(/[^a-z0-9]+/gi, "-")}, initial);\n}`;
+    }
+    if (language === "html") {
+        return `<div data-${name.replace(/[^a-z0-9]+/gi, "-")}>${name} listo</div>`;
+    }
+
+    // Si es TypeScript/JavaScript, AHORA considerar si es React
+    if ((language === "typescript" || language === "javascript") && isReact) {
+        return `// ❌ incorrecto\nstoreCallback(doSomething());\n\n// ✔ correcto\nstoreCallback(() => doSomething());`;
+    }
+
+    // Fallback para JS/TS no-React
+    return `function apply${toPascal(name)}(value) {\n  // Valida y aplica ${name}\n  return value;\n}`;
+}
+
+function CodeBlock({ code, language = "javascript", showLineNumbers = true }: { code: string; language?: string; showLineNumbers?: boolean }) {
+    return (
+        <div className="rounded-xl border border-slate-800 bg-[#1e1e1e] overflow-hidden shadow-lg">
+            <div className="flex items-center justify-between px-4 py-2 border-b border-slate-800 bg-[#111827]">
+                <div className="flex items-center gap-2 text-slate-400 text-xs font-semibold uppercase tracking-wide">
+                    <span className="flex items-center gap-1">
+                        <span className="h-3 w-3 rounded-full bg-red-500"></span>
+                        <span className="h-3 w-3 rounded-full bg-yellow-400"></span>
+                        <span className="h-3 w-3 rounded-full bg-emerald-500"></span>
+                    </span>
+                    <span className="ml-2">{language}</span>
+                </div>
+            </div>
+            <SyntaxHighlighter
+                language={language === "ts" ? "typescript" : language}
+                style={dracula}
+                customStyle={{ margin: 0, padding: "1rem", background: "transparent" }}
+                showLineNumbers={showLineNumbers}
+                wrapLines={true}
+            >
+                {code}
+            </SyntaxHighlighter>
+        </div>
+    );
+}
+
+
 
 // --- Hooks ---
 
@@ -127,11 +237,164 @@ function useLocalStorage<T>(key: string, initialValue: T): [T, (value: T | ((val
     return [storedValue, setValue];
 }
 
+// --- Helpers de Texto Contextual ---
+
+// Centralized CSS detection (matches backend logic in seed.ts)
+function isCssTerm(term: TermDTO, language: string): boolean {
+    if (language === "css") return true;
+
+    const termName = term.term.toLowerCase();
+
+    // CSS properties (lowercase with hyphens, no "use" prefix)
+    if (/^[a-z-]+$/.test(termName) && !termName.startsWith("use")) return true;
+
+    // Tailwind utilities
+    if (/^(bg|text|flex|grid|w-|h-|p-|m-|border|rounded|shadow|gap|space|justify|items|content|overflow|position|top|bottom|left|right|inset|z-|opacity|transform|transition|animate|cursor|select|pointer|resize|outline|ring|divide|sr-|not-sr|focus|hover|active|disabled|group|peer|dark|sm:|md:|lg:|xl:|2xl:)/.test(termName)) return true;
+
+    // CSS functions
+    if (termName.includes("clamp") || termName.includes("calc") || termName.includes("var")) return true;
+
+    // Specific CSS terms
+    if (["aspect-ratio", "backdrop-filter", "scroll-snap"].includes(termName)) return true;
+
+    // Check tags for CSS indicators
+    const tags = (term.tags || []).map(t => t.toLowerCase());
+    if (tags.some(t => ["css", "tailwind", "flexbox", "grid"].includes(t))) return true;
+
+    return false;
+}
+
+// Detect if it's a Tailwind utility class (not a CSS property)
+function isTailwindUtility(term: TermDTO, language: string): boolean {
+    if (language === "html") return true;
+
+    const termName = term.term.toLowerCase();
+    const tags = (term.tags || []).map(t => t.toLowerCase());
+
+    // Check for Tailwind tag
+    if (tags.includes("tailwind")) return true;
+
+    // Tailwind utilities pattern
+    if (/^(bg|text|flex|grid|w-|h-|p-|m-|border|rounded|shadow|gap|space|justify|items|content|overflow|position|top|bottom|left|right|inset|z-|opacity|transform|transition|animate|cursor|select|pointer|resize|outline|ring|divide|sr-|not-sr|focus|hover|active|disabled|group|peer|dark|sm:|md:|lg:|xl:|2xl:)/.test(termName)) return true;
+
+    return false;
+}
+
+function getInitializationText(term: TermDTO, language: string) {
+    if (isTailwindUtility(term, language)) {
+        return `Aplica la clase '${term.term}' en el atributo class de tu elemento HTML. Combina con otras clases de Tailwind para lograr el diseño deseado.`;
+    }
+    if (isCssTerm(term, language)) {
+        return `Define '${term.term}' dentro de un bloque de reglas CSS. Asegúrate de que el contenedor tenga el contexto de layout adecuado (como flex o grid).`;
+    }
+    if (term.term.startsWith("use") && (language === "typescript" || language === "javascript")) {
+        return `Importa ${term.term} desde 'react' y llámalo en el nivel superior de tu componente, nunca dentro de loops o condiciones.`;
+    }
+    if (term.category === "backend") {
+        return `Configura la conexión o instancia de ${term.term} al inicio de tu aplicación o servicio.`;
+    }
+    return term.titleEs || term.titleEn || "Configura este concepto una sola vez en el punto de entrada apropiado.";
+}
+
+function getResetDescription(term: TermDTO, language: string) {
+    if (isTailwindUtility(term, language)) {
+        return `Remueve la clase '${term.term}' del atributo class del elemento. Si necesitas eliminar el efecto, usa clases opuestas (ej. 'bg-none' para fondos).`;
+    }
+    if (isCssTerm(term, language)) {
+        return "Para revertir al comportamiento por defecto del navegador, asigna el valor 'initial'. Usa 'unset' si quieres eliminar la declaración específica.";
+    }
+    if (term.term.startsWith("use")) {
+        return "Para reiniciar el estado, usa la función setter con el valor inicial (ej. setState(initialState)).";
+    }
+    return "Reinicia o normaliza el concepto cuando cambie el contexto o quieras volver a su estado inicial.";
+}
+
+function getRulesList(term: TermDTO, language: string) {
+    if (isCssTerm(term, language)) {
+        return [
+            "Evita el uso excesivo de !important; prefiere manejar la especificidad.",
+            "Usa unidades relativas (rem, %, vh) para mantener la accesibilidad y el diseño responsivo.",
+            "Recuerda que las propiedades se heredan en cascada salvo que se especifique lo contrario.",
+            "Verifica el soporte en navegadores (Can I Use) para propiedades modernas."
+        ];
+    }
+    if (term.term.startsWith("use")) { // React Hooks
+        return [
+            "Solo llama Hooks en el nivel superior del componente, nunca dentro de loops o condiciones.",
+            "Declara todas las dependencias en el array de dependencias para evitar bugs sutiles.",
+            "No mutes el estado directamente; usa siempre los setters proporcionados.",
+            "Limpia los efectos secundarios (return function) si el hook lo requiere."
+        ];
+    }
+    // Default / JS / Backend
+    return [
+        "Mantén las funciones puras y predecibles siempre que sea posible.",
+        "Maneja los errores de forma explícita (try/catch o propagación).",
+        "Evita efectos secundarios globales que acoplen el código.",
+        "Documenta los casos borde y los tipos de entrada/salida."
+    ];
+}
+
+function getAdvancedPatternDescription(term: TermDTO, language: string) {
+    if (isTailwindUtility(term, language)) {
+        return `Usa variantes de Tailwind como 'hover:${term.term}', 'dark:${term.term}' o breakpoints responsivos ('md:${term.term}', 'lg:${term.term}') para diseños adaptativos.`;
+    }
+    if (isCssTerm(term, language)) {
+        return "Combina esta propiedad con Media Queries, Container Queries o Pseudo-clases (:hover, :has) para crear layouts adaptables sin JavaScript.";
+    }
+    if (term.term.startsWith("use")) {
+        return "Crea Custom Hooks que encapsulen esta lógica para reutilizarla en múltiples componentes y mantener la UI limpia.";
+    }
+    return term.titleEn && term.titleEn !== term.term ? term.titleEn : "Aplica patrones de diseño (como Singleton o Factory) si la complejidad del sistema crece.";
+}
+
+function getSummaryData(term: TermDTO, language: string) {
+    const isCss = isCssTerm(term, language);
+    const isReact = term.term.startsWith("use");
+
+    return {
+        what: term.meaningEs || term.meaning,
+        returns: term.whatEs || term.what || (isCss ? "Estilos visuales" : "Valor de retorno o efecto"),
+        init: getInitializationText(term, language),
+        update: isCss ? "Automático al cambiar clases o DOM" : (isReact ? "Reactivo ante cambios de estado/props" : "Ejecución imperativa"),
+        rules: isCss ? "Cascada y Especificidad" : (isReact ? "Reglas de los Hooks" : "Flujo de control estándar"),
+        objects: isCss ? "Modelo de Caja" : "Inmutabilidad recomendada",
+        render: isCss ? "Reflow / Repaint" : (isReact ? "Render cycle" : "Event Loop"),
+        errors: isCss ? "Sintaxis inválida, sobreescritura" : "Excepciones no capturadas, Race conditions"
+    };
+}
+
+function getInterviewQuestions(term: TermDTO, language: string) {
+    const isCss = isCssTerm(term, language);
+    return [
+        { q: `¿Qué es ${term.term}?`, a: term.meaningEs || term.meaning },
+        { q: "¿Cuándo usarlo?", a: term.whatEs || term.what || "Cuando aporta valor en su contexto." },
+        { q: "¿Errores comunes?", a: isCss ? "Depender de hacks, uso excesivo de !important o selectores muy específicos." : "Evita mutaciones o usos fuera del ciclo correcto." },
+        { q: "¿Cómo asegurarlo en producción?", a: isCss ? "Usa metodologías (BEM/Utility), linters y verifica compatibilidad de navegadores." : "Valida entradas, maneja errores y añade pruebas." }
+    ];
+}
+
+function getBestPracticesDescription(term: TermDTO, language: string, isReactConcept: boolean) {
+    if (isReactConcept) {
+        return "Si necesitas guardar callbacks, usa la forma función-lambda para evitar ejecuciones inmediatas.";
+    }
+    if (isTailwindUtility(term, language)) {
+        return `Combina '${term.term}' con otras utilidades de Tailwind. Usa variantes responsivas (sm:, md:, lg:) y de estado (hover:, focus:, dark:) para máxima flexibilidad.`;
+    }
+    if (isCssTerm(term, language)) {
+        return `Aplica '${term.term}' en el contenedor apropiado (no en los hijos). Combínalo con otras propiedades de layout para control bidimensional completo.`;
+    }
+    return "Aplica este concepto de forma coherente y reutilizable respetando su ciclo de vida o contexto.";
+}
+
 // --- Componente Principal ---
 
 export default function DiccionarioDevApp() {
     const [searchTerm, setSearchTerm] = useState("");
     const debouncedSearch = useDebounce(searchTerm, 300);
+
+    // Evita desajustes de hidratación: solo renderizamos tras montar en cliente.
+    const [mounted, setMounted] = useState(false);
 
     const [results, setResults] = useState<TermDTO[]>([]);
     const [activeTerm, setActiveTerm] = useState<TermDTO | null>(null);
@@ -139,10 +402,7 @@ export default function DiccionarioDevApp() {
     const [loading, setLoading] = useState(false);
     const [hasSearched, setHasSearched] = useState(false);
 
-    const [activeContext, setActiveContext] = useState<"project" | "interview" | "bug">("project");
-    const [showSolution, setShowSolution] = useState(false);
     const [copied, setCopied] = useState(false);
-    const [codeCopied, setCodeCopied] = useState(false);
     const [jsDocCopied, setJsDocCopied] = useState(false);
 
     // UX Avanzada
@@ -159,7 +419,7 @@ export default function DiccionarioDevApp() {
     const [isListening, setIsListening] = useState(false);
     const [isStartingMic, setIsStartingMic] = useState(false);
     const [micError, setMicError] = useState<string | null>(null);
-    const recognitionRef = useRef<any>(null);
+    const recognitionRef = useRef<unknown>(null);
 
     // Cleanup mic on unmount
     useEffect(() => {
@@ -168,6 +428,10 @@ export default function DiccionarioDevApp() {
                 recognitionRef.current.abort();
             }
         };
+    }, []);
+
+    useEffect(() => {
+        setMounted(true);
     }, []);
 
     // Auto-scroll effect for keyboard navigation
@@ -282,7 +546,7 @@ export default function DiccionarioDevApp() {
             return;
         }
 
-        const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+        const SpeechRecognition = (window as unknown & { SpeechRecognition?: unknown; webkitSpeechRecognition?: unknown }).SpeechRecognition || (window as unknown & { SpeechRecognition?: unknown; webkitSpeechRecognition?: unknown }).webkitSpeechRecognition;
 
         if (!SpeechRecognition) {
             alert("Tu navegador no soporta búsqueda por voz. Intenta usar Chrome o Edge.");
@@ -315,7 +579,7 @@ export default function DiccionarioDevApp() {
                 setIsStartingMic(false);
             };
 
-            recognition.onerror = (event: any) => {
+            recognition.onerror = (event: unknown & { error?: string }) => {
                 console.error("Error de reconocimiento de voz:", event.error);
                 setIsListening(false);
                 setIsStartingMic(false);
@@ -331,8 +595,8 @@ export default function DiccionarioDevApp() {
                 }
             };
 
-            recognition.onresult = (event: any) => {
-                const transcript = event.results[0][0].transcript;
+            recognition.onresult = (event: unknown & { results?: unknown[] }) => {
+                const transcript = (event.results as unknown[])?.[0]?.[0]?.transcript;
                 setSearchTerm(transcript);
                 searchInputRef.current?.focus();
             };
@@ -420,11 +684,22 @@ export default function DiccionarioDevApp() {
         );
     };
 
-    const activeUseCase = activeTerm ? getUseCase(activeTerm, activeContext) : null;
+    const primaryExample = activeTerm?.examples?.[0];
+    const secondaryExample = activeTerm?.examples?.[1];
     const activeVariant = activeTerm?.variants?.[0];
-    const activeExercise = activeTerm?.exercises?.[0];
-    // STRICT MODE: Solo mostramos la sección si hay datos específicos para este término
-    const comparisonData = activeTerm ? (termComparisons[activeTerm.term?.toLowerCase()] || termComparisons[String(activeTerm.id).toLowerCase()]) : null;
+    const tagSet = new Set((activeTerm?.tags || []).map(tag => tag.toLowerCase()));
+    const displayLanguage = getDisplayLanguage(activeTerm, activeVariant);
+    const isReactConcept =
+        tagSet.has("react") ||
+        tagSet.has("hooks") ||
+        tagSet.has("hook") ||
+        tagSet.has("state") ||
+        tagSet.has("callback");
+    const showCallbacksSection = true; // Siempre mostramos, pero ajustamos contenido al concepto
+    const showResetSection = true; // Siempre mostramos, con snippet contextual
+    if (!mounted) {
+        return null;
+    }
 
     return (
         <div className="min-h-screen bg-slate-950 text-slate-200 font-sans selection:bg-emerald-500/30 pb-20 relative overflow-x-hidden">
@@ -450,7 +725,7 @@ export default function DiccionarioDevApp() {
                                     <Code2 className="h-4 w-4" /> Sintaxis Rápida
                                 </h3>
                                 <div className="bg-[#282a36] rounded-lg p-3 border border-slate-800 text-xs font-mono overflow-x-auto">
-                                    {activeVariant ? activeVariant.snippet.split('\n')[0] : 'Sintaxis no disponible'}
+                                    {activeTerm.variants?.[0] ? activeTerm.variants[0].snippet.split('\n')[0] : 'Sintaxis no disponible'}
                                 </div>
                             </div>
 
@@ -662,7 +937,7 @@ export default function DiccionarioDevApp() {
                                         <div className="px-4 py-2 text-xs font-bold uppercase tracking-wider text-slate-500 flex items-center gap-2">
                                             <History className="h-3 w-3" /> Recientes
                                         </div>
-                                        {recentSearches.map((term, idx) => (
+                                        {recentSearches.map((term) => (
                                             <button
                                                 key={term}
                                                 onMouseDown={() => { setSearchTerm(term); }}
@@ -743,305 +1018,256 @@ export default function DiccionarioDevApp() {
             <main className="mx-auto max-w-5xl px-4 py-8">
                 {activeTerm ? (
                     <div className="animate-in fade-in slide-in-from-bottom-4 duration-500 space-y-8">
-                        {/* Term Header */}
-                        <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
-                            <div>
-                                <div className="flex flex-wrap items-center gap-3">
-                                    <h2 className="text-4xl font-bold text-white tracking-tight">
-                                        {activeTerm.term}
+                        <div className="rounded-2xl border border-slate-800 bg-slate-900/60 p-6 shadow-2xl">
+                            <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
+                                <div>
+                                    <p className="text-xs uppercase text-emerald-400 font-bold">⭐ {activeTerm.term} — Guía Técnica Definitiva</p>
+                                    <h2 className="text-3xl md:text-4xl font-bold text-white tracking-tight mt-1">
+                                        {activeTerm.term} {activeTerm.translation ? <span className="text-slate-500 text-lg">({activeTerm.translation})</span> : null}
                                     </h2>
-                                    <span
-                                        className="rounded-full border border-emerald-500/20 bg-emerald-500/10 px-3 py-1 text-xs font-semibold uppercase tracking-wider text-emerald-400"
+                                    <div className="mt-2 flex gap-2 flex-wrap text-sm text-slate-400">
+                                        <span className="rounded-full border border-emerald-500/30 bg-emerald-500/10 px-3 py-1 text-xs font-semibold uppercase tracking-wider text-emerald-300">
+                                            {activeTerm.category}
+                                        </span>
+                                        {activeTerm.tags?.map((tag) => (
+                                            <span key={tag} className="px-2 py-1 rounded-full bg-slate-800 text-slate-200">#{tag}</span>
+                                        ))}
+                                        {activeTerm.aliases?.map((alias) => (
+                                            <span key={alias} className="italic text-slate-500">({alias})</span>
+                                        ))}
+                                    </div>
+                                </div>
+                                <div className="flex gap-2">
+                                    <button
+                                        onClick={() => handleCopy(window.location.href, setCopied)}
+                                        className="flex items-center gap-2 rounded-lg border border-slate-700 bg-slate-800 px-4 py-2 text-sm font-medium text-slate-300 hover:bg-slate-700 hover:text-white transition-colors"
                                     >
-                                        {activeTerm.category}
-                                    </span>
+                                        {copied ? <Check className="h-4 w-4 text-emerald-400" /> : <Share2 className="h-4 w-4" />}
+                                        {copied ? "Copiado" : "Compartir"}
+                                    </button>
+                                    <button
+                                        onClick={() => setShowCheatSheet(true)}
+                                        className="flex items-center gap-2 rounded-lg border border-indigo-500/30 bg-indigo-500/10 px-4 py-2 text-sm font-medium text-indigo-400 hover:bg-indigo-500/20 transition-colors"
+                                    >
+                                        <FileText className="h-4 w-4" />
+                                        Cheat Sheet
+                                    </button>
                                 </div>
-                                <div className="mt-2 flex gap-2 flex-wrap">
-                                    {activeTerm.tags?.map((tag) => (
-                                        <span key={tag} className="text-sm text-slate-500">
-                                            #{tag}
-                                        </span>
-                                    ))}
-                                    {activeTerm.aliases?.map((alias) => (
-                                        <span key={alias} className="text-sm text-slate-600 italic">
-                                            ({alias})
-                                        </span>
-                                    ))}
-                                </div>
-                            </div>
-                            <div className="flex gap-2">
-                                <button
-                                    onClick={() => handleCopy(window.location.href, setCopied)}
-                                    className="flex items-center gap-2 rounded-lg border border-slate-700 bg-slate-800 px-4 py-2 text-sm font-medium text-slate-300 hover:bg-slate-700 hover:text-white transition-colors"
-                                >
-                                    {copied ? <Check className="h-4 w-4 text-emerald-400" /> : <Share2 className="h-4 w-4" />}
-                                    {copied ? "Copiado" : "Compartir"}
-                                </button>
-                                <button
-                                    onClick={() => setShowCheatSheet(true)}
-                                    className="flex items-center gap-2 rounded-lg border border-indigo-500/30 bg-indigo-500/10 px-4 py-2 text-sm font-medium text-indigo-400 hover:bg-indigo-500/20 transition-colors"
-                                >
-                                    <FileText className="h-4 w-4" />
-                                    Cheat Sheet
-                                </button>
                             </div>
                         </div>
 
-                        {/* --- Matriz de Entendimiento (Qué es / Qué hace / Cómo funciona) --- */}
-                        <div className="grid gap-4 md:grid-cols-3">
-
-                            {/* 1. ¿Qué es? (Identidad) */}
-                            <div className="rounded-2xl border border-slate-800 bg-slate-900/50 p-5 backdrop-blur-sm flex flex-col">
-                                <div className="mb-3 flex items-center gap-2 text-emerald-400">
+                        {/* 1. Definición */}
+                        <div className="grid gap-4 md:grid-cols-2">
+                            <div className="rounded-2xl border border-slate-800 bg-slate-900/50 p-5 backdrop-blur-sm flex flex-col gap-3">
+                                <div className="flex items-center gap-2 text-emerald-400">
                                     <Brain className="h-5 w-5" />
-                                    <h3 className="font-bold uppercase tracking-wide text-xs">¿Qué es?</h3>
+                                    <h3 className="font-bold uppercase tracking-wide text-xs">1. Definición</h3>
                                 </div>
-                                <p className="text-base leading-relaxed text-slate-200 flex-1">
+                                <p className="text-base leading-relaxed text-slate-200">
                                     {activeTerm.meaningEs || activeTerm.meaning}
                                 </p>
-                                {/* English Subtext (Non-intrusive) */}
-                                <p className="mt-3 text-xs text-slate-500 italic border-t border-slate-800 pt-2">
-                                    EN: "{activeTerm.meaningEn || activeTerm.meaning}"
+                                <CodeBlock
+                                    code={primaryExample?.code || activeVariant?.snippet || buildDefaultSnippet(activeTerm, displayLanguage, "definición")}
+                                    language={displayLanguage}
+                                />
+                                <p className="text-xs text-slate-500 italic">
+                                    EN: {activeTerm.meaningEn || activeTerm.meaning}
                                 </p>
                             </div>
 
-                            {/* 2. ¿Para qué sirve? (Utilidad Práctica) */}
-                            <div className="rounded-2xl border border-slate-800 bg-slate-900/50 p-5 backdrop-blur-sm flex flex-col">
-                                <div className="mb-3 flex items-center gap-2 text-blue-400">
+                            {/* 2. Para qué sirve */}
+                            <div className="rounded-2xl border border-slate-800 bg-slate-900/50 p-5 backdrop-blur-sm flex flex-col gap-3">
+                                <div className="flex items-center gap-2 text-blue-400">
                                     <Rocket className="h-5 w-5" />
-                                    <h3 className="font-bold uppercase tracking-wide text-xs">¿Para qué sirve?</h3>
+                                    <h3 className="font-bold uppercase tracking-wide text-xs">2. Para qué sirve</h3>
                                 </div>
-                                <p className="text-base leading-relaxed text-slate-200 flex-1">
-                                    {getUseCase(activeTerm, 'project')?.summary || "Es fundamental para el desarrollo de software moderno y la resolución de problemas complejos."}
-                                </p>
-                                <div className="mt-3 flex gap-2">
-                                    {activeTerm.tags?.slice(0, 2).map(tag => (
-                                        <span key={tag} className="text-[10px] px-2 py-1 rounded bg-blue-500/10 text-blue-400 border border-blue-500/20">
-                                            {tag}
-                                        </span>
-                                    ))}
-                                </div>
-                            </div>
-
-                            {/* 3. ¿Cómo funciona? (Mecánica / Modelo Mental) */}
-                            <div className="rounded-2xl border border-amber-500/20 bg-gradient-to-br from-amber-500/5 to-transparent p-5 flex flex-col relative overflow-hidden">
-                                <div className="absolute top-0 right-0 -mt-2 -mr-2 w-16 h-16 bg-amber-500/10 rounded-full blur-xl"></div>
-                                <div className="mb-3 flex items-center gap-2 text-amber-400 relative z-10">
-                                    <Lightbulb className="h-5 w-5" />
-                                    <h3 className="font-bold uppercase tracking-wide text-xs">¿Cómo funciona?</h3>
-                                </div>
-                                <p className="text-base leading-relaxed text-slate-200 flex-1 relative z-10">
-                                    {activeTerm.whatEs || activeTerm.what || "Funciona abstrayendo la complejidad subyacente para ofrecer una interfaz más simple."}
-                                </p>
+                                <ul className="space-y-2 text-slate-200 text-sm">
+                                    {[activeTerm.whatEs || activeTerm.what, getUseCase(activeTerm, "project")?.summary, getUseCase(activeTerm, "interview")?.summary, getUseCase(activeTerm, "bug")?.summary, activeTerm.tags?.slice(0, 3).map(tag => `Aplicar en contextos relacionados con ${tag}`).join(", "),].filter(Boolean).map((item, idx) => (<li key={idx} className="flex items-start gap-2">                                            <span className="mt-1 h-2 w-2 rounded-full bg-emerald-400"></span>                                            <span>{item}</span>                                        </li>))}
+                                </ul>
                             </div>
                         </div>
 
-                        {/* Code Section - Real Editor Look */}
-                        {activeVariant && (
-                            <div className="rounded-2xl border border-slate-800 bg-[#282a36] overflow-hidden shadow-2xl group">
-                                <div className="flex items-center justify-between border-b border-slate-700/50 bg-slate-900/50 px-4 py-3">
-                                    <div className="flex items-center gap-2">
-                                        <Code2 className="h-4 w-4 text-blue-400" />
-                                        <span className="text-xs font-bold text-slate-400 uppercase">
-                                            {activeVariant.language}
-                                        </span>
-                                    </div>
-                                    <button
-                                        onClick={() => handleCopy(activeVariant.snippet, setCodeCopied)}
-                                        className="text-slate-500 hover:text-white transition-colors opacity-0 group-hover:opacity-100"
-                                    >
-                                        {codeCopied ? <Check className="h-4 w-4 text-emerald-400" /> : <Copy className="h-4 w-4" />}
-                                    </button>
+                        {/* 3. Cómo funciona */}
+                        <div className="rounded-2xl border border-amber-500/20 bg-gradient-to-br from-amber-500/5 to-transparent p-5 flex flex-col gap-3 relative overflow-hidden">
+                            <div className="absolute top-0 right-0 -mt-2 -mr-2 w-16 h-16 bg-amber-500/10 rounded-full blur-xl"></div>
+                            <div className="flex items-center gap-2 text-amber-400 relative z-10">
+                                <Lightbulb className="h-5 w-5" />
+                                <h3 className="font-bold uppercase tracking-wide text-xs">3. Cómo funciona</h3>
+                            </div>
+                            <p className="text-base leading-relaxed text-slate-200 relative z-10">
+                                {activeTerm.howEs || activeTerm.how || "Sigue el flujo recomendado y aplica el patrón principal respetando su ciclo de vida."}
+                            </p>
+                            <CodeBlock
+                                code={primaryExample?.code || activeVariant?.snippet || buildDefaultSnippet(activeTerm, displayLanguage, "como-funciona")}
+                                language={displayLanguage}
+                            />
+                        </div>
+
+                        {/* 4. Reglas importantes */}
+                        <div className="rounded-2xl border border-slate-800 bg-slate-900/50 p-5 space-y-3">
+                            <div className="flex items-center gap-2 text-emerald-400">
+                                <ThumbsUp className="h-5 w-5" />
+                                <h3 className="font-bold uppercase tracking-wide text-xs">4. Reglas importantes</h3>
+                            </div>
+                            <ul className="space-y-2 text-sm text-slate-200">
+                                {getRulesList(activeTerm, displayLanguage).map((rule, idx) => (
+                                    <li key={idx}>{rule}</li>
+                                ))}
+                            </ul>
+                        </div>
+
+                        {/* 5. Ejemplo clásico profesional */}
+                        {activeVariant?.snippet && (
+                            <div className="space-y-2">
+                                <div className="flex items-center gap-2">
+                                    <Code2 className="h-4 w-4 text-blue-400" />
+                                    <span className="text-xs font-bold text-slate-400 uppercase">5. Ejemplo profesional — {activeVariant.language}</span>
                                 </div>
-                                <div className="text-sm">
-                                    <SyntaxHighlighter
-                                        language={activeVariant.language === 'ts' ? 'typescript' : activeVariant.language}
-                                        style={dracula}
-                                        customStyle={{ margin: 0, padding: '1.5rem', background: 'transparent' }}
-                                        showLineNumbers={true}
-                                        wrapLines={true}
-                                    >
-                                        {activeVariant.snippet}
-                                    </SyntaxHighlighter>
-                                </div>
+                                <CodeBlock code={activeVariant.snippet} language={activeVariant.language} />
                             </div>
                         )}
 
-                        {/* --- New Feature: "Vs" Comparison Section --- */}
-                        {comparisonData && (
-                            <div className="rounded-2xl border border-slate-800 bg-slate-900/30 overflow-hidden">
-                                <div className="px-6 py-4 border-b border-slate-800 flex items-center gap-2">
-                                    <Split className="h-5 w-5 text-purple-400" />
-                                    <h3 className="font-bold text-white">Best Practices vs Anti-Patterns</h3>
+                        {/* 6. Ejemplo de estructura (objetos/arrays) */}
+                        {primaryExample ? (
+                            <div className="rounded-2xl border border-emerald-500/20 bg-emerald-500/5 p-5 space-y-3">
+                                <div className="flex items-center gap-2 text-emerald-400">
+                                    <Split className="h-5 w-5" />
+                                    <h3 className="font-bold uppercase tracking-wide text-xs">6. Ejemplo de estructura</h3>
                                 </div>
-                                <div className="grid md:grid-cols-2 divide-y md:divide-y-0 md:divide-x divide-slate-800">
-                                    {/* Bad Practice */}
-                                    <div className="p-6 bg-red-500/5">
-                                        <div className="flex items-center gap-2 mb-3 text-red-400">
-                                            <ThumbsDown className="h-4 w-4" />
-                                            <span className="text-xs font-bold uppercase tracking-wide">No hagas esto</span>
-                                        </div>
-                                        <div className="rounded-lg border border-red-500/20 overflow-hidden mb-3">
-                                            <SyntaxHighlighter
-                                                language="javascript"
-                                                style={dracula}
-                                                customStyle={{ margin: 0, padding: '1rem', background: '#1e1e1e', fontSize: '0.8rem' }}
-                                            >
-                                                {comparisonData.bad}
-                                            </SyntaxHighlighter>
-                                        </div>
-                                        <p className="text-sm text-slate-400 leading-relaxed">
-                                            {comparisonData.badDesc}
-                                        </p>
+                                <div className="grid gap-3 md:grid-cols-2 text-sm text-slate-200">
+                                    <div className="space-y-2">
+                                        <p className="font-semibold">Caso de uso</p>
+                                        <CodeBlock
+                                            code={primaryExample.code}
+                                            language={displayLanguage}
+                                        />
                                     </div>
+                                    <div className="space-y-2">
+                                        <p className="font-semibold">Nota / recomendación</p>
+                                        <p>{primaryExample.noteEs || primaryExample.noteEn || "Asegura inmutabilidad o flujo correcto según aplique al concepto."}</p>
+                                    </div>
+                                </div>
+                            </div>
+                        ) : null}
 
-                                    {/* Good Practice */}
-                                    <div className="p-6 bg-emerald-500/5">
-                                        <div className="flex items-center gap-2 mb-3 text-emerald-400">
-                                            <ThumbsUp className="h-4 w-4" />
-                                            <span className="text-xs font-bold uppercase tracking-wide">Haz esto</span>
-                                        </div>
-                                        <div className="rounded-lg border border-emerald-500/20 overflow-hidden mb-3">
-                                            <SyntaxHighlighter
-                                                language="javascript"
-                                                style={dracula}
-                                                customStyle={{ margin: 0, padding: '1rem', background: '#1e1e1e', fontSize: '0.8rem' }}
-                                            >
-                                                {comparisonData.good}
-                                            </SyntaxHighlighter>
-                                        </div>
-                                        <p className="text-sm text-slate-400 leading-relaxed">
-                                            {comparisonData.goodDesc}
-                                        </p>
-                                    </div>
-                                </div>
+                        {/* 7. Inicialización / setup */}
+                        <div className="rounded-2xl border border-slate-800 bg-slate-900/50 p-5 space-y-2 text-sm text-slate-200">
+                            <h3 className="font-bold uppercase tracking-wide text-xs text-emerald-400">7. Inicialización / setup</h3>
+                            <p>{getInitializationText(activeTerm, displayLanguage)}</p>
+                        </div>
+
+                        {/* 8. Reiniciar / recrear */}
+                        {showResetSection && (
+                            <div className="rounded-2xl border border-slate-800 bg-slate-900/50 p-5 space-y-2 text-sm text-slate-200">
+                                <h3 className="font-bold uppercase tracking-wide text-xs text-emerald-400">8. Reiniciar o recrear</h3>
+                                <p>{getResetDescription(activeTerm, displayLanguage)}</p>
+                                <CodeBlock
+                                    code={buildResetSnippet(activeTerm, displayLanguage)}
+                                    language={displayLanguage}
+                                    showLineNumbers={false}
+                                />
                             </div>
                         )}
 
-                        {/* Use Cases Tabs */}
-                        <div className="space-y-6">
-                            <div className="flex items-center justify-between">
-                                <h3 className="text-xl font-bold text-white flex items-center gap-2">
-                                    <Zap className="h-5 w-5 text-yellow-400" /> Casos de Uso
-                                </h3>
+                        {/* 9. Almacenar funciones o callbacks */}
+                        {showCallbacksSection && (
+                            <div className="rounded-2xl border border-slate-800 bg-slate-900/50 p-5 space-y-2 text-sm text-slate-200">
+                                <h3 className="font-bold uppercase tracking-wide text-xs text-emerald-400">9. {isReactConcept ? "Almacenar funciones o callbacks" : "Aplicación segura / buenas prácticas"}</h3>
+                                <p>{getBestPracticesDescription(activeTerm, displayLanguage, isReactConcept)}</p>
+                                <CodeBlock
+                                    code={buildCallbackSnippet(activeTerm, displayLanguage, isReactConcept)}
+                                    language={displayLanguage}
+                                    showLineNumbers={!isReactConcept && displayLanguage !== "html"}
+                                />
                             </div>
+                        )}
 
-                            <div className="rounded-2xl border border-slate-800 bg-slate-900/50 p-1 backdrop-blur-md">
-                                <div className="grid grid-cols-3 gap-1">
-                                    {(["project", "interview", "bug"] as const).map((tab) => {
-                                        const isActive = activeContext === tab;
-                                        const icons = {
-                                            project: Terminal,
-                                            interview: MessageSquare,
-                                            bug: Bug,
-                                        };
-                                        const Icon = icons[tab];
-                                        // Verificar si existe este caso de uso para este término
-                                        const exists = getUseCase(activeTerm, tab);
+                        {/* 10. Patrón avanzado */}
+                        <div className="rounded-2xl border border-slate-800 bg-slate-900/50 p-5 space-y-2 text-sm text-slate-200">
+                            <h3 className="font-bold uppercase tracking-wide text-xs text-emerald-400">10. Patrón avanzado</h3>
+                            <p>{getAdvancedPatternDescription(activeTerm, displayLanguage)}</p>
+                        </div>
 
-                                        return (
-                                            <button
-                                                key={tab}
-                                                onClick={() => setActiveContext(tab)}
-                                                disabled={!exists}
-                                                className={`flex items-center justify-center gap-2 rounded-xl py-3 text-sm font-bold transition-all ${isActive
-                                                    ? "bg-slate-800 text-white shadow-lg"
-                                                    : exists
-                                                        ? "text-slate-500 hover:bg-slate-800/50 hover:text-slate-300"
-                                                        : "text-slate-700 cursor-not-allowed opacity-50"
-                                                    }`}
-                                            >
-                                                <Icon className={`h-4 w-4 ${isActive ? "text-emerald-400" : ""}`} />
-                                                <span className="capitalize">{tab}</span>
-                                            </button>
-                                        );
-                                    })}
+                        {/* 11. Errores comunes */}
+                        <div className="rounded-2xl border border-yellow-500/30 bg-yellow-500/5 p-5 space-y-3">
+                            <div className="flex items-center gap-2 text-yellow-400">
+                                <AlertCircle className="h-5 w-5" />
+                                <h3 className="font-bold uppercase tracking-wide text-xs">11. Errores comunes (y soluciones)</h3>
+                            </div>
+                            <ul className="space-y-2 text-sm text-slate-200">
+                                {(activeTerm.faqs || []).slice(0, 3).map((faq) => (
+                                    <li key={faq.id} className="flex flex-col gap-1">
+                                        <span className="font-semibold text-slate-100">{faq.questionEs}</span>
+                                        <span className="text-slate-300">{faq.answerEs}</span>
+                                    </li>
+                                ))}
+                                {!activeTerm.faqs?.length && (
+                                    <>
+                                        <li>Evita mutar estructuras u omitir pasos obligatorios del concepto.</li>
+                                        <li>No apliques la lógica en el lugar incorrecto del ciclo de vida.</li>
+                                        <li>Usa validaciones previas y control de dependencias.</li>
+                                    </>
+                                )}
+                            </ul>
+                        </div>
+
+                        {/* 12. Ejemplo completo */}
+                        {secondaryExample && (
+                            <div className="rounded-2xl border border-slate-800 bg-slate-900/40 p-5 space-y-3">
+                                <div className="flex items-center gap-2 text-emerald-300">
+                                    <BookOpen className="h-5 w-5" />
+                                    <h3 className="font-bold uppercase tracking-wide text-xs">12. Ejemplo completo</h3>
                                 </div>
+                                <CodeBlock
+                                    code={secondaryExample.code}
+                                    language={activeVariant?.language || "javascript"}
+                                />
+                                <p className="text-sm text-slate-300">{secondaryExample.noteEs || secondaryExample.noteEn || "Resume los puntos clave: configuración, buenas prácticas y manejo de casos reales."}</p>
+                            </div>
+                        )}
 
-                                <div className="p-6 mt-2 min-h-[200px]">
-                                    {activeUseCase ? (
-                                        <div className="animate-in fade-in slide-in-from-bottom-2 duration-300">
-                                            <h4 className="text-xl font-bold text-white mb-2">
-                                                {activeUseCase.summary}
-                                            </h4>
-                                            {activeUseCase.tips && (
-                                                <div className="mb-4 rounded-lg bg-indigo-500/10 p-3 border border-indigo-500/20">
-                                                    <p className="text-sm text-indigo-300 italic">"{activeUseCase.tips}"</p>
-                                                </div>
-                                            )}
-                                            <div className="space-y-3">
-                                                {activeUseCase.steps.map((paso, i) => (
-                                                    <div key={i} className="flex items-start gap-3 group">
-                                                        <div className="flex h-6 w-6 flex-shrink-0 items-center justify-center rounded-full bg-slate-800 border border-slate-700 text-xs font-bold text-emerald-400 group-hover:border-emerald-500/50 transition-colors">
-                                                            {i + 1}
-                                                        </div>
-                                                        <p className="text-slate-300 pt-0.5">{paso.es || paso.en}</p>
-                                                    </div>
-                                                ))}
+                        {/* 13. Preguntas de entrevista */}
+                        <div className="rounded-2xl border border-slate-800 bg-slate-900/40 p-5 space-y-3">
+                            <div className="flex items-center gap-2 text-indigo-300">
+                                <MessageSquare className="h-5 w-5" />
+                                <h3 className="font-bold uppercase tracking-wide text-xs">13. Preguntas típicas de entrevistas</h3>
+                            </div>
+                            <ul className="space-y-2 text-sm text-slate-200">
+                                {getInterviewQuestions(activeTerm, displayLanguage).map((item, idx) => (
+                                    <li key={idx}>❓ {item.q} → {item.a}</li>
+                                ))}
+                            </ul>
+                        </div>
+
+                        {/* 14. Resumen profesional */}
+                        <div className="rounded-2xl border border-slate-800 bg-slate-900/60 p-5 space-y-3">
+                            <div className="flex items-center gap-2 text-emerald-300">
+                                <History className="h-5 w-5" />
+                                <h3 className="font-bold uppercase tracking-wide text-xs">14. Resumen profesional</h3>
+                            </div>
+                            <div className="grid md:grid-cols-2 gap-3 text-sm text-slate-200">
+                                {(() => {
+                                    const summary = getSummaryData(activeTerm, displayLanguage);
+                                    return (
+                                        <>
+                                            <div className="space-y-1">
+                                                <p><strong>Qué es</strong>: {summary.what}</p>
+                                                <p><strong>Qué devuelve/aporta</strong>: {summary.returns}</p>
+                                                <p><strong>Inicialización</strong>: {summary.init}</p>
+                                                <p><strong>Actualización</strong>: {summary.update}</p>
                                             </div>
-                                        </div>
-                                    ) : (
-                                        <div className="flex flex-col items-center justify-center h-full text-slate-600">
-                                            <p>No hay información disponible para este contexto.</p>
-                                        </div>
-                                    )}
-                                </div>
+                                            <div className="space-y-1">
+                                                <p><strong>Reglas</strong>: {summary.rules}</p>
+                                                <p><strong>Objetos/arrays</strong>: {summary.objects}</p>
+                                                <p><strong>Render/ejecución</strong>: {summary.render}</p>
+                                                <p><strong>Errores típicos</strong>: {summary.errors}</p>
+                                            </div>
+                                        </>
+                                    );
+                                })()}
                             </div>
                         </div>
 
-                        {/* Exercises */}
-                        {activeExercise && (
-                            <div className="rounded-2xl border border-slate-800 bg-slate-900/30 p-6">
-                                <div className="flex items-center gap-2 mb-4">
-                                    <Terminal className="h-5 w-5 text-emerald-400" />
-                                    <h3 className="font-bold text-white">Ejercicio Práctico</h3>
-                                    <span className={`ml-auto text-xs px-2 py-1 rounded border ${activeExercise.difficulty === 'easy' ? 'border-emerald-500/30 text-emerald-400' :
-                                        activeExercise.difficulty === 'medium' ? 'border-yellow-500/30 text-yellow-400' :
-                                            'border-red-500/30 text-red-400'
-                                        }`}>
-                                        {activeExercise.difficulty.toUpperCase()}
-                                    </span>
-                                </div>
-                                <div className="mb-6">
-                                    <h4 className="text-lg font-semibold text-slate-200 mb-2">
-                                        {activeExercise.titleEs || activeExercise.titleEn}
-                                    </h4>
-                                    <p className="text-slate-400">
-                                        {activeExercise.promptEs || activeExercise.promptEn}
-                                    </p>
-                                </div>
-
-                                <div className="rounded-xl border border-slate-800 bg-black/40 overflow-hidden">
-                                    <button
-                                        onClick={() => setShowSolution(!showSolution)}
-                                        className="flex w-full items-center justify-between px-4 py-3 text-sm font-medium text-slate-400 hover:bg-slate-800/50 transition-colors"
-                                    >
-                                        <span>Ver Solución</span>
-                                        {showSolution ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
-                                    </button>
-
-                                    {showSolution && activeExercise.solutions?.[0] && (
-                                        <div className="border-t border-slate-800 p-0 bg-[#282a36] animate-in slide-in-from-top-2">
-                                            <SyntaxHighlighter
-                                                language={activeExercise.solutions[0].language}
-                                                style={dracula}
-                                                customStyle={{ margin: 0, padding: '1rem', background: 'transparent' }}
-                                            >
-                                                {activeExercise.solutions[0].code}
-                                            </SyntaxHighlighter>
-                                            <div className="p-4 bg-slate-900/50 border-t border-slate-800">
-                                                <div className="flex items-start gap-2 text-xs text-slate-400">
-                                                    <Lightbulb className="h-4 w-4 text-amber-400 flex-shrink-0" />
-                                                    <span>{activeExercise.solutions[0].explainEs || activeExercise.solutions[0].explainEn}</span>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    )}
-                                </div>
-                            </div>
-                        )}
-
-                        {/* Related Terms (Discovery) */}
                         {relatedTerms.length > 0 && (
                             <div className="pt-8 border-t border-slate-800">
                                 <h3 className="text-lg font-bold text-white mb-4 flex items-center gap-2">
@@ -1051,43 +1277,49 @@ export default function DiccionarioDevApp() {
                                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                                     {relatedTerms.map(term => (
                                         <button
-                                            key={term.id}
+                                            key={term.term}
                                             onClick={() => selectTerm(term)}
-                                            className="text-left p-4 rounded-xl border border-slate-800 bg-slate-900/50 hover:bg-slate-800 hover:border-slate-700 transition-all group"
+                                            className="rounded-xl border border-slate-800 bg-slate-900/50 p-4 text-left hover:border-emerald-500/40 hover:bg-slate-900 transition-colors"
                                         >
-                                            <div className="flex items-center justify-between mb-2">
-                                                <span className="font-bold text-slate-200 group-hover:text-white">{term.term}</span>
-                                                <span className="text-[10px] uppercase px-1.5 py-0.5 rounded bg-slate-950 text-slate-500 border border-slate-800">
+                                            <div className="flex items-center justify-between">
+                                                <span className="text-white font-semibold">{term.term}</span>
+                                                <span className="text-[10px] px-2 py-1 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 uppercase">
                                                     {term.category}
                                                 </span>
                                             </div>
-                                            <p className="text-xs text-slate-500 line-clamp-2">
-                                                {term.translation}
+                                            <p className="text-sm text-slate-400 mt-2 line-clamp-2">
+                                                {term.meaningEs || term.meaning}
                                             </p>
                                         </button>
                                     ))}
                                 </div>
                             </div>
                         )}
-
                     </div>
                 ) : (
-                    // Empty State / Initial State
-                    <div className="flex flex-col items-center justify-center py-20 text-center">
-                        <div className={`h-24 w-24 rounded-full bg-slate-900 flex items-center justify-center mb-6 ${loading ? 'animate-pulse' : ''}`}>
-                            {isCodeMode ? <Code2 className="h-10 w-10 text-blue-400" /> : <Search className="h-10 w-10 text-slate-700" />}
-                        </div>
-                        <h2 className="text-2xl font-bold text-white mb-2">
-                            {loading ? "Procesando..." : isCodeMode ? "Modo Análisis de Código" : "Empieza tu búsqueda"}
-                        </h2>
-                        <p className="text-slate-500 max-w-md">
-                            {isCodeMode
-                                ? "He detectado código. Presiona Enter para analizarlo o traducirlo."
-                                : <span>Explora el glosario técnico. Prueba buscando <span className="text-emerald-400">"useState"</span>, <span className="text-blue-400">"API"</span> o <span className="text-amber-400">"Docker"</span>.</span>}
-                        </p>
+                    <div className="text-center text-slate-500">
+                        <p className="mb-4">Prueba buscando un término técnico para ver resultados.</p>
+                        {recentSearches.length > 0 && (
+                            <div className="inline-flex items-center gap-2 rounded-full border border-slate-800 bg-slate-900 px-4 py-2 text-sm">
+                                <History className="h-4 w-4 text-slate-500" />
+                                <span className="text-slate-400">Últimas búsquedas:</span>
+                                {recentSearches.map((term) => (
+                                    <button
+                                        key={term}
+                                        onClick={() => setSearchTerm(term)}
+                                        className="rounded-full bg-slate-800 px-2 py-1 text-slate-200 hover:bg-slate-700 transition-colors"
+                                    >
+                                        {term}
+                                    </button>
+                                ))}
+                            </div>
+                        )}
                     </div>
                 )}
             </main>
+
+
+
         </div>
     );
 }

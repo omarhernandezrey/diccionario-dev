@@ -11,8 +11,8 @@ export async function GET() {
       prisma.searchLog.groupBy({
         by: ["query"],
         where: { termId: null },
-        _count: { _all: true },
-        orderBy: [{ _count: { _all: "desc" } }],
+        _count: { query: true },
+        orderBy: [{ _count: { query: "desc" } }],
         take: 1,
       }),
     ]);
@@ -42,7 +42,7 @@ export async function GET() {
       items.push({
         id: Date.now() + 2,
         title: "Búsquedas sin respuesta",
-        detail: `“${emptyQueries[0].query}” falló ${emptyQueries[0]._count?._all ?? 0} veces.`,
+        detail: `“${emptyQueries[0].query}” falló ${emptyQueries[0]._count?.query ?? 0} veces.`,
         type: "alert" as const,
         timestamp: new Date().toISOString(),
         read: false,

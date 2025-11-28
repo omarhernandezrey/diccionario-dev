@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState, useTransition } from "react";
+import { useSearchParams } from "next/navigation";
 import { Icon } from "@/components/Icon";
 import { notifySessionChange } from "@/components/admin/SessionProvider";
 
@@ -12,6 +13,9 @@ type SessionUser = {
 };
 
 export default function AdminAccessPage() {
+  const searchParams = useSearchParams();
+  const returnUrl = searchParams.get("returnUrl") || "/admin";
+
   const [session, setSession] = useState<SessionUser | null>(null);
   const [authLoading, setAuthLoading] = useState(true);
   const [message, setMessage] = useState<string | null>(null);
@@ -68,9 +72,14 @@ export default function AdminAccessPage() {
           return;
         }
         setLoginForm({ username: "", password: "" });
-        setMessage(`Bienvenido ${data.user?.username || ""}`);
+        setMessage(`Bienvenido ${data.user?.username || ""}. Redirigiendo...`);
         notifySessionChange(); // Notificar cambio de sesión
-        refreshSession();
+        await refreshSession();
+
+        // Usar window.location.href para forzar recarga completa con cookies
+        setTimeout(() => {
+          window.location.href = returnUrl;
+        }, 1000);
       } catch {
         setError("No se pudo contactar el servidor");
       }

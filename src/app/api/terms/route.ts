@@ -23,7 +23,7 @@ export const dynamic = "force-dynamic";
 
 
 const noStoreHeaders = { "Cache-Control": "no-store" } as const;
-const DEFAULT_PAGE_SIZE = 50;
+const DEFAULT_PAGE_SIZE = 10;
 const RATE_LIMIT_PREFIX = "terms:list";
 const TRUTHY = new Set(["1", "true", "yes", "on"]);
 
@@ -32,13 +32,11 @@ const envDisablesSearchLogs = (() => {
   return raw ? TRUTHY.has(raw.trim().toLowerCase()) : false;
 })();
 
-const sqliteReadonlyOnVercel = Boolean(process.env.VERCEL && (process.env.DATABASE_URL ?? "").startsWith("file:"));
-
-let searchLogWritesDisabled = envDisablesSearchLogs || sqliteReadonlyOnVercel;
+const searchLogWritesDisabled = envDisablesSearchLogs;
 
 if (searchLogWritesDisabled) {
   logger.info(
-    { reason: envDisablesSearchLogs ? "env_flag" : "sqlite_readonly" },
+    { reason: "env_flag" },
     "search.log_disabled_initialization",
   );
 }
@@ -121,21 +119,6 @@ function buildReviewMetadata(status: ReviewStatus, reviewerId: number) {
   return { reviewedAt: new Date(), reviewedById: reviewerId };
 }
 
-function isReadOnlySqliteError(error: unknown) {
-  if (!error) return false;
-  if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2034") {
-    return true;
-  }
-  if (typeof error === "object" && error && "message" in error) {
-    const message = String((error as { message: unknown }).message);
-    return message.toLowerCase().includes("attempt to write a readonly database");
-  }
-  if (typeof error === "string") {
-    return error.toLowerCase().includes("attempt to write a readonly database");
-  }
-  return false;
-}
-
 async function recordSearchEvent(event: {
   query: string;
   language: string;
@@ -162,11 +145,6 @@ async function recordSearchEvent(event: {
       },
     });
   } catch (error) {
-    if (isReadOnlySqliteError(error)) {
-      searchLogWritesDisabled = true;
-      logger.warn({ query, context, mode }, "search.log_disabled_readonly");
-      return;
-    }
     logger.warn({ err: error, query, context, mode }, "search.log_failed");
   }
 }
@@ -403,20 +381,7 @@ function normalizeQuery(data: TermsQueryInput): TermsQueryInput {
   };
 }
 
-/**
- * Convierte una búsqueda libre en un query válido para FTS5, aplicando comodines.
- */
-function buildFtsQuery(raw: string) {
-  const tokens = raw
-    .trim()
-    .split(/\s+/)
-    .map((token) => token.replace(/[^\p{L}\p{N}]+/gu, ""))
-    .filter(Boolean);
-  if (!tokens.length) {
-    return raw.trim();
-  }
-  return tokens.map((token) => `${token}*`).join(" ");
-}
+
 
 /**
  * Ejecuta la consulta principal sobre PostgreSQL y devuelve items + total.
@@ -466,6 +431,16 @@ async function fetchTermsWithFilters(query: TermsQueryInput) {
   const orderedIds = (await prisma.$queryRawUnsafe<{ id: number }[]>(listSql, ...listParams)).map(row => row.id);
   let items: TermDTO[] = [];
   if (orderedIds.length) {
+    // Definimos el tipo de retorno esperado de Prisma con las inclusiones
+    type TermWithRelations = Prisma.TermGetPayload<{
+      include: {
+        variants: true;
+        useCases: true;
+        faqs: true;
+        exercises: true;
+      };
+    }>;
+
     const related = await prisma.term.findMany({
       where: { id: { in: orderedIds } },
       include: {
@@ -475,11 +450,106 @@ async function fetchTermsWithFilters(query: TermsQueryInput) {
         exercises: true,
       },
     });
-    const map = new Map(related.map(term => [term.id, term]));
+
+    const map = new Map<number, TermWithRelations>(related.map(term => [term.id, term]));
+
     items = orderedIds
       .map(id => map.get(id))
-      .filter((term): term is PrismaTermWithRelations => Boolean(term))
-      .map(term => serializeTerm(term));
+      .filter((term): term is TermWithRelations => term !== undefined)
+      .map((record) => {
+        // Helper para parsear examples que pueden ser strings o objetos
+        let rawExamples: unknown[] = [];
+        if (typeof record.examples === 'string') {
+          try {
+            rawExamples = JSON.parse(record.examples);
+            if (record.term === 'align-items') {
+              console.log('[API] align-items examples tipo string, parsed length:', rawExamples.length);
+            }
+          } catch {
+            rawExamples = [];
+          }
+        } else if (Array.isArray(record.examples)) {
+          rawExamples = record.examples;
+          if (record.term === 'align-items') {
+            console.log('[API] align-items examples tipo array, length:', rawExamples.length);
+          }
+        } else {
+          if (record.term === 'align-items') {
+            console.log('[API] align-items examples tipo:', typeof record.examples, 'valor:', record.examples);
+          }
+        }
+
+        const examples = rawExamples.map((ex: unknown) => {
+          if (typeof ex === 'string') return { code: ex };
+          return ex; // Asumimos que ya cumple con TermExampleDTO si es objeto
+        });
+
+        return {
+          id: record.id,
+          term: record.term,
+          translation: record.translation,
+          slug: record.slug ?? undefined,
+          aliases: Array.isArray(record.aliases) ? (record.aliases as string[]) : [],
+          tags: Array.isArray(record.tags) ? (record.tags as string[]) : [],
+          category: record.category,
+          titleEs: record.titleEs ?? record.translation ?? record.term,
+          titleEn: record.titleEn ?? record.term,
+          meaning: record.meaning,
+          meaningEs: record.meaningEs ?? record.meaning,
+          meaningEn: record.meaningEn ?? undefined,
+          what: record.what,
+          whatEs: record.whatEs ?? record.what,
+          whatEn: record.whatEn ?? undefined,
+          how: record.how,
+          howEs: record.howEs ?? record.how,
+          howEn: record.howEn ?? undefined,
+          examples: examples,
+          exampleCount: examples.length,
+          variants: record.variants.map(v => ({
+            id: v.id,
+            language: v.language,
+            snippet: v.snippet,
+            notes: v.notes ?? undefined,
+            level: v.level,
+            status: v.status,
+            reviewedAt: v.reviewedAt?.toISOString() ?? null,
+            reviewedById: v.reviewedById ?? null
+          })),
+          useCases: record.useCases.map(u => ({
+            id: u.id,
+            context: u.context,
+            summary: u.summary,
+            steps: Array.isArray(u.steps) ? (u.steps as unknown[]) : [],
+            tips: u.tips ?? undefined,
+            status: u.status,
+            reviewedAt: u.reviewedAt?.toISOString() ?? null,
+            reviewedById: u.reviewedById ?? null
+          })),
+          faqs: record.faqs.map(f => ({
+            id: f.id,
+            questionEs: f.questionEs,
+            answerEs: f.answerEs,
+            status: f.status,
+            reviewedAt: f.reviewedAt?.toISOString() ?? null,
+            reviewedById: f.reviewedById ?? null
+          })),
+          exercises: record.exercises.map(e => ({
+            id: e.id,
+            titleEs: e.titleEs,
+            promptEs: e.promptEs,
+            difficulty: e.difficulty,
+            solutions: Array.isArray(e.solutions) ? (e.solutions as unknown[]) : [],
+            status: e.status,
+            reviewedAt: e.reviewedAt?.toISOString() ?? null,
+            reviewedById: e.reviewedById ?? null
+          })),
+          exerciseCount: record.exercises?.length ?? 0,
+          status: record.status,
+          reviewedAt: record.reviewedAt?.toISOString?.() ?? null,
+          reviewedById: record.reviewedById ?? undefined,
+          _exerciseCount: record.exercises?.length ?? 0,
+        };
+      }) as TermDTO[];
   }
 
   return { items, total };

@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-# Default DATABASE_URL if not set
-export DATABASE_URL="${DATABASE_URL:-file:./prisma/dev.db}"
+# Default DATABASE_URL if not set (PostgreSQL)
+export DATABASE_URL="${DATABASE_URL:-postgresql://postgres:postgres@localhost:5432/diccionario}"
 
 echo "[dev-init] Using DATABASE_URL=$DATABASE_URL"
 

@@ -10,9 +10,9 @@ let seedPromise: Promise<void> | null = null;
 export async function ensureDictionarySeeded() {
   if (seedPromise) return seedPromise;
   seedPromise = (async () => {
-    const existing = await prisma.term.count();
-    if (existing > 0) return;
-    logger.warn("Inicializando dataset local porque la tabla Term está vacía.");
+    // Eliminamos el chequeo de 'existing > 0' para forzar la actualización de los términos curados
+    // con los nuevos ejemplos comentados.
+    logger.info("Verificando y actualizando términos del diccionario...");
     await runDictionarySeed();
   })().catch((error) => {
     logger.error({ err: error }, "dictionary.bootstrap_failed");
@@ -23,83 +23,102 @@ export async function ensureDictionarySeeded() {
 
 async function runDictionarySeed() {
   const dictionary = dedupeTerms([...curatedTerms, ...cssCuratedTerms].map(createSeedTerm));
+
   for (const term of dictionary) {
-    const created = await prisma.term.create({
-      data: {
-        term: term.term,
-        translation: term.translation,
-        slug: term.slug,
-        titleEs: term.titleEs,
-        titleEn: term.titleEn,
-        aliases: term.aliases,
-        tags: term.tags ?? [],
-        category: term.category,
-        meaning: term.meaningEs,
-        meaningEs: term.meaningEs,
-        meaningEn: term.meaningEn,
-        what: term.whatEs ?? term.whatEn ?? "",
-        whatEs: term.whatEs,
-        whatEn: term.whatEn,
-        how: term.howEs ?? term.howEn ?? "",
-        howEs: term.howEs,
-        howEn: term.howEn,
-        examples: term.examples,
-        status: ReviewStatus.approved,
+    // Preparamos los datos para create/update
+    const termData = {
+      term: term.term,
+      translation: term.translation,
+      slug: term.slug,
+      titleEs: term.titleEs,
+      titleEn: term.titleEn,
+      aliases: term.aliases,
+      tags: term.tags ?? [],
+      category: term.category,
+      meaning: term.meaningEs,
+      meaningEs: term.meaningEs,
+      meaningEn: term.meaningEn,
+      what: term.whatEs ?? term.whatEn ?? "",
+      whatEs: term.whatEs,
+      whatEn: term.whatEn,
+      how: term.howEs ?? term.howEn ?? "",
+      howEs: term.howEs,
+      howEn: term.howEn,
+      examples: term.examples,
+      status: ReviewStatus.approved,
+    };
+
+    // Usamos upsert para crear o actualizar
+    const created = await prisma.term.upsert({
+      where: { term: term.term },
+      update: {
+        ...termData,
+        // Actualizamos relaciones si es necesario, aunque para ejemplos simples basta con actualizar el JSON de examples
+        // Nota: Para relaciones complejas (variants, useCases) en un upsert masivo, 
+        // la estrategia ideal sería borrar y recrear o hacer upserts anidados complejos.
+        // Para este caso, priorizamos actualizar los campos principales y examples que es donde está el código comentado.
+      },
+      create: {
+        ...termData,
         variants: term.variants?.length
           ? {
-              create: term.variants.map((variant) => ({
-                language: variant.language,
-                snippet: variant.code,
-                notes: variant.notes,
-                level: variant.level ?? SkillLevel.intermediate,
-                status: ReviewStatus.approved,
-              })),
-            }
+            create: term.variants.map((variant) => ({
+              language: variant.language,
+              snippet: variant.code,
+              notes: variant.notes,
+              level: variant.level ?? SkillLevel.intermediate,
+              status: ReviewStatus.approved,
+            })),
+          }
           : undefined,
         useCases: term.useCases?.length
           ? {
-              create: term.useCases.map((useCase) => ({
-                context: useCase.context,
-                summary: [useCase.summaryEs, useCase.summaryEn].filter(Boolean).join(" | "),
-                steps: useCase.stepsEs.map((es, index) => ({
-                  es,
-                  en: useCase.stepsEn[index] ?? useCase.stepsEn[useCase.stepsEn.length - 1] ?? es,
-                })),
-                tips: [useCase.tipsEs, useCase.tipsEn].filter(Boolean).join(" | ") || undefined,
-                status: ReviewStatus.approved,
+            create: term.useCases.map((useCase) => ({
+              context: useCase.context,
+              summary: [useCase.summaryEs, useCase.summaryEn].filter(Boolean).join(" | "),
+              steps: useCase.stepsEs.map((es, index) => ({
+                es,
+                en: useCase.stepsEn[index] ?? useCase.stepsEn[useCase.stepsEn.length - 1] ?? es,
               })),
-            }
+              tips: [useCase.tipsEs, useCase.tipsEn].filter(Boolean).join(" | ") || undefined,
+              status: ReviewStatus.approved,
+            })),
+          }
           : undefined,
         faqs: term.faqs?.length
           ? {
-              create: term.faqs.map((faq) => ({
-                questionEs: faq.questionEs,
-                questionEn: faq.questionEn,
-                answerEs: faq.answerEs,
-                answerEn: faq.answerEn,
-                snippet: faq.snippet,
-                category: faq.category,
-                howToExplain: faq.howToExplain,
-                status: ReviewStatus.approved,
-              })),
-            }
+            create: term.faqs.map((faq) => ({
+              questionEs: faq.questionEs,
+              questionEn: faq.questionEn,
+              answerEs: faq.answerEs,
+              answerEn: faq.answerEn,
+              snippet: faq.snippet,
+              category: faq.category,
+              howToExplain: faq.howToExplain,
+              status: ReviewStatus.approved,
+            })),
+          }
           : undefined,
         exercises: term.exercises?.length
           ? {
-              create: term.exercises.map((exercise) => ({
-                titleEs: exercise.titleEs,
-                titleEn: exercise.titleEn,
-                promptEs: exercise.promptEs,
-                promptEn: exercise.promptEn,
-                difficulty: exercise.difficulty,
-                solutions: exercise.solutions,
-                status: ReviewStatus.approved,
-              })),
-            }
+            create: term.exercises.map((exercise) => ({
+              titleEs: exercise.titleEs,
+              titleEn: exercise.titleEn,
+              promptEs: exercise.promptEs,
+              promptEn: exercise.promptEn,
+              difficulty: exercise.difficulty,
+              solutions: exercise.solutions,
+              status: ReviewStatus.approved,
+            })),
+          }
           : undefined,
       },
     });
-    await prisma.termStats.create({ data: { termId: created.id } }).catch(() => undefined);
+    await prisma.termStats.upsert({
+      where: { termId: created.id },
+      create: { termId: created.id },
+      update: {},
+    }).catch(() => undefined);
   }
 }
 
@@ -153,6 +172,7 @@ function createSeedTerm(input: SeedTermInput): SeedTerm {
     aliases = [],
     tags = [],
     example,
+    exerciseExample, // Ahora es obligatorio
     whatEs,
     whatEn,
     howEs,
@@ -167,6 +187,9 @@ function createSeedTerm(input: SeedTermInput): SeedTerm {
   const resolvedHowEs = howEs ?? howByCategoryEs[category](term);
   const resolvedHowEn = howEn ?? howByCategoryEn[category](term);
   const variantLanguage = languageOverride ?? variantLanguageByCategory[category];
+
+  // Usamos exerciseExample (ahora obligatorio)
+  const exerciseCode = exerciseExample.code;
 
   return {
     term,
@@ -183,11 +206,11 @@ function createSeedTerm(input: SeedTermInput): SeedTerm {
     whatEn: resolvedWhatEn,
     howEs: resolvedHowEs,
     howEn: resolvedHowEn,
-    examples: [example],
+    examples: [example, input.secondExample], // Incluimos ambos ejemplos
     variants: buildVariants(variantLanguage, example.code, example.noteEs ?? example.noteEn),
     useCases: buildUseCases(term, category, resolvedWhatEs, resolvedWhatEn),
     faqs: buildFaqs(term, translation, meaningEs, meaningEn, example, resolvedHowEs, resolvedHowEn),
-    exercises: buildExercises(term, variantLanguage, example.code, resolvedHowEs, resolvedHowEn),
+    exercises: buildExercises(term, variantLanguage, exerciseCode, resolvedHowEs, resolvedHowEn),
   };
 }
 

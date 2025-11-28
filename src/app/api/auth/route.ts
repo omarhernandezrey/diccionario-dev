@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { buildLogoutCookie, getTokenFromHeaders, verifyJwt } from "@/lib/auth";
+import { ensureContributorProfile } from "@/lib/contributors";
 
 const UNAUTHORIZED = { ok: false, error: "Unauthorized" };
 
@@ -25,7 +26,12 @@ export async function GET(req: NextRequest) {
 
   const user = await prisma.user.findUnique({
     where: { id: payload.id },
-    select: { id: true, username: true, role: true, email: true },
+    select: {
+      id: true,
+      username: true,
+      role: true,
+      email: true,
+    },
   });
 
   if (!user) {
@@ -34,7 +40,18 @@ export async function GET(req: NextRequest) {
     return res;
   }
 
-  return NextResponse.json({ ok: true, user, allowBootstrap });
+  const profile = await ensureContributorProfile(user.id, user.username);
+  const enrichedUser = {
+    id: user.id,
+    username: user.username,
+    role: user.role,
+    email: user.email,
+    displayName: profile.displayName || user.username,
+    avatarUrl: profile.avatarUrl ?? null,
+    bio: profile.bio ?? "",
+  };
+
+  return NextResponse.json({ ok: true, user: enrichedUser, allowBootstrap });
 }
 
 /**

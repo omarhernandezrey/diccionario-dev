@@ -48,12 +48,24 @@ export const prismaMock = {
     findMany: vi.fn(),
     create: vi.fn(),
     update: vi.fn(),
+    upsert: vi.fn(),
     delete: vi.fn(),
   },
   termHistory: {
     create: vi.fn(),
   },
   searchLog: {
+    create: vi.fn(),
+  },
+  contributorProfile: {
+    upsert: vi.fn(),
+    update: vi.fn(),
+    findMany: vi.fn(),
+  },
+  contribution: {
+    create: vi.fn(),
+  },
+  termStats: {
     create: vi.fn(),
   },
   $queryRawUnsafe: vi.fn(),
@@ -178,8 +190,14 @@ beforeEach(() => {
   prismaMock.term.findUnique.mockResolvedValue({ ...baseTerm });
   prismaMock.term.create.mockResolvedValue({ ...baseTerm });
   prismaMock.term.update.mockResolvedValue({ ...baseTerm, term: "Updated" });
+  prismaMock.term.upsert.mockResolvedValue({ ...baseTerm });
   prismaMock.term.delete.mockResolvedValue({ ...baseTerm });
   prismaMock.termHistory.create.mockResolvedValue({});
   prismaMock.$queryRawUnsafe.mockResolvedValue([{ count: 0 }]);
   prismaMock.$queryRaw.mockResolvedValue([{ "1": 1 }]);
+
+  prismaMock.contributorProfile.upsert.mockResolvedValue({ id: 1, userId: 1, totalPoints: 0 });
+  prismaMock.contributorProfile.update.mockResolvedValue({ id: 1, userId: 1, totalPoints: 0 });
+  prismaMock.contribution.create.mockResolvedValue({ id: 1 });
+  prismaMock.termStats.create.mockResolvedValue({ id: 1 });
 });

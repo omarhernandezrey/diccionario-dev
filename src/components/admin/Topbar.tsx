@@ -2,6 +2,7 @@
 
 import React, { useState } from "react";
 import { useRouter } from "next/navigation";
+import Image from "next/image";
 import { Icon } from "@/components/Icon";
 import { useNotifications } from "@/components/admin/NotificationsProvider";
 import { useSession, notifySessionChange } from "@/components/admin/SessionProvider";
@@ -138,13 +139,19 @@ export default function Topbar() {
                   onClick={() => setDropdownOpen(!dropdownOpen)}
                   className="flex items-center gap-2 rounded-lg px-3 py-1.5 text-sm font-medium text-neo-text-secondary transition hover:bg-neo-surface hover:text-neo-text-primary"
                 >
-                  <div className="relative flex h-8 w-8 items-center justify-center rounded-full bg-gradient-to-br from-neo-primary to-neo-accent-purple text-xs font-bold text-white">
-                    {session.username.substring(0, 2).toUpperCase()}
+                  <div className="relative h-9 w-9 overflow-hidden rounded-full border border-neo-border bg-gradient-to-br from-neo-primary to-neo-accent-purple text-xs font-bold text-white">
+                    {session.avatarUrl ? (
+                      <Image src={session.avatarUrl} alt={session.displayName || session.username} width={36} height={36} className="h-full w-full object-cover" />
+                    ) : (
+                      <span className="flex h-full w-full items-center justify-center">
+                        {session.displayName?.substring(0, 2).toUpperCase() || session.username.substring(0, 2).toUpperCase()}
+                      </span>
+                    )}
                     {/* Indicador "en línea" - bolita verde */}
                     <span className="absolute bottom-0 right-0 h-2.5 w-2.5 rounded-full bg-[#10b981] ring-2 ring-white dark:ring-neo-bg"></span>
                   </div>
                   <div className="hidden sm:flex flex-col leading-tight">
-                    <span className="text-sm font-semibold text-neo-text-primary">{session.username}</span>
+                    <span className="text-sm font-semibold text-neo-text-primary">{session.displayName || session.username}</span>
                     <span className="text-[10px] text-[#10b981] font-medium">● En línea</span>
                   </div>
                   <Icon
@@ -160,7 +167,7 @@ export default function Topbar() {
                     <button
                       className="flex w-full items-center gap-3 px-4 py-2.5 text-sm text-neo-text-secondary transition hover:bg-neo-surface hover:text-neo-text-primary"
                       onClick={() => {
-                        router.push("/admin/settings");
+                        router.push("/admin/profile");
                         setDropdownOpen(false);
                       }}
                     >

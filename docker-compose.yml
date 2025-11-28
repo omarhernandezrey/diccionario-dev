@@ -8,13 +8,14 @@ services:
     ports:
       - "3001:3000"
     environment:
-      DATABASE_URL: "file:./prisma/dev.db"
+      DATABASE_URL: "postgresql://postgres:postgres@postgres:5432/diccionario"
       REDIS_URL: "redis://redis:6379"
       NODE_ENV: "development"
     volumes:
       - .:/workspace:cached
       - node_modules:/workspace/node_modules
     depends_on:
+      - postgres
       - redis
     restart: unless-stopped
     healthcheck:
@@ -38,16 +39,30 @@ services:
     working_dir: /workspace
     command: bash -lc "npm ci && npm run test:unit"
     environment:
-      DATABASE_URL: "file:./prisma/dev.db"
+      DATABASE_URL: "postgresql://postgres:postgres@postgres:5432/diccionario"
       REDIS_URL: "redis://redis:6379"
       NODE_ENV: "test"
     volumes:
       - .:/workspace:cached
       - node_modules:/workspace/node_modules
     depends_on:
+      - postgres
       - redis
     profiles: ["test"]
+
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: diccionario
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    restart: unless-stopped
 
 volumes:
   redis-data:
   node_modules:
+  postgres-data:

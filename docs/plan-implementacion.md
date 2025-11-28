@@ -9,7 +9,7 @@
   - **UseCase**: FK a Term, contexto (entrevista, proyecto, bug), explicación corta, pasos, tips de comunicación.
   - **Faq**: pregunta, respuesta larga ES/EN, snippet, categoría, campo “cómo responder”.
   - **Exercise**: enunciado ES/EN, dificultad, soluciones (language, code, explain).
-- **Formateado**: El esquema fue formateado con `DATABASE_URL=file:./prisma/dev.db npx prisma format` para asegurar consistencia.
+- **Formateado**: El esquema fue formateado con `DATABASE_URL=postgresql://postgres:postgres@localhost:5432/diccionario npx prisma format` para asegurar consistencia.
 
 ### 2. Dataset ✅
 - **Completado**: Migramos los datos actuales a la nueva estructura.
@@ -33,7 +33,7 @@
     - Se logea tanto en éxitos como en rate limit, validaciones fallidas y errores, sin impactar la respuesta al usuario.
   - **Migraciones**:
     - Nueva carpeta `prisma/migrations/20251115213055_add_search_log/` con el SQL que añade `SearchLog`.
-    - Ejecutamos `export DATABASE_URL="file:./prisma/dev.db" && npx prisma migrate deploy` para aplicar los cambios.
+    - Ejecutamos `export DATABASE_URL="postgresql://postgres:postgres@localhost:5432/diccionario" && npx prisma migrate deploy` para aplicar los cambios.
 
 ## 2. Experiencia principal (Buscador unificado) ✅
 

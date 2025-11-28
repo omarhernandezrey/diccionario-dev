@@ -67,7 +67,8 @@ export async function POST(req: NextRequest) {
     }
 
     // Server-side score calculation
-    const items = Array.isArray(template.items) ? (template.items as any[]) : [];
+    type QuizItem = { questionEs: string; answerIndex: number; options: string[] };
+    const items = Array.isArray(template.items) ? (template.items as QuizItem[]) : [];
     const totalQuestions = items.length;
     let score = 0;
 

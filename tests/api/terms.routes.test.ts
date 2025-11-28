@@ -2,6 +2,10 @@ import 'next-test-api-route-handler';
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { prismaMock, authMock, rateLimitMock, runRoute, prismaKnownError } from './test-utils';
 
+vi.mock('@/lib/bootstrap-dataset', () => ({
+  ensureDictionarySeeded: vi.fn().mockResolvedValue(undefined),
+}));
+
 interface TermsApiResponse {
   items?: Array<{ id: number; term: string; translation?: string; category?: string }>;
   meta?: { total?: number };

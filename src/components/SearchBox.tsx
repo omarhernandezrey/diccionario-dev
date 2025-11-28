@@ -7,7 +7,6 @@ import { useI18n } from "@/lib/i18n";
 import type { TermDTO, TermVariantDTO, TermExampleDTO, TermExerciseDTO } from "@/types/term";
 import type { StructuralTranslationResult } from "@/types/translate";
 import { TbBriefcase, TbMicrophone, TbBug, TbBulb, TbListCheck, TbTarget } from "react-icons/tb";
-import SoftSkillsPanel from "@/components/SoftSkillsPanel";
 
 type SearchBoxVariant = "dark" | "light";
 
@@ -40,7 +39,6 @@ const contexts = [
   { id: "bug", label: "Debug" },
   { id: "translate", label: "Traducción" },
 ];
-const contextLabels = Object.fromEntries(contexts.map((ctx) => [ctx.id, ctx.label]));
 const modeLabels: Record<string, string> = {
   list: "Concepto",
   code: "Código",
@@ -60,11 +58,6 @@ const languageLabels: Record<string, string> = {
   cpp: "C++",
   swift: "Swift",
   kotlin: "Kotlin",
-};
-const difficultyLabels: Record<string, string> = {
-  easy: "Fácil",
-  medium: "Media",
-  hard: "Alta",
 };
 const skillLabels: Record<string, string> = {
   beginner: "Principiante",
@@ -447,8 +440,6 @@ export default function SearchBox({ variant = "dark" }: SearchBoxProps) {
 
 function ResultPreview({ term, activeContext, variant }: { term: TermDTO; activeContext: string; variant: SearchBoxVariant }) {
   const { t } = useI18n();
-  const isLight = variant === 'light';
-  const tone = (light: string, dark: string) => (isLight ? light : dark);
   const [variantLang, setVariantLang] = useState<string | null>(term.variants?.[0]?.language ?? null);
   const [cheatSheetOpen, setCheatSheetOpen] = useState(false);
   const [actionHint, setActionHint] = useState<string | null>(null);
@@ -636,7 +627,7 @@ function ResultPreview({ term, activeContext, variant }: { term: TermDTO; active
             {availableUseCaseContexts.length ? (
               availableUseCaseContexts.map((contextOption) => {
                 const isActive = useCaseContext === contextOption;
-                const icons: Record<string, any> = {
+                const icons: Record<string, React.ComponentType<{ className?: string }>> = {
                   project: TbBriefcase,
                   interview: TbMicrophone,
                   bug: TbBug,
@@ -705,7 +696,7 @@ function ResultPreview({ term, activeContext, variant }: { term: TermDTO; active
                         <div>
                           <p className="text-xs font-bold uppercase tracking-wider text-yellow-600/80 mb-1">Pro Tip</p>
                           <p className="text-sm text-neo-text-primary/90 italic">
-                            "{useCase.tips}"
+                            &quot;{useCase.tips}&quot;
                           </p>
                         </div>
                       </div>
@@ -802,7 +793,7 @@ function SelectorPanel({
 
 
 
-function ActionToolbar({ onCopyDefinition, onCopySnippet, onOpenCheatSheet, onGenerateResponse, hint, variant = "dark" }: ActionToolbarProps) {
+function ActionToolbar({ onCopyDefinition, onCopySnippet, onOpenCheatSheet, onGenerateResponse, hint }: ActionToolbarProps) {
   return (
     <div className="flex flex-col gap-4 border-b border-neo-border/30 pb-6">
       <div className="flex flex-wrap gap-2 text-xs font-semibold">
@@ -1111,11 +1102,9 @@ type ExerciseRowProps = {
 };
 
 function ExerciseRow({ exercise, variant }: ExerciseRowProps) {
-  const [showSolution, setShowSolution] = useState(true);
-  const isLight = variant === "light";
-  const tone = (light: string, dark: string) => (isLight ? light : dark);
+  const [showSolution, setShowSolution] = useState(false);
+  const tone = (light: string, dark: string) => (variant === "light" ? light : dark);
 
-  const title = exercise.titleEs ?? exercise.titleEn ?? "Ejercicio";
   const prompt = exercise.promptEs ?? exercise.promptEn ?? "";
   const solution = exercise.solutions?.[0];
 
@@ -1200,9 +1189,7 @@ type ExampleRowProps = {
   variant: SearchBoxVariant;
 };
 
-function ExampleRow({ example, variant }: ExampleRowProps) {
-  const isLight = variant === "light";
-  const tone = (light: string, dark: string) => (isLight ? light : dark);
+function ExampleRow({ example }: ExampleRowProps) {
   const title = example.title ?? example.titleEs ?? example.titleEn ?? "Ejemplo";
   const note = example.note ?? example.noteEs ?? example.noteEn;
 

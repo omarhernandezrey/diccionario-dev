@@ -18,7 +18,7 @@ export async function ensureContributorProfile(userId: number, username: string,
   const defaults: Language[] = preferred?.length ? preferred : [Language.js, Language.ts, Language.css];
   return prisma.contributorProfile.upsert({
     where: { userId },
-    update: { displayName: username },
+    update: {}, // No sobrescribir datos existentes automáticamente
     create: {
       userId,
       displayName: username,

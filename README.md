@@ -9,7 +9,7 @@ Buscador y panel de administración para términos técnicos de desarrollo web e
 Stack principal:
 
 - Next.js (App Router) + React 18 + TypeScript
-- Prisma ORM con SQLite
+- Prisma ORM con PostgreSQL
 - Zod para validación
 - JWT + cookies HttpOnly para autenticación
 
@@ -17,15 +17,20 @@ Stack principal:
 
 ### Quickstart (5 minutos)
 
-1. Copia el archivo [`./.env.example`](./.env.example) a `.env` y ajusta los secretos (`JWT_SECRET`, `ADMIN_PASSWORD`, etc.).
+1. Copia el archivo [`./.env.example`](./.env.example) a `.env`, pega tu `DATABASE_URL` de Supabase/Postgres gestionado y ajusta los secretos (`JWT_SECRET`, `ADMIN_PASSWORD`, etc.).
 2. Instala dependencias: `npm install`.
-3. Aplica migraciones y genera el cliente: `npx prisma migrate dev`.
+3. Si aún no existe carpeta `prisma/migrations`, crea la inicial y aplícala contra tu `DATABASE_URL`:
+   ```bash
+   npx prisma migrate dev --name init --create-only
+   npx prisma migrate deploy
+   ```
+   Si ya tienes migraciones, basta con `npx prisma migrate deploy`.
 4. Inserta datos + admin inicial: `npm run prisma:seed`.
 5. Levanta el entorno local: `npm run dev` (http://localhost:3000).
 6. Verifica el build con Prisma 6 exportando la base al vuelo:
 
    ```bash
-   DATABASE_URL="file:./prisma/dev.db" npm run build
+   DATABASE_URL="$DATABASE_URL" npm run build
    ```
 
 > Prisma 6 necesita que `DATABASE_URL` esté disponible en el entorno en tiempo de compilación (e.g. CI/Vercel). Si usas otro motor o variable secreta, expórtala antes de `npm run build`.
@@ -55,7 +60,7 @@ Consejos:
 
 - Node.js >= 18
 - NPM (incluido con Node)
-- SQLite viene embebido vía Prisma
+- Requiere PostgreSQL (local o gestionado, e.g. Neon/Supabase/Railway)
 
 Clona el repo y copia `.env.example` a `.env`, luego ajusta los valores (ver sección _Variables de entorno_).
 
@@ -89,14 +94,14 @@ Atajos disponibles en `package.json`:
 | `npm run start` | Ejecuta el build en modo producción |
 | `npm run prisma:migrate` | Alias de `prisma migrate dev` |
 | `npm run prisma:seed` | Rellena términos + admin |
-| `npm run db:reset` | Limpia el `dev.db` y reaplica migraciones |
+| `npm run db:reset` | Reinicia la base (drop/create) y reaplica migraciones |
 | `npm run test:auth` | Ejecuta `node scripts/test-auth.js` |
 
 ---
 
 ## Despliegue local con Docker Compose
 
-Este stack incluye `next` (Next.js + SQLite) y `redis` (para rate limit). El servicio `next` corre `npm run dev:init` al arrancar, expone el puerto 3000 en el contenedor como 3001 en el host y tiene healthcheck con curl.
+Este stack incluye `next` (Next.js + PostgreSQL) y `redis` (para rate limit). El servicio `next` corre `npm run dev:init` al arrancar, expone el puerto 3000 en el contenedor como 3001 en el host y tiene healthcheck con curl.
 
 Arranque:
 
@@ -144,7 +149,7 @@ Notas:
 Referencia rápida (`.env.example` tiene valores sugeridos):
 
 ```
-DATABASE_URL="file:./dev.db"
+DATABASE_URL="postgresql://postgres:postgres@localhost:5432/diccionario"
 JWT_SECRET="cambia-este-secreto-muy-seguro"
 JWT_EXPIRES_IN="1d"
 ADMIN_USERNAME="admin"
@@ -153,12 +158,12 @@ ADMIN_EMAIL="admin@example.com"
 # ADMIN_TOKEN="token-anterior"            # opcional, usado como fallback de contraseña
 ```
 
-- `DATABASE_URL`: ruta SQLite.
+- `DATABASE_URL`: cadena de conexión PostgreSQL.
 - `JWT_SECRET`: secreto para firmar/verificar JWT (obligatorio).
 - `JWT_EXPIRES_IN`: duración del token (ej. `1d`, `12h`, `3600`).
 - `ADMIN_USERNAME`, `ADMIN_PASSWORD`, `ADMIN_EMAIL`: credenciales para el usuario sembrado (rol admin).
 - `ADMIN_TOKEN` (opcional): si ya tenías un token previo lo puedes reutilizar como fallback de contraseña para el seed.
-- `DISABLE_SEARCH_LOGS` (opcional): fija `true`/`1` para saltar escrituras en `SearchLog` cuando la base (SQLite en servidores read-only como Vercel) no acepte inserts.
+- `DISABLE_SEARCH_LOGS` (opcional): fija `true`/`1` para saltar escrituras en `SearchLog` si quieres desactivar métricas de búsqueda.
 
 ---
 
@@ -317,7 +322,7 @@ Respuestas de ejemplo:
 
 `npm run prisma:seed`:
 
-1. Borra `Term` y `TermHistory`, reinicia los autoincrement (`sqlite_sequence`) y evita IDs “huecos”.
+1. Borra `Term` y `TermHistory`, reinicia los autoincrement en Postgres y evita IDs “huecos”.
 2. Genera tags automáticos por término / alias / categoría y crea todo el dataset (`generatedTerms` + `cssTerms`).
 3. Registra un evento `HistoryAction.seed` por cada término sembrado (para auditoría).
 4. Upsert del usuario admin usando `ADMIN_USERNAME` / `ADMIN_PASSWORD` (`ADMIN_TOKEN` como fallback) cifrado con bcrypt.
@@ -344,7 +349,7 @@ node scripts/test-auth.js
 - Opción C: si tu entorno requiere inyectar `DATABASE_URL` (Prisma 6 con `prisma.config.ts`)
 
 ```bash
-TEST_SERVER_CMD='DATABASE_URL="file:./prisma/dev.db" npm run dev' \
+TEST_SERVER_CMD='DATABASE_URL="postgresql://postgres:postgres@localhost:5432/diccionario" npm run dev' \
 TEST_SERVER_TIMEOUT_MS=120000 \
 npm run test:auth
 ```
@@ -370,7 +375,7 @@ Notas:
 - Rotación y refresco de tokens JWT para sesiones prolongadas.
 - UI para gestión de usuarios/roles más allá del bootstrap.
 - Tests e2e (Playwright) cubriendo flujos de búsqueda/admin.
-- Despliegue en Vercel con `DATABASE_URL` apuntando a SQLite/file o Prisma Data Proxy.
+- Despliegue en Vercel con `DATABASE_URL` apuntando a PostgreSQL gestionado.
 
 ---
 
@@ -406,13 +411,13 @@ Notas:
 - Prisma 6 falla al compilar por `DATABASE_URL` ausente:
   - En local, el script de `build` ya carga `.env` con `-r dotenv/config`. Si usas CI o no hay `.env`, exporta la variable antes de construir:
     ```bash
-    export DATABASE_URL="file:./prisma/dev.db"
+    export DATABASE_URL="postgresql://postgres:postgres@localhost:5432/diccionario"
     npm run build
     ```
   - Si `prisma.config.ts` detecta config y omite `.env`, define `DATABASE_URL` en el entorno del job.
 
-- SQLite bloqueada o seed repetible:
-  - Cierra procesos que accedan a `dev.db` y usa:
+- Seed repetible:
+  - Ejecuta:
     ```bash
     npm run db:reset
     npm run prisma:seed

@@ -2,6 +2,7 @@
 
 import React, { useState } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import { usePathname } from "next/navigation";
 import { Icon } from "@/components/Icon";
 import { useSession } from "@/components/admin/SessionProvider";
@@ -19,6 +20,7 @@ const sections: NavSection[] = [
   { href: "/admin/terms", label: "Términos", icon: "BookOpen", adminOnly: true },
   { href: "/training", label: "Training", icon: "Dumbbell", requiresAuth: false },
   { href: "/interview/live", label: "Interview Live", icon: "Video", requiresAuth: false },
+  { href: "/admin/profile", label: "Perfil", icon: "User", requiresAuth: true },
   { href: "/admin/settings", label: "Configuración", icon: "Settings", requiresAuth: true },
   { href: "/admin/access", label: "Autenticación", icon: "ShieldCheck", requiresAuth: false },
 ];
@@ -121,14 +123,35 @@ export default function Sidebar() {
             {session && (
               <div className="rounded-lg border border-neo-border bg-neo-surface p-3">
                 <div className="flex items-center gap-2 mb-2">
-                  <div className="relative flex h-8 w-8 items-center justify-center rounded-full bg-gradient-to-br from-neo-primary to-neo-accent-purple text-xs font-bold text-white">
-                    {session.username.substring(0, 2).toUpperCase()}
+                  <div className="relative h-8 w-8 flex-shrink-0">
+                    {session.avatarUrl ? (
+                      <Image
+                        src={session.avatarUrl}
+                        alt={session.username}
+                        width={32}
+                        height={32}
+                        className="h-full w-full rounded-full object-cover border border-neo-border"
+                      />
+                    ) : (
+                      <div className="flex h-full w-full items-center justify-center rounded-full bg-gradient-to-br from-neo-primary to-neo-accent-purple text-xs font-bold text-white">
+                        {session.username.substring(0, 2).toUpperCase()}
+                      </div>
+                    )}
                     {/* Indicador "en línea" - bolita verde */}
                     <span className="absolute bottom-0 right-0 h-2.5 w-2.5 rounded-full bg-[#10b981] ring-2 ring-neo-surface"></span>
                   </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-xs font-semibold text-neo-text-primary truncate">{session.username}</p>
-                    <p className="text-[10px] text-[#10b981] font-medium uppercase">● {session.role}</p>
+                  <div className="flex-1 min-w-0 flex flex-col gap-1">
+                    <div className="flex items-center justify-between">
+                      <p className="text-xs font-semibold text-neo-text-primary truncate">{session.username}</p>
+                      <span className="text-[10px] text-[#10b981] font-medium uppercase">● {session.role}</span>
+                    </div>
+                    {session.bio && (
+                      <div className="rounded bg-neo-bg/50 px-1.5 py-0.5 border border-neo-border/50">
+                        <p className="text-[10px] text-neo-text-secondary line-clamp-2 leading-tight italic" title={session.bio}>
+                          {session.bio}
+                        </p>
+                      </div>
+                    )}
                   </div>
                 </div>
               </div>

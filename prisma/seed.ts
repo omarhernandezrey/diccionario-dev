@@ -247,6 +247,8 @@ function createSeedTerm(input: SeedTermInput): SeedTerm {
     aliases = [],
     tags = [],
     example,
+    secondExample,
+    exerciseExample,
     whatEs,
     whatEn,
     howEs,
@@ -261,6 +263,7 @@ function createSeedTerm(input: SeedTermInput): SeedTerm {
   const resolvedHowEs = howEs ?? howByCategoryEs[category](term);
   const resolvedHowEn = howEn ?? howByCategoryEn[category](term);
   const variantLanguage = languageOverride ?? variantLanguageByCategory[category];
+  const exerciseCode = exerciseExample.code;
 
   return {
     term,
@@ -277,11 +280,11 @@ function createSeedTerm(input: SeedTermInput): SeedTerm {
     whatEn: resolvedWhatEn,
     howEs: resolvedHowEs,
     howEn: resolvedHowEn,
-    examples: [example],
+    examples: [example, secondExample],
     variants: buildVariants(variantLanguage, example.code, example.noteEs ?? example.noteEn),
     useCases: buildUseCases(term, category, resolvedWhatEs, resolvedWhatEn),
-    faqs: buildFaqs(term, translation, meaningEs, meaningEn, example, resolvedHowEs, resolvedHowEn),
-    exercises: buildExercises(term, variantLanguage, example.code, resolvedHowEs, resolvedHowEn),
+    faqs: buildFaqs(term, translation, meaningEs, meaningEn, example, resolvedHowEs, resolvedHowEn, category),
+    exercises: buildExercises(term, variantLanguage, exerciseCode, resolvedHowEs, resolvedHowEn),
   };
 }
 
@@ -364,7 +367,50 @@ function buildFaqs(
   example: ExampleSnippet,
   howEs: string,
   howEn: string,
+  category: Category,
 ): FaqSeed[] {
+  const isFrontend = category === Category.frontend;
+
+  // Improved CSS detection heuristic
+  const isCss = isFrontend && (
+    // CSS properties (lowercase with hyphens, no "use" prefix)
+    (/^[a-z-]+$/.test(term) && !term.startsWith("use")) ||
+    // Tailwind utilities (bg-, text-, flex-, grid-, etc.)
+    /^(bg|text|flex|grid|w-|h-|p-|m-|border|rounded|shadow|gap|space|justify|items|content|overflow|position|top|bottom|left|right|inset|z-|opacity|transform|transition|animate|cursor|select|pointer|resize|outline|ring|divide|sr-|not-sr|focus|hover|active|disabled|group|peer|dark|sm:|md:|lg:|xl:|2xl:)/.test(term) ||
+    // CSS functions
+    term.includes("clamp") || term.includes("calc") || term.includes("var") ||
+    // Specific CSS terms
+    term === "aspect-ratio" || term === "backdrop-filter" || term === "scroll-snap"
+  );
+
+  const resetQ = {
+    es: isCss ? `¿Cómo reiniciar o resetear ${term}?` : `¿Cómo reiniciar o resetear ${term}?`,
+    en: `How to reset or reinitialize ${term}?`,
+    ansEs: isCss
+      ? `Usa el valor 'initial', 'unset' o el valor por defecto de la propiedad para anular estilos heredados.`
+      : `Reinicia ${term} a su valor inicial respetando el contexto del concepto.`,
+    ansEn: isCss
+      ? `Use 'initial', 'unset' or the default property value to override inherited styles.`
+      : `Reset ${term} to its initial value respecting the concept's context.`,
+    snippet: isCss
+      ? `.element {\n  ${term}: initial;\n}`
+      : `// Reinicia ${term} a su estado inicial\n// Usa este patrón cuando necesites volver al estado base`,
+  };
+
+  const bestPracticesQ = {
+    es: `¿Cuáles son las buenas prácticas para usar ${term}?`,
+    en: `What are best practices for using ${term}?`,
+    ansEs: isCss
+      ? `Usa clases utilitarias o componentes, evita selectores anidados profundos y verifica el soporte en navegadores.`
+      : `Aplica ${term} de forma consistente, respeta su ciclo de vida y valida entradas.`,
+    ansEn: isCss
+      ? `Use utility classes or components, avoid deep nesting and check browser support.`
+      : `Apply ${term} consistently, respect its lifecycle and validate inputs.`,
+    snippet: isCss
+      ? `/* Buenas prácticas */\n.component {\n  /* Usa variables para consistencia */\n  ${term}: var(--${term});\n}`
+      : `// Buenas prácticas para ${term}\n// 1. Usa de forma consistente\n// 2. Respeta dependencias y ciclo de vida\n// 3. Valida inputs y maneja errores`,
+  };
+
   return [
     {
       questionEs: `¿Cómo explicas ${term} en una entrevista?`,
@@ -374,6 +420,24 @@ function buildFaqs(
       snippet: example.code,
       category: translation,
       howToExplain: "Usa un ejemplo, enlaza con impacto real y ofrece métricas cuando sea posible.",
+    },
+    {
+      questionEs: resetQ.es,
+      questionEn: resetQ.en,
+      answerEs: resetQ.ansEs,
+      answerEn: resetQ.ansEn,
+      snippet: resetQ.snippet,
+      category: "reset",
+      howToExplain: "Muestra cómo volver al estado inicial de forma segura.",
+    },
+    {
+      questionEs: bestPracticesQ.es,
+      questionEn: bestPracticesQ.en,
+      answerEs: bestPracticesQ.ansEs,
+      answerEn: bestPracticesQ.ansEn,
+      snippet: bestPracticesQ.snippet,
+      category: "best-practices",
+      howToExplain: "Enfatiza seguridad, rendimiento e inmutabilidad.",
     },
   ];
 }
@@ -517,59 +581,59 @@ async function main() {
         updatedById: admin.id,
         variants: term.variants?.length
           ? {
-              create: term.variants.map(variant => ({
-                language: variant.language,
-                snippet: variant.code,
-                notes: variant.notes,
-                level: variant.level ?? SkillLevel.intermediate,
-                status: ReviewStatus.approved,
-                ...reviewMeta,
-              })),
-            }
+            create: term.variants.map(variant => ({
+              language: variant.language,
+              snippet: variant.code,
+              notes: variant.notes,
+              level: variant.level ?? SkillLevel.intermediate,
+              status: ReviewStatus.approved,
+              ...reviewMeta,
+            })),
+          }
           : undefined,
         useCases: term.useCases?.length
           ? {
-              create: term.useCases.map(useCase => ({
-                context: useCase.context,
-                summary: [useCase.summaryEs, useCase.summaryEn].filter(Boolean).join(" | "),
-                steps: useCase.stepsEs.map((es, index) => ({
-                  es,
-                  en: useCase.stepsEn[index] ?? useCase.stepsEn[useCase.stepsEn.length - 1] ?? es,
-                })),
-                tips: [useCase.tipsEs, useCase.tipsEn].filter(Boolean).join(" | ") || undefined,
-                status: ReviewStatus.approved,
-                ...reviewMeta,
+            create: term.useCases.map(useCase => ({
+              context: useCase.context,
+              summary: [useCase.summaryEs, useCase.summaryEn].filter(Boolean).join(" | "),
+              steps: useCase.stepsEs.map((es, index) => ({
+                es,
+                en: useCase.stepsEn[index] ?? useCase.stepsEn[useCase.stepsEn.length - 1] ?? es,
               })),
-            }
+              tips: [useCase.tipsEs, useCase.tipsEn].filter(Boolean).join(" | ") || undefined,
+              status: ReviewStatus.approved,
+              ...reviewMeta,
+            })),
+          }
           : undefined,
         faqs: term.faqs?.length
           ? {
-              create: term.faqs.map(faq => ({
-                questionEs: faq.questionEs,
-                questionEn: faq.questionEn,
-                answerEs: faq.answerEs,
-                answerEn: faq.answerEn,
-                snippet: faq.snippet,
-                category: faq.category,
-                howToExplain: faq.howToExplain,
-                status: ReviewStatus.approved,
-                ...reviewMeta,
-              })),
-            }
+            create: term.faqs.map(faq => ({
+              questionEs: faq.questionEs,
+              questionEn: faq.questionEn,
+              answerEs: faq.answerEs,
+              answerEn: faq.answerEn,
+              snippet: faq.snippet,
+              category: faq.category,
+              howToExplain: faq.howToExplain,
+              status: ReviewStatus.approved,
+              ...reviewMeta,
+            })),
+          }
           : undefined,
         exercises: term.exercises?.length
           ? {
-              create: term.exercises.map(exercise => ({
-                titleEs: exercise.titleEs,
-                titleEn: exercise.titleEn,
-                promptEs: exercise.promptEs,
-                promptEn: exercise.promptEn,
-                difficulty: exercise.difficulty,
-                solutions: exercise.solutions,
-                status: ReviewStatus.approved,
-                ...reviewMeta,
-              })),
-            }
+            create: term.exercises.map(exercise => ({
+              titleEs: exercise.titleEs,
+              titleEn: exercise.titleEn,
+              promptEs: exercise.promptEs,
+              promptEn: exercise.promptEn,
+              difficulty: exercise.difficulty,
+              solutions: exercise.solutions,
+              status: ReviewStatus.approved,
+              ...reviewMeta,
+            })),
+          }
           : undefined,
       },
       include: { variants: true, useCases: true, faqs: true, exercises: true },
@@ -650,11 +714,15 @@ function buildTags(term: SeedTerm) {
 
 async function resetSequences(tableNames: string[]) {
   if (!tableNames.length) return;
-  const names = tableNames.map(name => `'${name}'`).join(", ");
-  try {
-    await prisma.$executeRawUnsafe(`DELETE FROM sqlite_sequence WHERE name IN (${names});`);
-  } catch (error) {
-    logger.warn({ err: error, tables: tableNames }, "seed.reset_sequences_failed");
+  for (const table of tableNames) {
+    const relation = `'\"${table.replace(/"/g, '""')}\"'`;
+    try {
+      await prisma.$executeRawUnsafe(
+        `SELECT setval(pg_get_serial_sequence(${relation}, 'id'), 1, false);`,
+      );
+    } catch (error) {
+      logger.warn({ err: error, table }, "seed.reset_sequences_failed");
+    }
   }
 }
 

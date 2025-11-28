@@ -89,10 +89,12 @@ export type TermDTO = {
   howEs?: string | null;
   howEn?: string | null;
   examples: TermExampleDTO[];
+  exampleCount?: number;
   variants?: TermVariantDTO[];
   useCases?: TermUseCaseDTO[];
   faqs?: TermFaqDTO[];
   exercises?: TermExerciseDTO[];
+  exerciseCount?: number;
   status: ReviewStatus;
   reviewedAt?: string | null;
   reviewedById?: number | null;

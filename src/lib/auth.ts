@@ -96,7 +96,9 @@ export function buildAuthCookie(token: string, maxAgeSeconds = MAX_AGE_SECONDS) 
     `${COOKIE_NAME}=${token}`,
     "Path=/",
     "HttpOnly",
-    "SameSite=Strict",
+    // Usamos Lax para que la cookie sobreviva a aperturas desde buscadores (ej. Google)
+    // sin exponernos a peticiones de terceros como si fuese un cookie de terceros.
+    "SameSite=Lax",
     `Max-Age=${maxAgeSeconds}`,
   ];
   if (IS_PROD) {

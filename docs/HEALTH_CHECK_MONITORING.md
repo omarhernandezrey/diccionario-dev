@@ -374,7 +374,7 @@ check_health
 
 1. Verificar conectividad de red al endpoint
 2. Revisar logs del servidor: `docker logs <container>` o `kubectl logs <pod>`
-3. Verificar que SQLite/Prisma está accesible
+3. Verificar que PostgreSQL/Prisma está accesible
 4. Comprobar límites de conexiones a BD
 5. Validar variables de entorno (DATABASE_URL)
 
@@ -390,7 +390,7 @@ curl --max-time 5 https://tu-dominio.com/api/health
 curl -v https://tu-dominio.com/api/health
 
 # Test de disponibilidad de BD (local)
-sqlite3 prisma/dev.db "SELECT 1;"
+psql "$DATABASE_URL" -c "SELECT 1;"
 ```
 
 ---

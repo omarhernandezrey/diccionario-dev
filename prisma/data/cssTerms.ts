@@ -13,13 +13,25 @@ export const cssCuratedTerms: SeedTermInput[] = [
     example: {
       titleEs: "Cards centradas verticalmente",
       titleEn: "Vertically centered cards",
-      code: `section.cards {
+      code: `/* Definimos un contenedor flex para las tarjetas */
+section.cards {
+  /* Activamos flexbox en el contenedor */
   display: flex;
+  
+  /* Centramos los elementos en el eje cruzado (vertical) */
+  /* Esto hace que todas las cards tengan la misma altura visual */
   align-items: center;
+  
+  /* Añadimos espacio entre las tarjetas */
   gap: 1.25rem;
 }
+
+/* Estilizamos cada tarjeta individual */
 section.cards > article {
+  /* Cada card ocupa el mismo espacio disponible */
   flex: 1;
+  
+  /* Establecemos una altura mínima */
   min-height: 280px;
 }`,
       noteEs: "Mantiene cada card en la misma altura sin trucos adicionales.",
@@ -30,6 +42,54 @@ section.cards > article {
     howEs: "Declara display:flex o display:grid y ajusta align-items en el contenedor. Experimenta con valores como center, flex-end o stretch.",
     howEn: "Set display:flex or grid on the container and tweak align-items with values such as center, flex-end or stretch.",
     languageOverride: Language.css,
+    secondExample: {
+      titleEs: "Alineación con stretch (expandir)",
+      titleEn: "Stretch alignment (fill)",
+      code: `/* Ejemplo avanzado: diferentes valores de align-items */
+.flex-container {
+  display: flex;
+  height: 300px;
+  gap: 10px;
+}
+
+/* align-items: flex-start - alinea al inicio del eje cruzado */
+.flex-start {
+  align-items: flex-start;
+  background: linear-gradient(to right, #667eea, #764ba2);
+}
+
+/* align-items: center - centra en el eje cruzado (más común) */
+.center {
+  align-items: center;
+  background: linear-gradient(to right, #f093fb, #f5576c);
+}
+
+/* align-items: flex-end - alinea al final del eje cruzado */
+.flex-end {
+  align-items: flex-end;
+  background: linear-gradient(to right, #4facfe, #00f2fe);
+}
+
+/* align-items: stretch - expande para llenar el contenedor */
+.stretch {
+  align-items: stretch;
+  background: linear-gradient(to right, #43e97b, #38f9d7);
+}`,
+      noteEs: "Prueba diferentes valores para ver cómo cambia la alineación. Stretch es útil para layouts responsive.",
+      noteEn: "Try different values to see alignment changes. Stretch is perfect for responsive layouts.",
+    },
+    exerciseExample: {
+      titleEs: "Centrado absoluto",
+      titleEn: "Absolute centering",
+      code: `.container {
+  display: flex;
+  justify-content: center; /* Eje principal */
+  align-items: center;     /* Eje cruzado */
+  height: 100vh;
+}`,
+      noteEs: "La combinación clásica para centrar cualquier cosa.",
+      noteEn: "The classic combo to center anything.",
+    },
   },
   {
     term: "clamp",
@@ -43,11 +103,39 @@ section.cards > article {
       titleEs: "Tipografía fluida",
       titleEn: "Fluid type",
       code: `h1 {
+  /* Usamos clamp() para crear tipografía responsive */
+  /* Sintaxis: clamp(mínimo, valor preferido, máximo) */
+  /* 2.5rem = tamaño mínimo en pantallas pequeñas */
+  /* 4vw = crece con el ancho del viewport */
+  /* 3.75rem = tamaño máximo en pantallas grandes */
   font-size: clamp(2.5rem, 4vw, 3.75rem);
+  
+  /* Altura de línea compacta para títulos */
   line-height: 1.1;
 }`,
       noteEs: "La fuente crece con el ancho pero nunca deja de ser legible.",
       noteEn: "Font size reacts to viewport width but stays readable.",
+    },
+    secondExample: {
+      titleEs: "Ancho de tarjeta fluido",
+      titleEn: "Fluid card width",
+      code: `.card {
+  /* Mínimo 300px, idealmente 50%, máximo 600px */
+  width: clamp(300px, 50%, 600px);
+  margin: 0 auto;
+}`,
+      noteEs: "Controla el ancho sin media queries.",
+      noteEn: "Controls width without media queries.",
+    },
+    exerciseExample: {
+      titleEs: "Espaciado dinámico",
+      titleEn: "Dynamic spacing",
+      code: `.section {
+  /* Padding crece con la pantalla */
+  padding: clamp(1rem, 5vw, 4rem);
+}`,
+      noteEs: "Espaciado cómodo en móvil y escritorio.",
+      noteEn: "Comfortable spacing on mobile and desktop.",
     },
     whatEs: "Resuelve diseños fluidos declarando un valor responsive sin cálculos manuales.",
     whatEn: "It gives you responsive sizing logic with a single expression.",
@@ -67,16 +155,50 @@ section.cards > article {
       titleEs: "Dashboard elástico",
       titleEn: "Elastic dashboard",
       code: `.dashboard {
+  /* Activamos CSS Grid en el contenedor */
   display: grid;
+  
+  /* Creamos columnas que se adaptan automáticamente */
+  /* repeat(auto-fit, ...) = crea tantas columnas como quepan */
+  /* minmax(240px, 1fr) = cada columna mínimo 240px, máximo 1 fracción del espacio */
+  /* Resultado: las tarjetas se reorganizan automáticamente según el espacio */
   grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  
+  /* Espacio entre las tarjetas del grid */
   gap: 1.5rem;
 }`,
       noteEs: "Las tarjetas ocupan el espacio disponible sin romper filas.",
       noteEn: "Cards reflow automatically without hard breakpoints.",
     },
+    secondExample: {
+      titleEs: "Layout principal",
+      titleEn: "Main layout",
+      code: `.layout {
+  display: grid;
+  /* Sidebar fijo 250px, contenido resto */
+  grid-template-columns: 250px 1fr;
+  min-height: 100vh;
+}`,
+      noteEs: "Estructura clásica de dashboard.",
+      noteEn: "Classic dashboard structure.",
+    },
+    exerciseExample: {
+      titleEs: "Grid 12 columnas",
+      titleEn: "12-column grid",
+      code: `.container {
+  display: grid;
+  grid-template-columns: repeat(12, 1fr);
+  gap: 20px;
+}
+
+.col-4 { grid-column: span 4; }
+.col-8 { grid-column: span 8; }`,
+      noteEs: "Sistema de grid flexible.",
+      noteEn: "Flexible grid system.",
+    },
     whatEs: "Permite describir estructuras complejas con pocas líneas y mantiene el grid estable.",
     whatEn: "Lets you describe complex grids declaratively while keeping layouts stable.",
-  howEs: "Combina repeat y minmax para columnas fluidas o nombra líneas con '[]' si necesitas colocar elementos por nombre.",
+    howEs: "Combina repeat y minmax para columnas fluidas o nombra líneas con '[]' si necesitas colocar elementos por nombre.",
     howEn: "Mix repeat with minmax for fluid columns or name grid lines with brackets to place elements explicitly.",
     languageOverride: Language.css,
   },
@@ -92,12 +214,42 @@ section.cards > article {
       titleEs: "Tarjetas de video",
       titleEn: "Video cards",
       code: `.video-card {
+  /* Establecemos una relación de aspecto 16:9 */
+  /* El navegador calculará automáticamente la altura */
+  /* basándose en el ancho del elemento */
   aspect-ratio: 16 / 9;
+  
+  /* Color de fondo mientras carga el video */
   background: #0f172a;
+  
+  /* Bordes redondeados para estética moderna */
   border-radius: 1rem;
 }`,
       noteEs: "Evita los viejos hacks con padding-top.",
       noteEn: "Replaces the classic padding-top hacks.",
+    },
+    secondExample: {
+      titleEs: "Avatar cuadrado",
+      titleEn: "Square avatar",
+      code: `.avatar {
+  width: 100%;
+  aspect-ratio: 1 / 1;
+  object-fit: cover;
+  border-radius: 50%;
+}`,
+      noteEs: "Mantiene la imagen cuadrada sin importar el ancho.",
+      noteEn: "Keeps image square regardless of width.",
+    },
+    exerciseExample: {
+      titleEs: "Imagen de héroe cinematográfica",
+      titleEn: "Cinematic hero image",
+      code: `.hero-image {
+  width: 100%;
+  aspect-ratio: 21 / 9;
+  object-fit: cover;
+}`,
+      noteEs: "Proporción ultra ancha para impacto visual.",
+      noteEn: "Ultra-wide ratio for visual impact.",
     },
     whatEs: "Resuelve placeholders para videos, iframes o componentes con proporción fija.",
     whatEn: "Keeps placeholders for videos, iframes or cards perfectly scaled.",
@@ -117,12 +269,45 @@ section.cards > article {
       titleEs: "Glassmorphism en cards",
       titleEn: "Glassmorphism cards",
       code: `.glass-card {
+  /* Aplicamos efectos al contenido detrás del elemento */
+  /* blur(18px) = desenfoque de 18 píxeles */
+  /* saturate(120%) = aumentamos la saturación de color en 20% */
   backdrop-filter: blur(18px) saturate(120%);
+  
+  /* Fondo semi-transparente (REQUERIDO para que funcione backdrop-filter) */
+  /* rgba(15, 23, 42, 0.45) = color oscuro con 45% de opacidad */
   background: rgba(15, 23, 42, 0.45);
+  
+  /* Borde sutil semi-transparente para definir los límites */
   border: 1px solid rgba(255, 255, 255, 0.15);
 }`,
       noteEs: "Funciona sólo si el elemento tiene fondo semi-transparente.",
       noteEn: "Needs a translucent background to be visible.",
+    },
+    secondExample: {
+      titleEs: "Efecto blanco y negro",
+      titleEn: "Grayscale effect",
+      code: `.overlay {
+  position: absolute;
+  inset: 0;
+  backdrop-filter: grayscale(100%);
+  pointer-events: none;
+}`,
+      noteEs: "Desatura todo lo que está detrás.",
+      noteEn: "Desaturates everything behind it.",
+    },
+    exerciseExample: {
+      titleEs: "Modal con fondo borroso",
+      titleEn: "Blurred modal background",
+      code: `.modal-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.5);
+  backdrop-filter: blur(4px);
+  z-index: 50;
+}`,
+      noteEs: "Enfoca la atención en el modal.",
+      noteEn: "Focuses attention on the modal.",
     },
     whatEs: "Es útil para overlays, barras flotantes o paneles donde quieres ver el contenido subyacente.",
     whatEn: "Great for overlays, floating panels or nav bars where you want to hint at underlying content.",
@@ -142,17 +327,61 @@ section.cards > article {
       titleEs: "Carrusel accesible",
       titleEn: "Accessible carousel",
       code: `.carousel {
+  /* Usamos grid para layout horizontal */
   display: grid;
+  
+  /* Las columnas se crean automáticamente en dirección horizontal */
   grid-auto-flow: column;
+  
+  /* Espacio entre cada slide del carrusel */
   gap: 1rem;
+  
+  /* Permitimos scroll horizontal */
   overflow-x: auto;
+  
+  /* Activamos snap en el eje X (horizontal) */
+  /* "mandatory" = siempre se ajusta a un punto de snap */
   scroll-snap-type: x mandatory;
 }
+
+/* Configuramos cada slide individual */
 .carousel > article {
+  /* Cada slide se centra cuando el usuario hace scroll */
   scroll-snap-align: center;
 }`,
       noteEs: "Funciona con scroll natural, sin JS adicional.",
       noteEn: "Works with natural scrolling, no JS required.",
+    },
+    secondExample: {
+      titleEs: "Scroll vertical página completa",
+      titleEn: "Full page vertical scroll",
+      code: `html {
+  scroll-snap-type: y mandatory;
+}
+
+section {
+  height: 100vh;
+  scroll-snap-align: start;
+}`,
+      noteEs: "Efecto de presentación de diapositivas.",
+      noteEn: "Slideshow presentation effect.",
+    },
+    exerciseExample: {
+      titleEs: "Lista de tags horizontal",
+      titleEn: "Horizontal tag list",
+      code: `.tags {
+  display: flex;
+  overflow-x: auto;
+  scroll-snap-type: x proximity;
+  gap: 8px;
+  padding: 16px;
+}
+
+.tag {
+  scroll-snap-align: start;
+}`,
+      noteEs: "Proximity es menos agresivo que mandatory.",
+      noteEn: "Proximity is less aggressive than mandatory.",
     },
     whatEs: "Sirve para experiencias táctiles consistentes donde cada card se centra.",
     whatEn: "Ensures every card or slide centers perfectly on touch experiences.",

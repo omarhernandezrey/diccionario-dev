@@ -1,13 +1,8 @@
 "use client";
 
-import React, { createContext, useContext, useState, useEffect, useCallback, useRef } from "react";
-
-type SessionUser = {
-    id: number;
-    username: string;
-    role: "admin" | "user";
-    email?: string | null;
-};
+import React, { createContext, useContext, useEffect } from "react";
+import { useUser, type SessionUser } from "@/hooks/useUser";
+import { mutate } from "swr";
 
 type SessionContextType = {
     session: SessionUser | null;
@@ -17,78 +12,23 @@ type SessionContextType = {
 
 const SessionContext = createContext<SessionContextType | undefined>(undefined);
 
-// Variable global para cachear la sesión entre componentes
-let cachedSession: SessionUser | null = null;
-let sessionFetched = false;
-
 export function SessionProvider({ children }: { children: React.ReactNode }) {
-    const [session, setSession] = useState<SessionUser | null>(cachedSession);
-    const [loading, setLoading] = useState(!sessionFetched);
-    const fetchingRef = useRef(false);
+    const { user, isLoading, mutate: mutateUser } = useUser();
 
-    const fetchSession = useCallback(async () => {
-        // Evitar múltiples llamadas simultáneas
-        if (fetchingRef.current) return;
-
-        fetchingRef.current = true;
-        setLoading(true);
-
-        try {
-            const res = await fetch("/api/auth", {
-                credentials: "include",
-                cache: "no-store",
-                headers: {
-                    'Cache-Control': 'no-cache',
-                }
-            });
-            const data = await res.json().catch(() => ({}));
-
-            const newSession = (res.ok && data?.user) ? data.user : null;
-
-            // Actualizar cache global
-            cachedSession = newSession;
-            sessionFetched = true;
-
-            setSession(newSession);
-        } catch {
-            cachedSession = null;
-            sessionFetched = true;
-            setSession(null);
-        } finally {
-            setLoading(false);
-            fetchingRef.current = false;
-        }
-    }, []);
-
-    const refreshSession = useCallback(async () => {
-        sessionFetched = false; // Forzar recarga
-        await fetchSession();
-    }, [fetchSession]);
-
-    useEffect(() => {
-        // Solo cargar si no se ha cargado antes
-        if (!sessionFetched) {
-            fetchSession();
-        } else {
-            // Si ya se cargó, usar la sesión cacheada inmediatamente
-            setLoading(false);
-        }
-    }, [fetchSession]);
-
-    // Escuchar eventos personalizados de cambio de sesión
+    // Escuchar eventos personalizados de cambio de sesión para compatibilidad
     useEffect(() => {
         const handleSessionChange = () => {
-            fetchSession();
+            mutateUser();
         };
 
         window.addEventListener("session-changed", handleSessionChange);
         return () => {
             window.removeEventListener("session-changed", handleSessionChange);
         };
-    }, [fetchSession]);
+    }, [mutateUser]);
 
     return (
-        <SessionContext.Provider value={{ session, loading, refreshSession }}>
+        <SessionContext.Provider value={{ session: user || null, loading: isLoading, refreshSession: mutateUser }}>
             {children}
         </SessionContext.Provider>
     );
@@ -103,7 +43,8 @@ export function useSession() {
 }
 
 // Función helper para disparar el evento de cambio de sesión
+// Ahora también invalida la caché de SWR globalmente para /api/auth
 export function notifySessionChange() {
-    sessionFetched = false; // Invalidar cache
-    window.dispatchEvent(new Event("session-changed"));
+    mutate("/api/auth"); // Invalida SWR directamente
+    window.dispatchEvent(new Event("session-changed")); // Mantiene compatibilidad
 }

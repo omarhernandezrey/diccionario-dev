@@ -70,6 +70,8 @@ type Term = {
   useCases: TermUseCaseForm[];
   faqs: TermFaqForm[];
   exercises: TermExerciseForm[];
+  exerciseCount?: number;
+  exampleCount?: number;
 };
 
 type SessionUser = {
@@ -77,6 +79,9 @@ type SessionUser = {
   username: string;
   role: "admin" | "user";
   email?: string | null;
+  displayName?: string;
+  bio?: string;
+  avatarUrl?: string | null;
 };
 
 type DeleteDialogState = {
@@ -167,7 +172,10 @@ type AdminConsoleProps = {
 export function AdminConsole({ initialView = "overview" }: AdminConsoleProps) {
   const [q, setQ] = useState("");
   const [items, setItems] = useState<Term[]>([]);
+  const [itemsLoading, setItemsLoading] = useState(true);
+  const [itemsError, setItemsError] = useState<string | null>(null);
   const [editing, setEditing] = useState<Term | null>(null);
+  const [detailLoading, setDetailLoading] = useState(false);
   const [session, setSession] = useState<SessionUser | null>(null);
   const [allowBootstrap, setAllowBootstrap] = useState(false);
   const [authLoading, setAuthLoading] = useState(true);
@@ -211,7 +219,10 @@ export function AdminConsole({ initialView = "overview" }: AdminConsoleProps) {
   );
 
   const categoriesCount = useMemo(() => new Set(items.map((item) => item.category)).size, [items]);
-  const exampleCount = useMemo(() => items.reduce((sum, item) => sum + (item.examples?.length || 0), 0), [items]);
+  const exampleCount = useMemo(
+    () => items.reduce((sum, item) => sum + (item.exampleCount ?? item.examples?.length ?? 0), 0),
+    [items],
+  );
   const pendingCount = useMemo(() => items.filter((item) => item.status !== "approved").length, [items]);
 
   const canEdit = session?.role === "admin";
@@ -257,15 +268,17 @@ export function AdminConsole({ initialView = "overview" }: AdminConsoleProps) {
     [items, statusFilter],
   );
 
-  const fetchTerms = useCallback(async (query: string) => {
+  const fetchTerms = useCallback(async (query: string, signal?: AbortSignal) => {
     const params = new URLSearchParams();
-    params.set("pageSize", "100");
+    params.set("pageSize", "10");
+    params.set("sort", "recent");
     if (query) params.set("q", query);
     const url = `/api/terms?${params.toString()}`;
     const res = await fetch(url, {
       cache: "no-store",
       credentials: "include",
       headers: { "cache-control": "no-store" },
+      signal,
     });
     let data: TermsResponse | null = null;
     let textFallback = "";
@@ -294,24 +307,39 @@ export function AdminConsole({ initialView = "overview" }: AdminConsoleProps) {
       useCases: Array.isArray(item.useCases) ? (item.useCases as TermUseCaseForm[]) : [],
       faqs: Array.isArray(item.faqs) ? (item.faqs as TermFaqForm[]) : [],
       exercises: Array.isArray(item.exercises) ? (item.exercises as TermExerciseForm[]) : [],
+      exerciseCount: typeof (item as { exerciseCount?: unknown })?.exerciseCount === "number" ? (item as { exerciseCount: number }).exerciseCount : undefined,
+      exampleCount: typeof (item as { exampleCount?: unknown })?.exampleCount === "number" ? (item as { exampleCount: number }).exampleCount : undefined,
     }));
     return [...normalized].sort((a, b) => Number(a.id) - Number(b.id));
   }, []);
 
-  useEffect(() => {
-    let cancelled = false;
-    fetchTerms(q)
-      .then((fetched) => {
-        if (!cancelled) setItems(fetched);
-      })
-      .catch((error) => {
+  const loadTerms = useCallback(
+    async (query: string, signal?: AbortSignal) => {
+      setItemsLoading(true);
+      setItemsError(null);
+      try {
+        const fetched = await fetchTerms(query, signal);
+        setItems(fetched);
+      } catch (error) {
+        if ((error as Error)?.name === "AbortError") return;
         console.error("No se pudieron cargar los términos", error);
-        if (!cancelled) setItems([]);
-      });
+        setItems([]);
+        setItemsError((error as Error)?.message || "No se pudieron cargar los términos");
+      } finally {
+        if (signal?.aborted) return;
+        setItemsLoading(false);
+      }
+    },
+    [fetchTerms],
+  );
+
+  useEffect(() => {
+    const controller = new AbortController();
+    loadTerms(q, controller.signal);
     return () => {
-      cancelled = true;
+      controller.abort();
     };
-  }, [fetchTerms, q, refreshIndex]);
+  }, [loadTerms, q, refreshIndex]);
 
   useEffect(() => {
     refreshSession();
@@ -383,12 +411,41 @@ export function AdminConsole({ initialView = "overview" }: AdminConsoleProps) {
     setEditing(empty);
   }, [empty, handleViewChange]);
 
-  const handleEditTerm = useCallback(
-    (term: Term) => {
-      handleViewChange("terms");
-      setEditing(term);
+  const loadTermDetail = useCallback(
+    async (id: number) => {
+      setEditing(null);
+      setDetailLoading(true);
+      setAuthError(null);
+      try {
+        const res = await fetch(`/api/terms/${id}`, { cache: "no-store", credentials: "include" });
+        let payload: unknown = null;
+        try {
+          payload = await res.json();
+        } catch {
+          // ignore parse
+        }
+        if (!res.ok || !payload || typeof payload !== "object" || !("item" in (payload as Record<string, unknown>))) {
+          throw new Error((payload as { error?: string })?.error || res.statusText || "No se pudo cargar el término");
+        }
+        const item = (payload as { item: Term }).item;
+        setEditing(item);
+        setMessage("Término listo para edición");
+      } catch (error) {
+        console.error("No se pudo cargar el detalle del término", error);
+        setAuthError((error as Error)?.message || "No se pudo cargar el término");
+      } finally {
+        setDetailLoading(false);
+      }
     },
-    [handleViewChange],
+    [],
+  );
+
+  const handleEditTerm = useCallback(
+    (id: number) => {
+      handleViewChange("terms");
+      loadTermDetail(id);
+    },
+    [handleViewChange, loadTermDetail],
   );
 
   const handleManualRefresh = useCallback(() => {
@@ -400,7 +457,7 @@ export function AdminConsole({ initialView = "overview" }: AdminConsoleProps) {
     if (exporting) return;
     setExporting(true);
     try {
-      const snapshot = await fetchTerms("");
+      const snapshot = await fetchTerms("", undefined);
       const payload = JSON.stringify(snapshot, null, 2);
       const blob = new Blob([payload], { type: "application/json" });
       const url = URL.createObjectURL(blob);
@@ -538,8 +595,7 @@ export function AdminConsole({ initialView = "overview" }: AdminConsoleProps) {
       setDeleteDialog(null);
     }
     try {
-      const latestItems = await fetchTerms(q);
-      setItems(latestItems);
+      await loadTerms(q);
     } catch (error) {
       console.error("No se pudo sincronizar los términos tras eliminar", error);
     }
@@ -582,18 +638,36 @@ export function AdminConsole({ initialView = "overview" }: AdminConsoleProps) {
     setMessage(isNew ? "Término creado" : "Término actualizado");
     setEditing(null);
     try {
-      const updatedItems = await fetchTerms(q);
-      setItems(updatedItems);
+      await loadTerms(q);
     } catch (error) {
       console.error("No se pudo sincronizar los términos tras guardar", error);
     }
     scheduleRefresh();
   }
 
-  const showRegisterCard = allowBootstrap || canEdit;
-
   return (
     <div className="space-y-8 text-neo-text-primary">
+      {(authLoading || itemsLoading) && (
+        <div className="flex items-center gap-3 rounded-3xl border border-neo-primary/40 bg-neo-surface px-4 py-3 text-sm shadow-inner shadow-neo-primary/10">
+          <Icon library="lucide" name="Loader2" className="h-5 w-5 animate-spin text-neo-primary" />
+          <div className="flex flex-col">
+            <span className="font-semibold text-neo-text-primary">Sincronizando panel</span>
+            <span className="text-xs text-neo-text-secondary">
+              {authLoading ? "Validando sesión y permisos..." : "Cargando catálogo y métricas..."}
+            </span>
+          </div>
+        </div>
+      )}
+      {detailLoading && (
+        <div className="flex items-center gap-3 rounded-3xl border border-neo-border bg-neo-surface px-4 py-3 text-sm shadow-inner">
+          <Icon library="lucide" name="FileSignature" className="h-4 w-4 text-neo-primary" />
+          <div className="flex flex-col">
+            <span className="font-semibold text-neo-text-primary">Cargando detalle del término…</span>
+            <span className="text-xs text-neo-text-secondary">Prepara la edición segura sin bloquear la tabla.</span>
+          </div>
+        </div>
+      )}
+
       <section className="relative overflow-hidden rounded-[32px] border border-neo-border bg-neo-card p-8 shadow-glow-card">
         <div className="absolute inset-y-0 right-0 hidden w-1/3 bg-gradient-to-l from-neo-primary/10 to-transparent blur-3xl lg:block" />
         <div className="flex flex-wrap items-center gap-4">
@@ -604,47 +678,39 @@ export function AdminConsole({ initialView = "overview" }: AdminConsoleProps) {
             <p className="text-xs uppercase tracking-[0.3em] text-neo-text-secondary">Panel de control</p>
             <h1 className="text-3xl font-semibold">Diccionario Dev · Admin</h1>
           </div>
-          {authLoading ? (
-            <div className="flex items-center gap-3 rounded-full border border-neo-border bg-neo-surface px-4 py-2 text-xs text-neo-text-secondary">
-              <Icon library="lucide" name="Loader2" className="h-4 w-4 animate-spin" />
-              <span>Verificando sesión...</span>
-            </div>
-          ) : session ? (
-            <div className="flex items-center gap-3 rounded-full border border-neo-border bg-neo-surface px-4 py-2 text-xs">
-              <div className="relative flex h-6 w-6 items-center justify-center rounded-full bg-gradient-to-br from-neo-primary to-neo-accent-purple text-[10px] font-bold text-white">
-                {session.username.substring(0, 2).toUpperCase()}
-                {/* Indicador "en línea" */}
-                <span className="absolute bottom-0 right-0 h-2 w-2 rounded-full bg-[#10b981] ring-1 ring-white dark:ring-neo-surface"></span>
-              </div>
-              <div className="flex flex-col">
-                <span className="font-semibold text-neo-text-primary">{session.username}</span>
-                <span className="text-[10px] text-[#10b981] font-medium">● {session.role.toUpperCase()}</span>
-              </div>
-              <button
-                type="button"
-                className="ml-2 text-neo-primary underline-offset-2 hover:underline transition-colors"
-                onClick={() => handleViewChange("team")}
-              >
-                Gestionar
-              </button>
-            </div>
-          ) : (
-            <div className="flex items-center gap-3 rounded-full border border-accent-danger/40 bg-accent-danger/10 px-4 py-2 text-xs">
-              <Icon library="lucide" name="AlertCircle" className="h-4 w-4 text-accent-danger" />
-              <span className="text-accent-danger font-medium">Sin sesión activa</span>
-              <button
-                type="button"
-                className="ml-2 text-accent-danger underline-offset-2 hover:underline transition-colors"
-                onClick={() => handleViewChange("team")}
-              >
-                Iniciar sesión
-              </button>
-            </div>
-          )}
         </div>
         <p className="mt-4 max-w-3xl text-sm text-neo-text-secondary">
           Controla el glosario técnico, detecta huecos y administra accesos en un solo flujo operacional.
         </p>
+        {session?.bio ? (
+          <div className="mt-4 flex items-start gap-3 rounded-2xl border border-neo-border bg-neo-surface p-3 shadow-inner">
+            <div className="rounded-xl bg-neo-card p-2">
+              <Icon library="lucide" name="Quote" className="h-4 w-4 text-neo-primary" />
+            </div>
+            <div className="flex flex-col gap-1">
+              <span className="text-[11px] uppercase tracking-wide text-neo-text-secondary">Bio</span>
+              <p className="text-sm leading-relaxed text-neo-text-primary line-clamp-3">{session.bio}</p>
+            </div>
+          </div>
+        ) : null}
+        {session && (!session.bio || !session.avatarUrl || session.displayName === session.username) ? (
+          <div className="mt-4 flex flex-wrap items-start gap-3 rounded-2xl border border-amber-400/60 bg-amber-500/10 p-3 shadow-inner">
+            <div className="rounded-xl bg-white/40 p-2">
+              <Icon library="lucide" name="Sparkles" className="h-4 w-4 text-amber-700" />
+            </div>
+            <div className="flex-1 min-w-[200px]">
+              <p className="text-sm font-semibold text-amber-900">Completa tu perfil</p>
+              <p className="text-xs text-amber-900/80">Agrega bio y foto para personalizar tu sesión y mantener tus datos únicos.</p>
+            </div>
+            <a
+              href="/admin/profile"
+              className="inline-flex items-center gap-2 rounded-xl border border-amber-500 bg-white px-3 py-2 text-xs font-semibold text-amber-900 shadow-sm hover:bg-amber-50"
+            >
+              <Icon library="lucide" name="Edit" className="h-4 w-4" />
+              Actualizar perfil
+            </a>
+          </div>
+        ) : null}
         <dl className="mt-8 grid gap-4 md:grid-cols-2 xl:grid-cols-4">
           {adminHeroStats.map((stat) => {
             const iconName = HERO_STAT_ICONS[stat.label] || "ActivitySquare";
@@ -764,6 +830,9 @@ export function AdminConsole({ initialView = "overview" }: AdminConsoleProps) {
             onCreate={handleCreateTerm}
             autoRefreshEnabled={autoRefresh}
             lastAutoRefreshTime={lastAutoRefresh}
+            loading={itemsLoading}
+            error={itemsError}
+            onRetry={handleManualRefresh}
           />
         </div>
       ) : null}
@@ -889,7 +958,7 @@ function TeamPlaybookPanel({
           <h2 className="text-lg font-semibold">
             {session ? (
               <span className="inline-flex items-center gap-2">
-                Hola {session.username}
+                Hola {session.displayName || session.username}
                 <span className="inline-flex h-2 w-2 rounded-full bg-[#10b981]"></span>
               </span>
             ) : (
@@ -960,7 +1029,7 @@ function ViewSwitcher({ activeView, onChange, itemsCount, pendingCount, session,
   const meta: Record<AdminView, string> = {
     overview: `${itemsCount} términos indexados`,
     terms: pendingCount ? `${pendingCount} pendientes` : "Sin pendientes",
-    team: session ? `Activo: ${session.username}` : allowBootstrap ? "Bootstrap abierto" : "Requiere sesión",
+    team: session ? `Activo: ${session.displayName || session.username}` : allowBootstrap ? "Bootstrap abierto" : "Requiere sesión",
   };
 
   return (
@@ -1050,11 +1119,14 @@ type TermsTableProps = {
   onStatusFilterChange: (value: ReviewStatus | "all") => void;
   onToggleItem: (id: number) => void;
   onToggleAll: () => void;
-  onEdit: (term: Term) => void;
+  onEdit: (id: number) => void;
   onDelete: (id: number) => void;
   onCreate: () => void;
   autoRefreshEnabled: boolean;
   lastAutoRefreshTime: string | null;
+  loading: boolean;
+  error: string | null;
+  onRetry: () => void;
 };
 
 function TermsTable({
@@ -1074,9 +1146,12 @@ function TermsTable({
   onCreate,
   autoRefreshEnabled,
   lastAutoRefreshTime,
+  loading,
+  error,
+  onRetry,
 }: TermsTableProps) {
   return (
-    <section className="space-y-6 rounded-3xl border border-neo-border bg-neo-surface p-6 shadow-glow-card">
+    <section className="space-y-6 rounded-3xl border border-neo-border bg-neo-surface p-6 shadow-glow-card" aria-busy={loading}>
       <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
         <div>
           <p className="text-xs uppercase tracking-wide text-neo-text-secondary">Catálogo</p>
@@ -1150,7 +1225,38 @@ function TermsTable({
             </tr>
           </thead>
           <tbody className="divide-y divide-neo-border">
-            {items.length ? (
+            {loading ? (
+              Array.from({ length: 6 }).map((_, index) => (
+                <tr key={`skeleton-${index}`} className="animate-pulse">
+                  <td className="px-4 py-3">
+                    <div className="h-4 w-4 rounded border border-neo-border bg-neo-card" />
+                  </td>
+                  {Array.from({ length: 7 }).map((__, cellIdx) => (
+                    <td key={cellIdx} className="px-4 py-3">
+                      <div className="h-4 w-full rounded bg-neo-card" />
+                    </td>
+                  ))}
+                </tr>
+              ))
+            ) : error ? (
+              <tr>
+                <td colSpan={8} className="px-4 py-12">
+                  <div className="flex flex-col items-center gap-4 text-center">
+                    <div className="rounded-full border border-accent-danger/40 bg-accent-danger/10 p-4">
+                      <Icon library="lucide" name="AlertCircle" className="h-8 w-8 text-accent-danger" />
+                    </div>
+                    <div className="flex flex-col gap-2">
+                      <strong className="text-lg font-semibold text-neo-text-primary">Error cargando términos</strong>
+                      <span className="text-sm text-neo-text-secondary max-w-md">{error}</span>
+                    </div>
+                    <button className="btn-primary inline-flex items-center gap-2" type="button" onClick={onRetry}>
+                      <Icon library="lucide" name="RefreshCw" className="h-4 w-4" />
+                      Reintentar
+                    </button>
+                  </div>
+                </td>
+              </tr>
+            ) : items.length ? (
               items.map((item) => (
                 <tr key={item.id} className="bg-neo-surface hover:bg-neo-card transition-colors">
                   <td className="px-4 py-3">
@@ -1167,7 +1273,11 @@ function TermsTable({
                   <td className="px-4 py-3 font-semibold text-neo-text-primary">{item.translation}</td>
                   <td className="px-4 py-3 text-neo-text-secondary">{item.term}</td>
                   <td className="px-4 py-3">
-                    {item.exercises && item.exercises.length > 0 ? (
+                    {item.exerciseCount && item.exerciseCount > 0 ? (
+                      <span className="inline-flex items-center rounded-full bg-accent-secondary/10 px-2 py-1 text-xs font-medium text-accent-secondary">
+                        {item.exerciseCount}
+                      </span>
+                    ) : item.exercises && item.exercises.length > 0 ? (
                       <span className="inline-flex items-center rounded-full bg-accent-secondary/10 px-2 py-1 text-xs font-medium text-accent-secondary">
                         {item.exercises.length}
                       </span>
@@ -1185,7 +1295,7 @@ function TermsTable({
                   </td>
                   <td className="px-4 py-3">
                     <div className="flex flex-wrap gap-2">
-                      <button className="btn-ghost" type="button" onClick={() => onEdit(item)} disabled={!canEdit}>
+                      <button className="btn-ghost" type="button" onClick={() => onEdit(item.id)} disabled={!canEdit}>
                         Editar
                       </button>
                       <button className="btn-ghost" type="button" onClick={() => onDelete(item.id)} disabled={!canEdit}>
@@ -1197,11 +1307,17 @@ function TermsTable({
               ))
             ) : (
               <tr>
-                <td colSpan={6} className="px-4 py-10">
-                  <div className="flex flex-col items-center gap-3 text-center text-neo-text-secondary">
-                    <strong>Sin resultados</strong>
-                    <span>Crea un término nuevo o ajusta la búsqueda para ver registros.</span>
-                    <button className="btn-primary" type="button" onClick={onCreate} disabled={!canEdit}>
+                <td colSpan={8} className="px-4 py-12">
+                  <div className="flex flex-col items-center gap-4 text-center">
+                    <div className="rounded-full border border-neo-border bg-neo-card p-4">
+                      <Icon library="lucide" name="Inbox" className="h-8 w-8 text-neo-text-secondary" />
+                    </div>
+                    <div className="flex flex-col gap-2">
+                      <strong className="text-lg font-semibold text-neo-text-primary">Sin resultados</strong>
+                      <span className="text-sm text-neo-text-secondary max-w-md">Crea un término nuevo o ajusta la búsqueda para ver registros.</span>
+                    </div>
+                    <button className="btn-primary inline-flex items-center gap-2" type="button" onClick={onCreate} disabled={!canEdit}>
+                      <Icon library="lucide" name="Plus" className="h-4 w-4" />
                       Crear término
                     </button>
                   </div>
@@ -1647,11 +1763,11 @@ function EditorSheet({ term, onCancel, onSave }: EditorSheetProps) {
 
   const requiredFilled = Boolean(
     val.term.trim() &&
-      val.translation.trim() &&
-      val.meaning.trim() &&
-      val.what.trim() &&
-      val.how.trim() &&
-      exercisesValid,
+    val.translation.trim() &&
+    val.meaning.trim() &&
+    val.what.trim() &&
+    val.how.trim() &&
+    exercisesValid,
   );
 
   return (
@@ -2378,9 +2494,8 @@ function ExercisesEditor({ value, onChange }: ExercisesEditorProps) {
                 <label className="text-xs text-neo-text-secondary">
                   Título (ES) <span className="text-accent-danger">*</span>
                   <input
-                    className={`mt-1 w-full rounded-2xl border bg-neo-surface px-3 py-2 text-sm text-neo-text-primary focus:outline-none ${
-                      !exercise.titleEs.trim() ? "border-accent-danger/50" : "border-neo-border"
-                    }`}
+                    className={`mt-1 w-full rounded-2xl border bg-neo-surface px-3 py-2 text-sm text-neo-text-primary focus:outline-none ${!exercise.titleEs.trim() ? "border-accent-danger/50" : "border-neo-border"
+                      }`}
                     value={exercise.titleEs}
                     onChange={(event) => update(index, { titleEs: event.target.value })}
                   />
@@ -2398,9 +2513,8 @@ function ExercisesEditor({ value, onChange }: ExercisesEditorProps) {
                 <label className="text-xs text-neo-text-secondary">
                   Prompt (ES) <span className="text-accent-danger">*</span>
                   <textarea
-                    className={`mt-1 w-full rounded-2xl border bg-neo-surface px-3 py-2 text-sm text-neo-text-primary focus:outline-none ${
-                      !exercise.promptEs.trim() ? "border-accent-danger/50" : "border-neo-border"
-                    }`}
+                    className={`mt-1 w-full rounded-2xl border bg-neo-surface px-3 py-2 text-sm text-neo-text-primary focus:outline-none ${!exercise.promptEs.trim() ? "border-accent-danger/50" : "border-neo-border"
+                      }`}
                     rows={2}
                     value={exercise.promptEs}
                     onChange={(event) => update(index, { promptEs: event.target.value })}
@@ -2507,9 +2621,8 @@ function SolutionsEditor({ value, onChange }: SolutionsEditorProps) {
           <label className="mt-2 block text-xs text-neo-text-secondary">
             Código <span className="text-accent-danger">*</span>
             <textarea
-              className={`mt-1 w-full rounded-2xl border bg-neo-bg px-3 py-2 font-mono text-xs text-neo-text-primary focus:outline-none ${
-                !solution.code.trim() ? "border-accent-danger/50" : "border-neo-border"
-              }`}
+              className={`mt-1 w-full rounded-2xl border bg-neo-bg px-3 py-2 font-mono text-xs text-neo-text-primary focus:outline-none ${!solution.code.trim() ? "border-accent-danger/50" : "border-neo-border"
+                }`}
               rows={3}
               value={solution.code}
               onChange={(event) => update(index, { code: event.target.value })}
@@ -2518,9 +2631,8 @@ function SolutionsEditor({ value, onChange }: SolutionsEditorProps) {
           <label className="mt-2 block text-xs text-neo-text-secondary">
             Explicación (ES) <span className="text-accent-danger">*</span>
             <textarea
-              className={`mt-1 w-full rounded-2xl border bg-neo-bg px-3 py-2 text-xs text-neo-text-primary focus:outline-none ${
-                !solution.explainEs.trim() ? "border-accent-danger/50" : "border-neo-border"
-              }`}
+              className={`mt-1 w-full rounded-2xl border bg-neo-bg px-3 py-2 text-xs text-neo-text-primary focus:outline-none ${!solution.explainEs.trim() ? "border-accent-danger/50" : "border-neo-border"
+                }`}
               rows={2}
               value={solution.explainEs}
               onChange={(event) => update(index, { explainEs: event.target.value })}

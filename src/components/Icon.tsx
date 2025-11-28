@@ -1,15 +1,14 @@
 "use client";
 
 import React from "react";
-import type { ComponentType, SVGProps } from "react";
 import * as LucideIcons from "lucide-react";
 import * as PhosphorIcons from "phosphor-react";
 import * as TablerIcons from "tabler-icons-react";
 
-type IconComponent = ComponentType<SVGProps<SVGSVGElement>>;
 type IconLibrary = "lucide" | "phosphor" | "tabler";
 
-const iconLibraries: Record<IconLibrary, Record<string, IconComponent>> = {
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const iconLibraries: Record<IconLibrary, any> = {
   lucide: LucideIcons,
   phosphor: PhosphorIcons,
   tabler: TablerIcons,
@@ -33,9 +32,10 @@ export function Icon({
   ...rest
 }: IconProps) {
   const icons = iconLibraries[library];
-  const IconComponent = icons[name] as IconComponent | undefined;
+  const IconComponent = icons[name];
   if (!IconComponent) {
-    throw new Error(`Icon "${name}" not found in ${library} icons`);
+    console.warn(`Icon "${name}" not found in ${library} icons`);
+    return null;
   }
 
   return <IconComponent className={className} size={size} color={color} {...rest} />;

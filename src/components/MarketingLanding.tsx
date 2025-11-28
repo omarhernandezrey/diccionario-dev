@@ -2,18 +2,8 @@
 
 import Link from "next/link";
 import { useEffect, useState } from "react";
-import { FaInstagram, FaLinkedin, FaXTwitter } from "react-icons/fa6";
-import {
-  SiNextdotjs,
-  SiReact,
-  SiNodedotjs,
-  SiPrisma,
-  SiPostgresql,
-  SiRedis,
-  SiDocker,
-} from "react-icons/si";
 import { VscVscode } from "react-icons/vsc";
-import { LuGlobe, LuLayers, LuSearch, LuSparkles, LuTerminal, LuMenu, LuX } from "react-icons/lu";
+import { LuGlobe, LuLayers, LuSearch, LuSparkles, LuMenu, LuX } from "react-icons/lu";
 import SearchBox from "./SearchBox";
 import TechStrip from "./TechStrip";
 import ThemeToggle from "./ThemeToggle";
@@ -292,7 +282,7 @@ function FeaturePairs() {
             <span className="text-transparent bg-clip-text bg-gradient-to-r from-neo-primary to-neo-accent-cyan">bilingüe</span>
           </h2>
           <p className="text-lg leading-relaxed text-neo-text-secondary">
-            Nuestro IA no solo traduce, sino que interpreta la intención y el contexto técnico detrás de cada término. Obtén resultados que entienden la diferencia entre 'state' en React y 'state' en una máquina de estados.
+            Nuestro IA no solo traduce, sino que interpreta la intención y el contexto técnico detrás de cada término. Obtén resultados que entienden la diferencia entre &apos;state&apos; en React y &apos;state&apos; en una máquina de estados.
           </p>
         </div>
 

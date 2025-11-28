@@ -82,6 +82,8 @@ export type SeedTermInput = {
   aliases?: string[];
   tags?: string[];
   example: ExampleSnippet;
+  secondExample: ExampleSnippet; // Ejemplo adicional para punto 12 (OBLIGATORIO)
+  exerciseExample: ExampleSnippet; // Ejemplo diferente para ejercicios (OBLIGATORIO)
   whatEs?: string;
   whatEn?: string;
   howEs?: string;
