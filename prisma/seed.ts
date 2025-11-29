@@ -280,7 +280,7 @@ function createSeedTerm(input: SeedTermInput): SeedTerm {
     whatEn: resolvedWhatEn,
     howEs: resolvedHowEs,
     howEn: resolvedHowEn,
-    examples: [example, secondExample],
+    examples: [example, secondExample, exerciseExample],
     variants: buildVariants(variantLanguage, example.code, example.noteEs ?? example.noteEn),
     useCases: buildUseCases(term, category, resolvedWhatEs, resolvedWhatEn),
     faqs: buildFaqs(term, translation, meaningEs, meaningEn, example, resolvedHowEs, resolvedHowEn, category),
