@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, useRef, KeyboardEvent } from "react";
+import React, { useState, useEffect, useRef, KeyboardEvent, useMemo } from "react";
 import {
     Lightbulb,
     Search,
@@ -96,6 +96,89 @@ function CodeBlock({ code, language = "javascript", showLineNumbers = true }: { 
             </SyntaxHighlighter>
         </div>
     );
+}
+
+// Sanitiza snippets para evitar tags peligrosos en el preview
+function sanitizeSnippet(snippet: string) {
+    return snippet.replace(/<script[\s\S]*?>[\s\S]*?<\/script>/gi, "").trim();
+}
+
+// Prefija selectores CSS con un scope de preview para evitar fugas globales
+function scopeCssToPreview(css: string, scopeId: string) {
+    const selectorPrefix = scopeId.startsWith(".") ? scopeId : `.${scopeId}`;
+    return css.replace(/(^|})\s*([^{}@][^{]+)\{/g, (fullMatch, brace, selector) => {
+        const clean = String(selector).trim();
+        if (!clean || clean.startsWith("@")) return fullMatch;
+
+        const scopedSelectors = clean
+            .split(",")
+            .map((part: string) => `${selectorPrefix} ${part.trim()}`)
+            .join(", ");
+
+        return `${brace} ${scopedSelectors} {`;
+    });
+}
+
+// Construye el HTML de preview tomando en cuenta si el snippet ya es HTML o puro CSS
+function buildVisualPreview(snippet: string, scopeId: string, termLabel: string) {
+    const sanitized = sanitizeSnippet(snippet);
+    const hasHtml = /<\s*[a-zA-Z]+[\s\S]*>/.test(sanitized);
+
+    if (hasHtml) {
+        return {
+            language: "html",
+            codeForDisplay: sanitized,
+            previewHtml: `<div class="${scopeId} preview-host">${sanitized}</div>`
+        };
+    }
+
+    const scopedCss = scopeCssToPreview(sanitized, scopeId);
+
+    const baseCss = `
+.${scopeId} {
+  display: flex;
+  gap: 14px;
+  align-items: center;
+  justify-content: space-between;
+  padding: 18px;
+  flex-wrap: wrap;
+  background: radial-gradient(circle at 12% 20%, rgba(16,185,129,0.12), transparent 32%), radial-gradient(circle at 82% 8%, rgba(59,130,246,0.15), transparent 30%), #0f172a;
+  border-radius: 16px;
+  border: 1px solid rgba(148,163,184,0.22);
+  box-shadow: 0 18px 60px rgba(15,23,42,0.45);
+}
+.${scopeId} .preview-chip {
+  background: rgba(255,255,255,0.04);
+  border: 1px solid rgba(148,163,184,0.25);
+  color: #e2e8f0;
+  padding: 10px 14px;
+  border-radius: 12px;
+  font-size: 0.9rem;
+  letter-spacing: 0.01em;
+  box-shadow: 0 10px 35px rgba(15,23,42,0.55);
+}
+.${scopeId} .preview-chip:nth-child(2) {
+  background: linear-gradient(135deg, rgba(6,182,212,0.12), rgba(16,185,129,0.12));
+  border-color: rgba(34,211,238,0.45);
+}
+.${scopeId} .preview-chip:nth-child(3) {
+  background: linear-gradient(135deg, rgba(139,92,246,0.12), rgba(236,72,153,0.12));
+  border-color: rgba(236,72,153,0.45);
+}
+`;
+
+    const previewHtml = `<style>${baseCss}${scopedCss}</style>
+<div class="${scopeId}">
+  <div class="preview-chip">Layout vivo</div>
+  <div class="preview-chip">${termLabel}</div>
+  <div class="preview-chip">Responsive</div>
+</div>`;
+
+    return {
+        language: "css",
+        codeForDisplay: sanitized,
+        previewHtml
+    };
 }
 
 
@@ -411,6 +494,67 @@ function GeminiLoader({ term }: { term: string }) {
                 </div>
             </div>
         </div>
+    );
+}
+
+function TailwindStylePreview({ term, snippet }: { term: TermDTO; snippet: string }) {
+    const [copied, setCopied] = useState(false);
+    const scopeId = useMemo(() => `tw-preview-${term.id}`, [term.id]);
+    const { previewHtml, language, codeForDisplay } = useMemo(
+        () => buildVisualPreview(snippet, scopeId, term.term),
+        [snippet, scopeId, term.term]
+    );
+
+    const handleCopy = () => {
+        navigator.clipboard.writeText(codeForDisplay);
+        setCopied(true);
+        setTimeout(() => setCopied(false), 1600);
+    };
+
+    return (
+        <section className="rounded-3xl border border-slate-800 bg-slate-900/70 shadow-[0_20px_70px_rgba(0,0,0,0.35)] overflow-hidden">
+            <div className="flex items-center justify-between px-6 py-4 border-b border-slate-800 bg-gradient-to-r from-slate-900/90 to-slate-950/90">
+                <div>
+                    <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-emerald-300/80">Preview estilo Tailwind</p>
+                    <p className="text-sm text-slate-300">Código y vista en vivo lado a lado</p>
+                </div>
+                <button
+                    onClick={handleCopy}
+                    className="inline-flex items-center gap-2 rounded-full border border-emerald-500/30 bg-emerald-500/10 px-3 py-2 text-xs font-semibold text-emerald-200 transition hover:bg-emerald-500/20"
+                >
+                    {copied ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
+                    {copied ? "Copiado" : "Copiar código"}
+                </button>
+            </div>
+
+            <div className="grid md:grid-cols-2">
+                <div className="border-b md:border-b-0 md:border-r border-slate-800 bg-[#0c1424]">
+                    <div className="px-6 pt-5 pb-2 text-[11px] font-semibold uppercase tracking-[0.08em] text-slate-400">
+                        Código
+                    </div>
+                    <div className="px-4 pb-4">
+                        <div className="rounded-2xl border border-slate-800 bg-[#0f192d] shadow-inner max-h-[420px] overflow-auto">
+                            <CodeBlock code={codeForDisplay} language={language === "html" ? "html" : "css"} />
+                        </div>
+                    </div>
+                </div>
+
+                <div className="relative bg-slate-950">
+                    <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_20%_30%,rgba(16,185,129,0.15),transparent_30%),radial-gradient(circle_at_80%_10%,rgba(14,165,233,0.14),transparent_28%)]" />
+                    <div className="relative p-6">
+                        <div className="text-[11px] font-semibold uppercase tracking-[0.08em] text-slate-400">
+                            Preview en vivo
+                        </div>
+                        <div className="mt-3 rounded-2xl border border-slate-800 bg-slate-900/70 p-4 min-h-[240px] shadow-[0_15px_40px_rgba(0,0,0,0.35)]">
+                            <div className="rounded-xl bg-slate-950/60 border border-slate-800 p-4 overflow-hidden">
+                                <div className="text-[11px] text-slate-500 uppercase font-semibold mb-3">Aplicando clases y estilos</div>
+                                <div className="min-h-[140px] overflow-hidden" dangerouslySetInnerHTML={{ __html: previewHtml }} />
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
     );
 }
 
@@ -1117,6 +1261,13 @@ export default function DiccionarioDevApp() {
                                 language={displayLanguage}
                             />
                         </div>
+
+                        {isCssTerm(activeTerm, displayLanguage) && (
+                            <TailwindStylePreview
+                                term={activeTerm}
+                                snippet={primaryExample?.code || activeVariant?.snippet || buildDefaultSnippet(activeTerm, displayLanguage, "preview")}
+                            />
+                        )}
 
                         {/* 4. Reglas importantes - Solo si hay ejemplos */}
                         {activeTerm.examples && Array.isArray(activeTerm.examples) && activeTerm.examples.length > 0 && (
