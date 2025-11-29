@@ -24,25 +24,13 @@ import {
     Loader2,
     Settings,
     X,
-    Frown,
     FileJson,
     ThumbsUp,
-    Split,
     Rocket
 } from "lucide-react";
 import { Prism as SyntaxHighlighter } from "react-syntax-highlighter";
 import { dracula } from "react-syntax-highlighter/dist/cjs/styles/prism";
-import type { TermDTO } from "@/types/term";
-
-function toPascal(value?: string | null) {
-    if (!value) return "Concept";
-    return value
-        .replace(/[^a-zA-Z0-9]+/g, " ")
-        .split(" ")
-        .filter(Boolean)
-        .map(w => w.charAt(0).toUpperCase() + w.slice(1))
-        .join("");
-}
+import type { TermDTO, TermExampleDTO } from "@/types/term";
 
 function getDisplayLanguage(term: TermDTO | null, variant?: { language?: string | null }) {
     const tags = (term?.tags || []).map(tag => tag.toLowerCase());
@@ -82,79 +70,6 @@ function buildDefaultSnippet(term: TermDTO | null, language: string, label: stri
         return `// Ejemplo de ${name}\nconsole.log("${name} listo");`;
     }
     return `// Ejemplo de ${name}`;
-}
-
-function buildResetSnippet(term: TermDTO | null, language: string) {
-    const prop = term?.term || "prop";
-
-    // Buscar FAQ de "reset" específicamente (categoría "reset")
-    const resetFaq = term?.faqs?.find(faq =>
-        faq.category?.toLowerCase() === "reset" ||
-        faq.questionEs?.toLowerCase().includes("reiniciar") ||
-        (faq.questionEs?.toLowerCase().includes("reset") && !faq.questionEs?.toLowerCase().includes("entrevista"))
-    );
-
-    if (resetFaq?.snippet) {
-        return resetFaq.snippet;
-    }
-
-    // Buscar un variant para este lenguaje si no hay FAQ
-    const variantForLanguage = term?.variants?.find(v =>
-        v.language?.toLowerCase() === language.toLowerCase()
-    );
-
-    if (variantForLanguage?.snippet) {
-        // Si es CSS, asegurar que muestra reset a initial
-        if (language === "css" && !variantForLanguage.snippet.includes("initial")) {
-            return `.demo { ${prop}: initial; }`;
-        }
-        return variantForLanguage.snippet;
-    }
-
-    // Generar según lenguaje si no hay snippet específico
-    if (language === "css") return `.demo { ${prop}: initial; }`;
-    if (language === "html") return `<div ${prop}="">Contenido</div>`;
-    return `function reset${toPascal(prop)}() {\n  // Reinicia ${prop} a su valor inicial\n}\n`;
-}
-
-function buildCallbackSnippet(term: TermDTO | null, language: string, isReact: boolean) {
-    const name = term?.term || "callback";
-
-    // Buscar FAQ de "buenas prácticas" específicamente (categoría "best-practices")
-    const bestPracticeFaq = term?.faqs?.find(faq =>
-        faq.category?.toLowerCase() === "best-practices" ||
-        faq.questionEs?.toLowerCase().includes("buena") ||
-        (faq.questionEs?.toLowerCase().includes("práctica") && !faq.questionEs?.toLowerCase().includes("entrevista"))
-    );
-
-    if (bestPracticeFaq?.snippet) {
-        return bestPracticeFaq.snippet;
-    }
-
-    // Buscar un variant para este lenguaje si no hay FAQ
-    const variantForLanguage = term?.variants?.find(v =>
-        v.language?.toLowerCase() === language.toLowerCase()
-    );
-
-    if (variantForLanguage?.snippet) {
-        return variantForLanguage.snippet;
-    }
-
-    // Verificar lenguaje PRIMERO, independientemente de isReact
-    if (language === "css") {
-        return `.component {\n  /* Aplica ${name} de forma consistente */\n  ${name}: var(--${name.replace(/[^a-z0-9]+/gi, "-")}, initial);\n}`;
-    }
-    if (language === "html") {
-        return `<div data-${name.replace(/[^a-z0-9]+/gi, "-")}>${name} listo</div>`;
-    }
-
-    // Si es TypeScript/JavaScript, AHORA considerar si es React
-    if ((language === "typescript" || language === "javascript") && isReact) {
-        return `// ❌ incorrecto\nstoreCallback(doSomething());\n\n// ✔ correcto\nstoreCallback(() => doSomething());`;
-    }
-
-    // Fallback para JS/TS no-React
-    return `function apply${toPascal(name)}(value) {\n  // Valida y aplica ${name}\n  return value;\n}`;
 }
 
 function CodeBlock({ code, language = "javascript", showLineNumbers = true }: { code: string; language?: string; showLineNumbers?: boolean }) {
@@ -268,145 +183,153 @@ function isCssTerm(term: TermDTO, language: string): boolean {
     return false;
 }
 
-// Detect if it's a Tailwind utility class (not a CSS property)
-function isTailwindUtility(term: TermDTO, language: string): boolean {
-    if (language === "html") return true;
-
-    const termName = term.term.toLowerCase();
-    const tags = (term.tags || []).map(t => t.toLowerCase());
-
-    // Check for Tailwind tag
-    if (tags.includes("tailwind")) return true;
-
-    // Tailwind utilities pattern
-    if (/^(bg|text|flex|grid|w-|h-|p-|m-|border|rounded|shadow|gap|space|justify|items|content|overflow|position|top|bottom|left|right|inset|z-|opacity|transform|transition|animate|cursor|select|pointer|resize|outline|ring|divide|sr-|not-sr|focus|hover|active|disabled|group|peer|dark|sm:|md:|lg:|xl:|2xl:)/.test(termName)) return true;
-
-    return false;
-}
-
-function getInitializationText(term: TermDTO, language: string) {
-    if (isTailwindUtility(term, language)) {
-        return `Aplica la clase '${term.term}' en el atributo class de tu elemento HTML. Combina con otras clases de Tailwind para lograr el diseño deseado.`;
-    }
-    if (isCssTerm(term, language)) {
-        return `Define '${term.term}' dentro de un bloque de reglas CSS. Asegúrate de que el contenedor tenga el contexto de layout adecuado (como flex o grid).`;
-    }
-    if (term.term.startsWith("use") && (language === "typescript" || language === "javascript")) {
-        return `Importa ${term.term} desde 'react' y llámalo en el nivel superior de tu componente, nunca dentro de loops o condiciones.`;
-    }
-    if (term.category === "backend") {
-        return `Configura la conexión o instancia de ${term.term} al inicio de tu aplicación o servicio.`;
-    }
-    return term.titleEs || term.titleEn || "Configura este concepto una sola vez en el punto de entrada apropiado.";
-}
-
-function getResetDescription(term: TermDTO, language: string) {
-    if (isTailwindUtility(term, language)) {
-        return `Remueve la clase '${term.term}' del atributo class del elemento. Si necesitas eliminar el efecto, usa clases opuestas (ej. 'bg-none' para fondos).`;
-    }
-    if (isCssTerm(term, language)) {
-        return "Para revertir al comportamiento por defecto del navegador, asigna el valor 'initial'. Usa 'unset' si quieres eliminar la declaración específica.";
-    }
-    if (term.term.startsWith("use")) {
-        return "Para reiniciar el estado, usa la función setter con el valor inicial (ej. setState(initialState)).";
-    }
-    return "Reinicia o normaliza el concepto cuando cambie el contexto o quieras volver a su estado inicial.";
-}
-
 function getRulesList(term: TermDTO, language: string) {
-    // Para fetch y otros términos con documentación en BD, usar data del servidor
-    if (term.term === "fetch") {
-        return [
-            "Siempre usar try/catch",
-            "Validar res.ok y status",
+    const rulesMap: Record<string, string[]> = {
+        "fetch": [
+            "Siempre usar try/catch para manejar errores",
+            "Validar res.ok y status antes de procesar",
             "Usar AbortController para cancelar/timeout",
             "Especificar cache: \"no-store\" en GET críticos",
             "Parsear respuesta como text primero si es dudosa"
-        ];
-    }
-    if (term.term === "aria-label") {
-        return [
-            "Usa texto conciso y descriptivo (máximo 100 caracteres).",
-            "No duplices si ya hay texto visible en el elemento.",
-            "Aplica especialmente en iconos, botones sin etiqueta y landmarks (nav, main, aside).",
-            "Evita etiquetas genéricas: especifica la acción o propósito del elemento."
-        ];
-    }
-    if (isCssTerm(term, language)) {
-        return [
-            "Evita el uso excesivo de !important; prefiere manejar la especificidad.",
-            "Usa unidades relativas (rem, %, vh) para mantener la accesibilidad y el diseño responsivo.",
-            "Recuerda que las propiedades se heredan en cascada salvo que se especifique lo contrario.",
-            "Verifica el soporte en navegadores (Can I Use) para propiedades modernas."
-        ];
-    }
-    if (term.term.startsWith("use")) { // React Hooks
-        return [
-            "Solo llama Hooks en el nivel superior del componente, nunca dentro de loops o condiciones.",
-            "Declara todas las dependencias en el array de dependencias para evitar bugs sutiles.",
-            "No mutes el estado directamente; usa siempre los setters proporcionados.",
-            "Limpia los efectos secundarios (return function) si el hook lo requiere."
-        ];
-    }
-    // Default / JS / Backend
-    return [
-        "Mantén las funciones puras y predecibles siempre que sea posible.",
-        "Maneja los errores de forma explícita (try/catch o propagación).",
-        "Evita efectos secundarios globales que acoplen el código.",
-        "Documenta los casos borde y los tipos de entrada/salida."
-    ];
-}
-
-function getAdvancedPatternDescription(term: TermDTO, language: string) {
-    if (isTailwindUtility(term, language)) {
-        return `Usa variantes de Tailwind como 'hover:${term.term}', 'dark:${term.term}' o breakpoints responsivos ('md:${term.term}', 'lg:${term.term}') para diseños adaptativos.`;
-    }
-    if (isCssTerm(term, language)) {
-        return "Combina esta propiedad con Media Queries, Container Queries o Pseudo-clases (:hover, :has) para crear layouts adaptables sin JavaScript.";
-    }
-    if (term.term.startsWith("use")) {
-        return "Crea Custom Hooks que encapsulen esta lógica para reutilizarla en múltiples componentes y mantener la UI limpia.";
-    }
-    return term.titleEn && term.titleEn !== term.term ? term.titleEn : "Aplica patrones de diseño (como Singleton o Factory) si la complejidad del sistema crece.";
-}
-
-function getSummaryData(term: TermDTO, language: string) {
-    const isCss = isCssTerm(term, language);
-    const isReact = term.term.startsWith("use");
-
-    return {
-        what: term.meaningEs || term.meaning,
-        returns: term.whatEs || term.what || (isCss ? "Estilos visuales" : "Valor de retorno o efecto"),
-        init: getInitializationText(term, language),
-        update: isCss ? "Automático al cambiar clases o DOM" : (isReact ? "Reactivo ante cambios de estado/props" : "Ejecución imperativa"),
-        rules: isCss ? "Cascada y Especificidad" : (isReact ? "Reglas de los Hooks" : "Flujo de control estándar"),
-        objects: isCss ? "Modelo de Caja" : "Inmutabilidad recomendada",
-        render: isCss ? "Reflow / Repaint" : (isReact ? "Render cycle" : "Event Loop"),
-        errors: isCss ? "Sintaxis inválida, sobreescritura" : "Excepciones no capturadas, Race conditions"
+        ],
+        "useEffect": [
+            "Coloca funciones async en el interior del efecto",
+            "Siempre retorna función cleanup si lo requiere",
+            "Declara TODAS las dependencias en el array",
+            "No mutes estado directamente, usa setters"
+        ],
+        "bg-gradient-to-r": [
+            "Define en elemento padre del contenido",
+            "Combina con otras clases de Tailwind",
+            "Usa variantes de estado (hover, dark, etc)",
+            "Verifica compatibilidad en navegadores antiguos"
+        ],
+        "flex-col": [
+            "Aplica en contenedor, no en hijos",
+            "Usa gap para espaciado entre items",
+            "Combina con otros layouts (grid, flex)",
+            "Respeta modelo de caja CSS"
+        ],
+        "aria-label": [
+            "Texto conciso y descriptivo (máximo 100 caracteres)",
+            "No duplices si ya hay texto visible",
+            "En iconos, botones sin etiqueta, landmarks",
+            "Específico: no etiquetas genéricas"
+        ],
+        "useState": [
+            "Solo llama en nivel superior del componente",
+            "Cada llamada crea variable de estado independiente",
+            "No uses en loops o condiciones",
+            "Setter es síncrono pero re-render es asíncrono"
+        ],
+        "debounce": [
+            "Espera tiempo especificado antes de ejecutar",
+            "Próxima llamada resetea temporizador",
+            "Úsalo en inputs y eventos frecuentes",
+            "Guarda referencia del timeout para cancel"
+        ],
+        "JWT": [
+            "Almacena en httpOnly cookies en producción",
+            "Valida firma en cada petición",
+            "No guardes datos sensibles en payload",
+            "Usa HTTPS para transmisión"
+        ],
+        "Docker": [
+            "Crea imagen antes de ejecutar contenedor",
+            "Usa .dockerignore para excluir archivos",
+            "Capas se cachean: ordena comandos por frecuencia",
+            "Especifica USER en Dockerfile por seguridad"
+        ],
+        "GraphQL": [
+            "Define schema claramente antes de implementar",
+            "Queries para lectura, mutations para escritura",
+            "Suscripciones requieren WebSocket",
+            "Valida inputs en los resolvers"
+        ],
+        "CI/CD": [
+            "Automatiza tests antes de merge",
+            "Despliega solo si todos checks pasan",
+            "Mantén secrets en variables de entorno",
+            "Rollback automático en fallo"
+        ],
+        "Prisma": [
+            "Define relaciones claramente en schema",
+            "Usa include para relaciones, select para campos",
+            "Migraciones son versionadas y rastreables",
+            "Testa queries contra base real"
+        ],
+        "REST": [
+            "Verbos HTTP correctamente (GET, POST, PUT, DELETE)",
+            "Devuelve códigos de estado apropiados",
+            "Pagina resultados largos",
+            "Versionamiento en URLs (/v1/, /v2/)"
+        ],
+        "align-items": [
+            "Alinea en eje transversal (vertical en flex-row)",
+            "Requiere display: flex o display: grid",
+            "center alinea verticalmente en flex-row",
+            "stretch es valor por defecto"
+        ],
+        "clamp": [
+            "Toma 3 valores: mínimo, preferido, máximo",
+            "Valor preferido puede usar unidades relativas",
+            "Responsive design sin media queries",
+            "Aplica a propiedades que acepten longitud"
+        ],
+        "grid-template-columns": [
+            "Define número y tamaño de columnas",
+            "Usa fr para fracciones del espacio",
+            "auto-fit o auto-fill para responsive",
+            "repeat() útil para patrones repetidos"
+        ],
+        "aspect-ratio": [
+            "Mantiene proporción al cambiar tamaño",
+            "Útil para imágenes, videos, componentes",
+            "Navegadores antiguos sin soporte",
+            "Combina con object-fit para imágenes"
+        ],
+        "backdrop-filter": [
+            "Aplica efectos al fondo detrás",
+            "Requiere transparencia en elemento",
+            "Performance puede sufrir",
+            "Soporte limitado en algunos navegadores"
+        ],
+        "scroll-snap": [
+            "Define puntos snap en contenedores",
+            "scroll-snap-type en contenedor",
+            "scroll-snap-align en hijos",
+            "Mejor UX en scroll móvil"
+        ]
     };
-}
 
-function getInterviewQuestions(term: TermDTO, language: string) {
-    const isCss = isCssTerm(term, language);
-    return [
-        { q: `¿Qué es ${term.term}?`, a: term.meaningEs || term.meaning },
-        { q: "¿Cuándo usarlo?", a: term.whatEs || term.what || "Cuando aporta valor en su contexto." },
-        { q: "¿Errores comunes?", a: isCss ? "Depender de hacks, uso excesivo de !important o selectores muy específicos." : "Evita mutaciones o usos fuera del ciclo correcto." },
-        { q: "¿Cómo asegurarlo en producción?", a: isCss ? "Usa metodologías (BEM/Utility), linters y verifica compatibilidad de navegadores." : "Valida entradas, maneja errores y añade pruebas." }
-    ];
-}
+    if (rulesMap[term.term]) {
+        return rulesMap[term.term];
+    }
 
-function getBestPracticesDescription(term: TermDTO, language: string, isReactConcept: boolean) {
-    if (isReactConcept) {
-        return "Si necesitas guardar callbacks, usa la forma función-lambda para evitar ejecuciones inmediatas.";
+    if (term.term.startsWith("use")) {
+        return [
+            "Solo llama Hooks en nivel superior",
+            "Declara todas dependencias en array",
+            "No mutes estado directamente",
+            "Limpia efectos si requiere"
+        ];
     }
-    if (isTailwindUtility(term, language)) {
-        return `Combina '${term.term}' con otras utilidades de Tailwind. Usa variantes responsivas (sm:, md:, lg:) y de estado (hover:, focus:, dark:) para máxima flexibilidad.`;
-    }
+
     if (isCssTerm(term, language)) {
-        return `Aplica '${term.term}' en el contenedor apropiado (no en los hijos). Combínalo con otras propiedades de layout para control bidimensional completo.`;
+        return [
+            "Evita !important; maneja especificidad",
+            "Unidades relativas (rem, %, vh)",
+            "Propiedades se heredan en cascada",
+            "Verifica soporte en Can I Use"
+        ];
     }
-    return "Aplica este concepto de forma coherente y reutilizable respetando su ciclo de vida o contexto.";
+
+    return [
+        "Mantén funciones puras",
+        "Maneja errores explícitamente",
+        "Evita efectos globales",
+        "Documenta casos borde"
+    ];
 }
 
 // --- Componente Principal ---
@@ -690,11 +613,6 @@ export default function DiccionarioDevApp() {
         handleCopy(jsDoc, setJsDocCopied);
     };
 
-    // Helpers
-    const getUseCase = (term: TermDTO, context: string) => {
-        return term.useCases?.find(u => u.context === context);
-    };
-
     // Helper para resaltar coincidencias
     const highlightMatch = (text: string, query: string) => {
         if (!query) return text;
@@ -707,18 +625,8 @@ export default function DiccionarioDevApp() {
     };
 
     const primaryExample = activeTerm?.examples?.[0];
-    const secondaryExample = activeTerm?.examples?.[1];
     const activeVariant = activeTerm?.variants?.[0];
-    const tagSet = new Set((activeTerm?.tags || []).map(tag => tag.toLowerCase()));
     const displayLanguage = getDisplayLanguage(activeTerm, activeVariant);
-    const isReactConcept =
-        tagSet.has("react") ||
-        tagSet.has("hooks") ||
-        tagSet.has("hook") ||
-        tagSet.has("state") ||
-        tagSet.has("callback");
-    const showCallbacksSection = true; // Siempre mostramos, pero ajustamos contenido al concepto
-    const showResetSection = true; // Siempre mostramos, con snippet contextual
     if (!mounted) {
         return null;
     }
@@ -1010,7 +918,7 @@ export default function DiccionarioDevApp() {
                                 {/* No Results State */}
                                 {hasSearched && results.length === 0 && !loading && searchTerm && (
                                     <div className="px-4 py-3 text-center">
-                                        <p className="text-xs text-slate-500">No hay coincidencias para "{searchTerm}"</p>
+                                        <p className="text-xs text-slate-500">No hay coincidencias para &quot;{searchTerm}&quot;</p>
                                     </div>
                                 )}
                             </div>
@@ -1151,14 +1059,14 @@ export default function DiccionarioDevApp() {
                         {activeTerm.examples && activeTerm.examples.length > 1 && (
                             <div className="space-y-4">
                                 {(activeTerm.examples as unknown[]).slice(1).map((ex, idx) => {
-                                    const example = typeof ex === 'string' ? { code: ex } : ex;
+                                    const example: TermExampleDTO = typeof ex === 'string' ? { code: ex } : (ex as TermExampleDTO);
                                     return (
                                         <div key={idx} className="rounded-2xl border border-slate-800 bg-slate-900/40 p-5 space-y-2">
                                             <h3 className="font-bold uppercase tracking-wide text-xs text-emerald-400">
                                                 Ejemplo {idx + 2}
                                             </h3>
                                             <CodeBlock
-                                                code={(example as any)?.code || String(example)}
+                                                code={example.code || String(ex)}
                                                 language={displayLanguage}
                                                 showLineNumbers={true}
                                             />
