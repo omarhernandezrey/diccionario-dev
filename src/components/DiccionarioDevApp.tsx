@@ -32,6 +32,8 @@ import {
 import { Prism as SyntaxHighlighter } from "react-syntax-highlighter";
 import { dracula } from "react-syntax-highlighter/dist/cjs/styles/prism";
 import type { TermDTO, TermExampleDTO } from "@/types/term";
+import TailwindStylePreview from "./TailwindStylePreview";
+import { getHtmlForPreview, extractRawCss } from "@/lib/tailwindPreview";
 
 function getDisplayLanguage(term: TermDTO | null, variant?: { language?: string | null }) {
     const tags = (term?.tags || []).map(tag => tag.toLowerCase());
@@ -99,177 +101,52 @@ function CodeBlock({ code, language = "javascript", showLineNumbers = true }: { 
     );
 }
 
+function CssLiveBlock({ snippet, language }: { snippet: string; language: string }) {
+    const [compiledCss, setCompiledCss] = useState("");
+    const html = useMemo(() => getHtmlForPreview(snippet), [snippet]);
+    const rawCss = useMemo(() => extractRawCss(snippet), [snippet]);
+
+    useEffect(() => {
+        let mounted = true;
+        const hasTailwindClasses = /class(Name)?=/.test(html);
+        if (!hasTailwindClasses) {
+            setCompiledCss("");
+            return;
+        }
+
+        const compile = async () => {
+            try {
+                const res = await fetch("/api/compile-tailwind", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ html })
+                });
+                if (!res.ok) throw new Error(`HTTP ${res.status}`);
+                const data = await res.json();
+                if (mounted) setCompiledCss(data.css || "");
+            } catch (err) {
+                console.error("Error compilando Tailwind:", err);
+                if (mounted) setCompiledCss("");
+            }
+        };
+        compile();
+        return () => { mounted = false; };
+    }, [html]);
+
+    return (
+        <div className="grid gap-4 lg:grid-cols-2">
+            <CodeBlock code={snippet} language={language} showLineNumbers />
+            <TailwindStylePreview html={html} rawCss={rawCss} compiledCss={compiledCss} css={compiledCss || rawCss} />
+        </div>
+    );
+}
+
 function StyleAwareCode({ term, snippet, language, showLineNumbers = true }: { term: TermDTO; snippet: string; language: string; showLineNumbers?: boolean }) {
     if (isCssTerm(term, language)) {
-        return <TailwindStylePreview term={term} snippet={snippet} />;
+        return <CssLiveBlock snippet={snippet} language={language} />;
     }
     return <CodeBlock code={snippet} language={language} showLineNumbers={showLineNumbers} />;
 }
-
-// Sanitiza snippets para evitar tags peligrosos en el preview
-function sanitizeSnippet(snippet: string) {
-    return snippet.replace(/<script[\s\S]*?>[\s\S]*?<\/script>/gi, "").trim();
-}
-
-// Prefija selectores CSS con un scope de preview para evitar fugas globales
-function scopeCssToPreview(css: string, scopeId: string) {
-    const selectorPrefix = scopeId.startsWith(".") ? scopeId : `.${scopeId}`;
-    return css.replace(/(^|})\s*([^{}@][^{]+)\{/g, (fullMatch, brace, selector) => {
-        const clean = String(selector).trim();
-        if (!clean || clean.startsWith("@")) return fullMatch;
-
-        const scopedSelectors = clean
-            .split(",")
-            .map((part: string) => `${selectorPrefix} ${part.trim()}`)
-            .join(", ");
-
-        return `${brace} ${scopedSelectors} {`;
-    });
-}
-
-// Construye el HTML de preview tomando en cuenta si el snippet ya es HTML o puro CSS
-function buildVisualPreview(snippet: string, scopeId: string, termLabel: string) {
-    const sanitized = sanitizeSnippet(snippet);
-    const hasHtml = /<\s*[a-zA-Z]+[\s\S]*>/.test(sanitized);
-
-    if (hasHtml) {
-        return {
-            language: "html",
-            codeForDisplay: sanitized,
-            previewHtml: `<div class="${scopeId} preview-host">${sanitized}</div>`
-        };
-    }
-
-    const scopedCss = scopeCssToPreview(sanitized, scopeId);
-    const classMatches = Array.from(new Set(Array.from(sanitized.matchAll(/\.([a-zA-Z0-9_-]+)\s*[{,]/g)).map((m) => m[1]))).slice(0, 6);
-    const tagMatches = Array.from(new Set(Array.from(sanitized.matchAll(/^\s*([a-z][a-z0-9-]*)\s*[{]/gim)).map((m) => m[1]))).slice(0, 3);
-    const selectorsForPreview = classMatches.length ? classMatches : tagMatches;
-
-    const baseCss = `
-.${scopeId} {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
-  gap: 16px;
-  padding: 18px;
-  background: radial-gradient(circle at 12% 20%, rgba(16,185,129,0.14), transparent 32%), radial-gradient(circle at 82% 8%, rgba(59,130,246,0.16), transparent 30%), #0f172a;
-  border-radius: 18px;
-  border: 1px solid rgba(148,163,184,0.22);
-  box-shadow: 0 18px 60px rgba(15,23,42,0.45), inset 0 1px 0 rgba(255,255,255,0.04);
-  position: relative;
-  isolation: isolate;
-  overflow: hidden;
-}
-.${scopeId}::after {
-  content: "";
-  position: absolute;
-  inset: 0;
-  background-image: linear-gradient(90deg, rgba(255,255,255,0.03) 1px, transparent 1px), linear-gradient(0deg, rgba(255,255,255,0.03) 1px, transparent 1px);
-  background-size: 40px 40px;
-  opacity: 0.5;
-  pointer-events: none;
-  z-index: 0;
-}
-.${scopeId} .preview-card,
-.${scopeId} .preview-chip {
-  position: relative;
-  z-index: 1;
-  background: rgba(255,255,255,0.03);
-  border: 1px solid rgba(148,163,184,0.25);
-  color: #e2e8f0;
-  border-radius: 14px;
-  box-shadow: 0 10px 35px rgba(15,23,42,0.55);
-}
-.${scopeId} .preview-card {
-  padding: 16px;
-  min-height: 140px;
-  display: flex;
-  flex-direction: column;
-  justify-content: space-between;
-  background: linear-gradient(135deg, rgba(59,130,246,0.08), rgba(16,185,129,0.08));
-}
-.${scopeId} .preview-card h4 {
-  font-size: 1.05rem;
-  margin: 0 0 6px;
-  letter-spacing: 0.01em;
-}
-.${scopeId} .preview-card p {
-  margin: 0;
-  color: rgba(226,232,240,0.8);
-  font-size: 0.95rem;
-  line-height: 1.5;
-}
-.${scopeId} .preview-card .cta {
-  margin-top: 10px;
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  padding: 10px 14px;
-  border-radius: 12px;
-  font-weight: 700;
-  letter-spacing: 0.01em;
-  background: linear-gradient(135deg, #22d3ee, #16a34a);
-  color: #0b1020;
-  border: 1px solid rgba(34,211,238,0.4);
-  box-shadow: 0 10px 30px rgba(34,211,238,0.25);
-}
-.${scopeId} .preview-chip {
-  padding: 12px 14px;
-  font-size: 0.95rem;
-  letter-spacing: 0.01em;
-}
-.${scopeId} .demo-grid {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 10px;
-  margin-top: 8px;
-}
-.${scopeId} .demo-item {
-  padding: 10px 12px;
-  border-radius: 12px;
-  background: rgba(255,255,255,0.04);
-  border: 1px solid rgba(148,163,184,0.2);
-  color: #e2e8f0;
-  font-size: 0.9rem;
-  text-transform: none;
-}
-.${scopeId} .preview-chip:nth-child(2) {
-  background: linear-gradient(135deg, rgba(6,182,212,0.12), rgba(16,185,129,0.12));
-  border-color: rgba(34,211,238,0.45);
-}
-.${scopeId} .preview-chip:nth-child(3) {
-  background: linear-gradient(135deg, rgba(139,92,246,0.12), rgba(236,72,153,0.12));
-  border-color: rgba(236,72,153,0.45);
-}
-`;
-
-    const previewItems = selectorsForPreview.length
-        ? selectorsForPreview.map((sel, idx) => `<div class="preview-chip ${sel}">.${sel} ${idx === 0 ? "(container)" : ""}</div>`).join("\n")
-        : `<div class="preview-chip">Visual</div><div class="preview-chip">Responsive</div>`;
-
-    const previewHtml = `<style>${baseCss}${scopedCss}</style>
-<div class="${scopeId}">
-  <div class="preview-card">
-    <div>
-      <p style="color: rgba(148,163,184,0.9); font-size: 12px; letter-spacing: 0.1em; text-transform: uppercase; margin: 0 0 8px;">Vista de estilo</p>
-      <h4>${termLabel}</h4>
-      <p>Visualiza el efecto aplicado sobre un layout responsivo.</p>
-    </div>
-    <div class="demo-grid">
-      ${selectorsForPreview.map((sel) => `<div class="demo-item ${sel}">.${sel}</div>`).join("") || '<div class="demo-item">Demo</div>'}
-    </div>
-    <button class="cta">Acción</button>
-  </div>
-  ${previewItems}
-</div>`;
-
-    return {
-        language: "css",
-        codeForDisplay: sanitized,
-        previewHtml
-    };
-}
-
-
 
 // --- Hooks ---
 
@@ -567,7 +444,7 @@ function GeminiLoader({ term }: { term: string }) {
                 <div className="space-y-4 max-w-md">
                     <p className="text-2xl font-medium tracking-tight text-white">
                         <span className="opacity-60">Generando para </span>
-                        <span className="font-bold text-transparent bg-clip-text bg-gradient-to-r from-blue-400 via-purple-400 to-pink-400 animate-gradient-x">
+                        <span className="font-bold text-transparent bg-clip-text bg-linear-to-r from-blue-400 via-purple-400 to-pink-400 animate-gradient-x">
                             &quot;{term}&quot;
                         </span>
                     </p>
@@ -582,99 +459,6 @@ function GeminiLoader({ term }: { term: string }) {
                 </div>
             </div>
         </div>
-    );
-}
-
-function TailwindStylePreview({ term, snippet }: { term: TermDTO; snippet: string }) {
-    const [copied, setCopied] = useState(false);
-    const scopeId = useMemo(() => {
-        const hash = Math.abs([...snippet].reduce((acc, ch) => acc + ch.charCodeAt(0) * 17, term.id || 1));
-        return `tw-preview-${term.id}-${hash.toString(16)}`;
-    }, [snippet, term.id]);
-    const { previewHtml, language, codeForDisplay } = useMemo(
-        () => buildVisualPreview(snippet, scopeId, term.term),
-        [snippet, scopeId, term.term]
-    );
-
-    const handleCopy = () => {
-        navigator.clipboard.writeText(codeForDisplay);
-        setCopied(true);
-        setTimeout(() => setCopied(false), 1600);
-    };
-
-    return (
-        <section className="rounded-3xl border border-slate-800 bg-gradient-to-br from-slate-950 via-slate-950/70 to-slate-900 shadow-[0_30px_90px_rgba(0,0,0,0.45)] overflow-hidden">
-            <div className="flex flex-wrap items-center gap-3 justify-between px-6 py-4 border-b border-slate-800 bg-gradient-to-r from-slate-950 to-slate-900">
-                <div className="flex items-center gap-3">
-                    <div className="h-10 w-10 rounded-2xl bg-gradient-to-br from-emerald-500/30 via-cyan-400/20 to-blue-500/20 border border-emerald-500/30 flex items-center justify-center shadow-[0_10px_30px_rgba(16,185,129,0.25)]">
-                        <Code2 className="h-5 w-5 text-emerald-200" />
-                    </div>
-                    <div>
-                        <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-emerald-300/80">Preview estilo Tailwind</p>
-                        <p className="text-sm text-slate-300">Código y vista en vivo lado a lado</p>
-                        <div className="mt-1 flex gap-2 text-[11px] text-slate-400">
-                            <span className="inline-flex items-center gap-1 rounded-full bg-slate-800/60 px-2 py-1 border border-slate-700">Live</span>
-                            <span className="inline-flex items-center gap-1 rounded-full bg-slate-800/60 px-2 py-1 border border-slate-700">{language === "html" ? "HTML" : "CSS"}</span>
-                        </div>
-                    </div>
-                </div>
-                <button
-                    onClick={handleCopy}
-                    className="inline-flex items-center gap-2 rounded-full border border-emerald-500/30 bg-emerald-500/10 px-3 py-2 text-xs font-semibold text-emerald-200 transition hover:bg-emerald-500/20"
-                >
-                    {copied ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
-                    {copied ? "Copiado" : "Copiar código"}
-                </button>
-            </div>
-
-            <div className="grid gap-0 md:grid-cols-2 lg:grid-cols-[minmax(0,1.05fr)_minmax(0,0.95fr)]">
-                <div className="border-b md:border-b-0 md:border-r border-slate-800 bg-[#0c1424] bg-opacity-90">
-                    <div className="px-6 pt-5 pb-2 flex items-center justify-between">
-                        <div className="text-[11px] font-semibold uppercase tracking-[0.08em] text-slate-400">
-                            Código
-                        </div>
-                        <div className="flex items-center gap-1 text-[10px] text-slate-500">
-                            <span className="h-2 w-2 rounded-full bg-emerald-400 animate-pulse" /> Auto-actualiza
-                        </div>
-                    </div>
-                    <div className="px-4 pb-4">
-                        <div className="rounded-2xl border border-slate-800 bg-[#0f192d] shadow-inner max-h-[420px] overflow-auto">
-                            <div className="flex items-center gap-1 px-3 py-2 border-b border-slate-800 bg-[#0b1526]">
-                                <span className="flex items-center gap-1">
-                                    <span className="h-3 w-3 rounded-full bg-red-500/80" />
-                                    <span className="h-3 w-3 rounded-full bg-amber-400/80" />
-                                    <span className="h-3 w-3 rounded-full bg-emerald-500/80" />
-                                </span>
-                                <span className="ml-2 text-[11px] uppercase tracking-[0.08em] text-slate-400">Snippet</span>
-                            </div>
-                            <CodeBlock code={codeForDisplay} language={language === "html" ? "html" : "css"} />
-                        </div>
-                    </div>
-                </div>
-
-                <div className="relative bg-slate-950">
-                    <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_20%_30%,rgba(16,185,129,0.15),transparent_30%),radial-gradient(circle_at_80%_10%,rgba(14,165,233,0.14),transparent_28%)]" />
-                    <div className="relative p-6">
-                        <div className="flex items-center justify-between">
-                            <div className="text-[11px] font-semibold uppercase tracking-[0.08em] text-slate-400">
-                                Preview en vivo
-                            </div>
-                            <div className="flex items-center gap-2 text-[11px] text-slate-400">
-                                <span className="rounded-full bg-emerald-500/15 px-2 py-1 border border-emerald-500/30 text-emerald-200">Docs-like</span>
-                                <span className="rounded-full bg-slate-800/70 px-2 py-1 border border-slate-700">Responsive</span>
-                            </div>
-                        </div>
-                        <div className="mt-3 rounded-2xl border border-slate-800 bg-slate-900/70 p-4 min-h-[260px] shadow-[0_15px_40px_rgba(0,0,0,0.35)]">
-                            <div className="rounded-xl bg-slate-950/60 border border-slate-800 p-4 overflow-hidden relative">
-                                <div className="absolute inset-0 opacity-40 pointer-events-none bg-[radial-gradient(circle_at_20%_20%,rgba(14,165,233,0.08),transparent_35%),radial-gradient(circle_at_80%_10%,rgba(168,85,247,0.08),transparent_32%)]" />
-                                <div className="relative text-[11px] text-slate-500 uppercase font-semibold mb-3">Aplicando clases y estilos</div>
-                                <div className="relative min-h-[180px] overflow-hidden" dangerouslySetInnerHTML={{ __html: previewHtml }} />
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </section>
     );
 }
 
@@ -710,14 +494,27 @@ export default function DiccionarioDevApp() {
     const [isListening, setIsListening] = useState(false);
     const [isStartingMic, setIsStartingMic] = useState(false);
     const [micError, setMicError] = useState<string | null>(null);
-    const recognitionRef = useRef<unknown>(null);
+
+    type SpeechRecognitionLike = {
+        abort?: () => void;
+        start?: () => void;
+        stop?: () => void;
+        onstart?: (() => void) | null;
+        onend?: (() => void) | null;
+        onerror?: ((event: unknown) => void) | null;
+        onresult?: ((event: unknown) => void) | null;
+        lang?: string;
+        continuous?: boolean;
+        interimResults?: boolean;
+        maxAlternatives?: number;
+    };
+
+    const recognitionRef = useRef<SpeechRecognitionLike | null>(null);
 
     // Cleanup mic on unmount
     useEffect(() => {
         return () => {
-            if (recognitionRef.current) {
-                recognitionRef.current.abort();
-            }
+            recognitionRef.current?.abort?.();
         };
     }, []);
 
@@ -831,13 +628,13 @@ export default function DiccionarioDevApp() {
         setMicError(null);
 
         if (isListening || isStartingMic) {
-            recognitionRef.current?.abort();
+            recognitionRef.current?.abort?.();
             setIsListening(false);
             setIsStartingMic(false);
             return;
         }
 
-        const SpeechRecognition = (window as unknown & { SpeechRecognition?: unknown; webkitSpeechRecognition?: unknown }).SpeechRecognition || (window as unknown & { SpeechRecognition?: unknown; webkitSpeechRecognition?: unknown }).webkitSpeechRecognition;
+        const SpeechRecognition = ((window as unknown as Record<string, unknown>).SpeechRecognition || (window as unknown as Record<string, unknown>).webkitSpeechRecognition);
 
         if (!SpeechRecognition) {
             alert("Tu navegador no soporta búsqueda por voz. Intenta usar Chrome o Edge.");
@@ -848,10 +645,9 @@ export default function DiccionarioDevApp() {
             setIsStartingMic(true);
 
             if (recognitionRef.current) {
-                recognitionRef.current.abort();
-            }
-
-            const recognition = new SpeechRecognition();
+            recognitionRef.current?.abort?.();
+        }            // Cast the constructor so TypeScript knows it is constructible
+            const recognition = new (SpeechRecognition as { new(): SpeechRecognitionLike })();
             recognitionRef.current = recognition;
 
             recognition.lang = 'es-ES';
@@ -870,29 +666,33 @@ export default function DiccionarioDevApp() {
                 setIsStartingMic(false);
             };
 
-            recognition.onerror = (event: unknown & { error?: string }) => {
-                console.error("Error de reconocimiento de voz:", event.error);
+            recognition.onerror = (event: unknown) => {
+                const errorEvent = event as Record<string, unknown>;
+                console.error("Error de reconocimiento de voz:", errorEvent.error);
                 setIsListening(false);
                 setIsStartingMic(false);
 
-                if (event.error === 'not-allowed' || event.error === 'permission-denied') {
+                if (errorEvent.error === 'not-allowed' || errorEvent.error === 'permission-denied') {
                     setMicError("permiso");
-                } else if (event.error === 'audio-capture') {
+                } else if (errorEvent.error === 'audio-capture') {
                     setMicError("hardware");
-                } else if (event.error === 'service-not-allowed' || event.error === 'network') {
+                } else if (errorEvent.error === 'service-not-allowed' || errorEvent.error === 'network') {
                     setMicError("red");
                 } else {
                     setMicError("desconocido");
                 }
             };
 
-            recognition.onresult = (event: unknown & { results?: unknown[] }) => {
-                const transcript = (event.results as unknown[])?.[0]?.[0]?.transcript;
-                setSearchTerm(transcript);
+            recognition.onresult = (event: unknown) => {
+                const eventData = event as { results?: Array<Array<{ transcript?: string }>> };
+                const transcript = eventData.results?.[0]?.[0]?.transcript;
+                if (transcript) {
+                    setSearchTerm(transcript);
+                }
                 searchInputRef.current?.focus();
             };
 
-            recognition.start();
+            recognition?.start?.();
         } catch (error) {
             console.error("Error al iniciar reconocimiento:", error);
             setIsListening(false);
@@ -982,7 +782,7 @@ export default function DiccionarioDevApp() {
         <div className="min-h-screen bg-slate-950 text-slate-200 font-sans selection:bg-emerald-500/30 pb-20 relative overflow-x-hidden">
 
             {/* --- Cheat Sheet Slide-over --- */}
-            <div className={`fixed inset-y-0 right-0 w-full md:w-96 bg-slate-900/95 backdrop-blur-xl border-l border-slate-800 shadow-2xl transform transition-transform duration-300 ease-in-out z-[100] ${showCheatSheet ? 'translate-x-0' : 'translate-x-full'}`}>
+            <div className={`fixed inset-y-0 right-0 w-full md:w-96 bg-slate-900/95 backdrop-blur-xl border-l border-slate-800 shadow-2xl transform transition-transform duration-300 ease-in-out z-100 ${showCheatSheet ? 'translate-x-0' : 'translate-x-full'}`}>
                 <div className="h-full flex flex-col">
                     <div className="flex items-center justify-between p-6 border-b border-slate-800">
                         <h2 className="text-xl font-bold text-white flex items-center gap-2">
@@ -1013,17 +813,17 @@ export default function DiccionarioDevApp() {
                                 </h3>
                                 <ul className="space-y-3">
                                     <li className="flex items-start gap-2 text-sm text-slate-300">
-                                        <Check className="h-4 w-4 text-emerald-400 mt-0.5 flex-shrink-0" />
+                                        <Check className="h-4 w-4 text-emerald-400 mt-0.5 shrink-0" />
                                         <span>Usa nombres descriptivos para tus variables.</span>
                                     </li>
                                     <li className="flex items-start gap-2 text-sm text-slate-300">
-                                        <Check className="h-4 w-4 text-emerald-400 mt-0.5 flex-shrink-0" />
+                                        <Check className="h-4 w-4 text-emerald-400 mt-0.5 shrink-0" />
                                         <span>Mantén las funciones pequeñas y puras.</span>
                                     </li>
                                     {activeTerm.useCases?.map((uc, i) => (
                                         uc.tips && (
                                             <li key={i} className="flex items-start gap-2 text-sm text-slate-300">
-                                                <Check className="h-4 w-4 text-emerald-400 mt-0.5 flex-shrink-0" />
+                                                <Check className="h-4 w-4 text-emerald-400 mt-0.5 shrink-0" />
                                                 <span>{uc.tips}</span>
                                             </li>
                                         )
@@ -1064,7 +864,7 @@ export default function DiccionarioDevApp() {
                     <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
                         {/* Logo & Title */}
                         <div className="flex items-center gap-3 cursor-pointer group" onClick={() => { setSearchTerm(""); setActiveTerm(null); }}>
-                            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-emerald-500 to-blue-600 shadow-lg shadow-emerald-500/20 transition-transform group-hover:scale-105">
+                            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-linear-to-br from-emerald-500 to-blue-600 shadow-lg shadow-emerald-500/20 transition-transform group-hover:scale-105">
                                 <Brain className="h-6 w-6 text-white" />
                             </div>
                             <div>
@@ -1167,7 +967,7 @@ export default function DiccionarioDevApp() {
                                 {micError && (
                                     <div className="absolute top-full right-0 mt-2 w-80 p-4 bg-slate-900 border border-red-500/50 rounded-xl shadow-2xl z-50 animate-in fade-in slide-in-from-top-2">
                                         <div className="flex items-start gap-3">
-                                            <AlertCircle className="h-5 w-5 text-red-500 flex-shrink-0 mt-0.5" />
+                                            <AlertCircle className="h-5 w-5 text-red-500 shrink-0 mt-0.5" />
                                             <div>
                                                 <p className="text-sm font-bold text-red-400 mb-1">
                                                     {micError === 'permiso' ? 'Acceso Denegado' :
@@ -1382,7 +1182,7 @@ export default function DiccionarioDevApp() {
                         )}
 
                         {/* SECCIÓN 4: CÓMO FUNCIONA */}
-                        <div className="rounded-2xl border border-amber-500/20 bg-gradient-to-br from-amber-500/5 to-transparent p-6 space-y-4">
+                        <div className="rounded-2xl border border-amber-500/20 bg-linear-to-br from-amber-500/5 to-transparent p-6 space-y-4">
                             <div className="flex items-center gap-2 text-amber-400">
                                 <Lightbulb className="h-5 w-5" />
                                 <h3 className="font-bold uppercase tracking-wide text-sm">4. Cómo funciona</h3>
@@ -1400,16 +1200,9 @@ export default function DiccionarioDevApp() {
                                     <h3 className="font-bold uppercase tracking-wide text-sm">5. Reglas importantes</h3>
                                 </div>
                                 <ul className="space-y-3 text-sm text-slate-200">
-                                    {Array.isArray(activeTerm.examples) && activeTerm.examples[0]?.rules ?
-                                        (activeTerm.examples[0].rules as string[]).map((rule, idx) => (
+                                    {getRulesList(activeTerm, displayLanguage).map((rule, idx) => (
                                             <li key={idx} className="flex items-start gap-3">
-                                                <span className="mt-1 h-2 w-2 rounded-full bg-emerald-400 flex-shrink-0"></span>
-                                                <span>{rule}</span>
-                                            </li>
-                                        ))
-                                        : getRulesList(activeTerm, displayLanguage).map((rule, idx) => (
-                                            <li key={idx} className="flex items-start gap-3">
-                                                <span className="mt-1 h-2 w-2 rounded-full bg-emerald-400 flex-shrink-0"></span>
+                                                <span className="mt-1 h-2 w-2 rounded-full bg-emerald-400 shrink-0"></span>
                                                 <span>{rule}</span>
                                             </li>
                                         ))

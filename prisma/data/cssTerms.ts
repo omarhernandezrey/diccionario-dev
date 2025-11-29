@@ -43,52 +43,36 @@ section.cards > article {
     howEn: "Set display:flex or grid on the container and tweak align-items with values such as center, flex-end or stretch.",
     languageOverride: Language.css,
     secondExample: {
-      titleEs: "Alineación con stretch (expandir)",
-      titleEn: "Stretch alignment (fill)",
-      code: `/* Ejemplo avanzado: diferentes valores de align-items */
-.flex-container {
-  display: flex;
-  height: 300px;
-  gap: 10px;
-}
-
-/* align-items: flex-start - alinea al inicio del eje cruzado */
-.flex-start {
-  align-items: flex-start;
-  background: linear-gradient(to right, #667eea, #764ba2);
-}
-
-/* align-items: center - centra en el eje cruzado (más común) */
-.center {
-  align-items: center;
-  background: linear-gradient(to right, #f093fb, #f5576c);
-}
-
-/* align-items: flex-end - alinea al final del eje cruzado */
-.flex-end {
-  align-items: flex-end;
-  background: linear-gradient(to right, #4facfe, #00f2fe);
-}
-
-/* align-items: stretch - expande para llenar el contenedor */
-.stretch {
-  align-items: stretch;
-  background: linear-gradient(to right, #43e97b, #38f9d7);
-}`,
-      noteEs: "Prueba diferentes valores para ver cómo cambia la alineación. Stretch es útil para layouts responsive.",
-      noteEn: "Try different values to see alignment changes. Stretch is perfect for responsive layouts.",
+      titleEs: "Diferentes valores de align-items",
+      titleEn: "Different align-items values",
+      code: `<div style="display: flex; height: 150px; gap: 10px; margin-bottom: 20px;">
+  <div style="flex: 1; display: flex; align-items: flex-start; background: linear-gradient(to bottom, #667eea, #764ba2); border-radius: 8px; padding: 10px; color: white; font-size: 12px; font-weight: bold;">
+    flex-start
+  </div>
+  <div style="flex: 1; display: flex; align-items: center; background: linear-gradient(to bottom, #f093fb, #f5576c); border-radius: 8px; padding: 10px; color: white; font-size: 12px; font-weight: bold;">
+    center
+  </div>
+  <div style="flex: 1; display: flex; align-items: flex-end; background: linear-gradient(to bottom, #4facfe, #00f2fe); border-radius: 8px; padding: 10px; color: white; font-size: 12px; font-weight: bold;">
+    flex-end
+  </div>
+  <div style="flex: 1; display: flex; align-items: stretch; background: linear-gradient(to bottom, #43e97b, #38f9d7); border-radius: 8px; padding: 10px; color: white; font-size: 12px; font-weight: bold;">
+    stretch
+  </div>
+</div>`,
+      noteEs: "Cada columna usa un valor diferente de align-items. Observa cómo se posiciona el texto dentro de cada contenedor.",
+      noteEn: "Each column uses a different align-items value. Notice how text positions within each container.",
     },
     exerciseExample: {
-      titleEs: "Centrado absoluto",
-      titleEn: "Absolute centering",
-      code: `.container {
-  display: flex;
-  justify-content: center; /* Eje principal */
-  align-items: center;     /* Eje cruzado */
-  height: 100vh;
-}`,
-      noteEs: "La combinación clásica para centrar cualquier cosa.",
-      noteEn: "The classic combo to center anything.",
+      titleEs: "Centrado absoluto (Patrón clásico)",
+      titleEn: "Absolute centering (Classic pattern)",
+      code: `<div style="display: flex; justify-content: center; align-items: center; height: 300px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border-radius: 12px;">
+  <div style="background: white; padding: 30px 50px; border-radius: 8px; text-align: center; box-shadow: 0 10px 40px rgba(0,0,0,0.3);">
+    <h2 style="margin: 0 0 10px 0; color: #333; font-size: 24px;">Centrado Perfecto</h2>
+    <p style="margin: 0; color: #666; font-size: 14px;">justify-content + align-items = centro absoluto</p>
+  </div>
+</div>`,
+      noteEs: "La combinación clásica para centrar cualquier contenido dentro de un contenedor.",
+      noteEn: "The classic combo to center any content within a container.",
     },
   },
   {

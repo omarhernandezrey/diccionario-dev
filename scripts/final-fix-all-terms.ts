@@ -38,9 +38,9 @@ const termsData = {
     what: "Clase Tailwind que aplica un gradiente de fondo de izquierda a derecha.",
     how: "Aplica un gradiente en el elemento. Se combina con colores (bg-gradient-to-r from-blue-500 to-purple-600). El navegador interpola los colores automáticamente.",
     examples: [
-      { code: '<div class="bg-gradient-to-r from-blue-500 to-purple-600 p-8">Gradiente</div>', desc: "Gradiente básico" },
-      { code: '<button class="bg-gradient-to-r from-emerald-400 via-blue-500 to-purple-600 hover:opacity-90">CTA</button>', desc: "Con via color" },
-      { code: '<div class="bg-gradient-to-r from-slate-900 to-slate-800 dark:from-slate-100 dark:to-slate-200">Dark mode</div>', desc: "Responsivo" },
+      { code: '<div class="bg-linear-to-r from-blue-500 to-purple-600 p-8">Gradiente</div>', desc: "Gradiente básico" },
+      { code: '<button class="bg-linear-to-r from-emerald-400 via-blue-500 to-purple-600 hover:opacity-90">CTA</button>', desc: "Con via color" },
+      { code: '<div class="bg-linear-to-r from-slate-900 to-slate-800 dark:from-slate-100 dark:to-slate-200">Dark mode</div>', desc: "Responsivo" },
     ],
     rules: [
       "Define en el elemento padre del contenido",

@@ -575,14 +575,14 @@ function ResultPreview({ term, activeContext, variant }: { term: TermDTO; active
           {/* Meanings */}
           <div>
             <div className="flex items-center gap-2 mb-3">
-              <span className="h-1.5 w-4 rounded-full bg-neo-primary flex-shrink-0"></span>
+              <span className="h-1.5 w-4 rounded-full bg-neo-primary shrink-0"></span>
               <p className="text-xs font-bold uppercase tracking-widest text-neo-primary">1. DEFINICIÓN</p>
             </div>
             <div className="space-y-3">
               {[{ label: 'ES', value: meaningEs }, { label: 'EN', value: meaningEn }].map((block) => (
                 <div key={block.label}>
                   <span className="text-xs text-neo-text-secondary font-medium mb-1 block">{block.label}</span>
-                  <p className="text-sm leading-relaxed text-neo-text-primary break-words">{block.value}</p>
+                  <p className="text-sm leading-relaxed text-neo-text-primary wrap-break-word">{block.value}</p>
                 </div>
               ))}
             </div>
@@ -591,14 +591,14 @@ function ResultPreview({ term, activeContext, variant }: { term: TermDTO; active
           {/* What it solves */}
           <div>
             <div className="flex items-center gap-2 mb-3">
-              <span className="h-1.5 w-4 rounded-full bg-neo-primary flex-shrink-0"></span>
+              <span className="h-1.5 w-4 rounded-full bg-neo-primary shrink-0"></span>
               <p className="text-xs font-bold uppercase tracking-widest text-neo-primary">2. PROPÓSITO</p>
             </div>
             <div className="space-y-3">
               {[{ label: 'ES', value: whatEs }, { label: 'EN', value: whatEn }].map((block) => (
                 <div key={block.label}>
                   <span className="text-xs text-neo-text-secondary font-medium mb-1 block">{block.label}</span>
-                  <p className="text-sm leading-relaxed text-neo-text-primary break-words">{block.value}</p>
+                  <p className="text-sm leading-relaxed text-neo-text-primary wrap-break-word">{block.value}</p>
                 </div>
               ))}
             </div>
@@ -608,7 +608,7 @@ function ResultPreview({ term, activeContext, variant }: { term: TermDTO; active
         {/* Right: Code Snippet Only */}
         <div>
           <div className="flex items-center gap-2 mb-3">
-            <span className="h-1.5 w-4 rounded-full bg-neo-primary flex-shrink-0"></span>
+            <span className="h-1.5 w-4 rounded-full bg-neo-primary shrink-0"></span>
             <p className="text-xs font-bold uppercase tracking-widest text-neo-primary">3. CÓDIGO</p>
           </div>
           <SelectorPanel
@@ -626,7 +626,7 @@ function ResultPreview({ term, activeContext, variant }: { term: TermDTO; active
       {activeVariant ? (
         <div className="mt-10">
           <div className="flex items-center gap-2 mb-4">
-            <span className="h-1.5 w-4 rounded-full bg-neo-primary flex-shrink-0"></span>
+            <span className="h-1.5 w-4 rounded-full bg-neo-primary shrink-0"></span>
             <p className="text-xs font-bold uppercase tracking-widest text-neo-primary">4. PREVIEW</p>
           </div>
           <StyleAwareCode 
@@ -710,11 +710,11 @@ function ResultPreview({ term, activeContext, variant }: { term: TermDTO; active
                   {useCase.steps?.length ? (
                     <div className="relative pl-2 space-y-6 mb-6">
                       {/* Vertical Line */}
-                      <div className="absolute left-[11px] top-2 bottom-2 w-[2px] bg-gradient-to-b from-neo-primary/50 to-transparent" />
+                      <div className="absolute left-[11px] top-2 bottom-2 w-0.5 bg-linear-to-b from-neo-primary/50 to-transparent" />
 
                       {useCase.steps.map((step, i) => (
                         <div key={i} className="relative flex gap-4 group">
-                          <div className="relative z-10 flex-shrink-0 w-6 h-6 rounded-full bg-neo-surface border-2 border-neo-primary flex items-center justify-center text-[10px] font-bold text-neo-primary group-hover:scale-110 transition-transform bg-white dark:bg-black">
+                          <div className="relative z-10 shrink-0 w-6 h-6 rounded-full bg-neo-surface border-2 border-neo-primary flex items-center justify-center text-[10px] font-bold text-neo-primary group-hover:scale-110 transition-transform bg-white dark:bg-black">
                             {i + 1}
                           </div>
                           <p className="text-sm text-neo-text-secondary pt-0.5 group-hover:text-neo-text-primary transition-colors">
@@ -732,7 +732,7 @@ function ResultPreview({ term, activeContext, variant }: { term: TermDTO; active
                         <TbBulb className="text-4xl text-yellow-500" />
                       </div>
                       <div className="flex gap-2 md:gap-3 relative z-10">
-                        <TbBulb className="flex-shrink-0 text-lg text-yellow-500 mt-0.5" />
+                        <TbBulb className="shrink-0 text-lg text-yellow-500 mt-0.5" />
                         <div>
                           <p className="text-xs font-bold uppercase tracking-wider text-yellow-600/80 mb-1">Pro Tip</p>
                           <p className="text-sm text-neo-text-primary/90 italic">
@@ -1133,7 +1133,7 @@ function CodeBlock({ code, label, language = "tsx" }: { code: string; label?: st
           flexShrink: 0,
         }}
         showLineNumbers
-        className="scroll-silent !p-3 md:!p-6 lg:!p-8 !text-xs md:!text-sm lg:!text-base !leading-relaxed md:!leading-loose tracking-tight [&_pre]:!bg-transparent"
+        className="scroll-silent p-3! md:p-6! lg:p-8! text-xs! md:text-sm! lg:text-base! leading-relaxed! md:leading-loose! tracking-tight [&_pre]:bg-transparent!"
       >
         {normalized}
       </SyntaxHighlighter>
@@ -1308,7 +1308,7 @@ function GeminiLoader({ term, variant }: { term: string; variant: SearchBoxVaria
       "border-white/10 bg-black/20 shadow-2xl shadow-black/20"
     )}`}>
       {/* Ambient Background Glow */}
-      <div className={`absolute inset-0 -z-10 bg-[radial-gradient(circle_at_center,_var(--tw-gradient-stops))] opacity-40 ${tone(
+      <div className={`absolute inset-0 -z-10 bg-[radial-gradient(circle_at_center,var(--tw-gradient-stops))] opacity-40 ${tone(
         "from-neo-primary/10 via-transparent to-transparent",
         "from-emerald-500/10 via-transparent to-transparent"
       )}`} />
@@ -1320,8 +1320,8 @@ function GeminiLoader({ term, variant }: { term: string; variant: SearchBoxVaria
             <div
               key={delay}
               className={`h-4 w-4 rounded-full animate-bounce ${tone(
-                "bg-gradient-to-br from-neo-primary to-neo-accent-purple shadow-[0_0_15px_rgba(77,154,255,0.4)]",
-                "bg-gradient-to-br from-emerald-400 to-cyan-500 shadow-[0_0_20px_rgba(52,211,153,0.6)]"
+                "bg-linear-to-br from-neo-primary to-neo-accent-purple shadow-[0_0_15px_rgba(77,154,255,0.4)]",
+                "bg-linear-to-br from-emerald-400 to-cyan-500 shadow-[0_0_20px_rgba(52,211,153,0.6)]"
               )}`}
               style={{ animationDelay: `${delay}ms`, animationDuration: '1s' }}
             />
@@ -1332,8 +1332,8 @@ function GeminiLoader({ term, variant }: { term: string; variant: SearchBoxVaria
         <div className="space-y-3">
           <p className={`text-xl font-medium tracking-tight ${tone("text-neo-text-primary", "text-white/90")}`}>
             Buscando <span className={`font-bold text-transparent bg-clip-text ${tone(
-              "bg-gradient-to-r from-neo-primary to-neo-accent-purple",
-              "bg-gradient-to-r from-emerald-400 to-cyan-400"
+              "bg-linear-to-r from-neo-primary to-neo-accent-purple",
+              "bg-linear-to-r from-emerald-400 to-cyan-400"
             )}`}>&quot;{term}&quot;</span>
           </p>
           <div className={`flex items-center justify-center gap-2 text-xs font-medium uppercase tracking-widest animate-pulse ${tone(
