@@ -858,11 +858,23 @@ export default function DiccionarioDevApp() {
                         </div>
 
                         {/* Dropdown de Resultados Inteligente */}
-                        {(results.length > 0 || (showHistory && recentSearches.length > 0) || (hasSearched && results.length === 0 && !loading && searchTerm)) && (
+                        {(results.length > 0 || (showHistory && recentSearches.length > 0) || (hasSearched && results.length === 0 && !loading && searchTerm) || loading) && (
                             <div className="absolute top-full left-0 right-0 mt-2 rounded-xl border border-slate-800 bg-slate-900 shadow-2xl overflow-hidden max-h-[60vh] overflow-y-auto custom-scrollbar">
 
+                                {/* Loading State */}
+                                {loading && (
+                                    <div className="px-4 py-8 flex flex-col items-center justify-center gap-3">
+                                        <div className="flex gap-2">
+                                            <div className="h-2 w-2 bg-emerald-400 rounded-full animate-bounce" style={{ animationDelay: "0ms" }}></div>
+                                            <div className="h-2 w-2 bg-emerald-400 rounded-full animate-bounce" style={{ animationDelay: "150ms" }}></div>
+                                            <div className="h-2 w-2 bg-emerald-400 rounded-full animate-bounce" style={{ animationDelay: "300ms" }}></div>
+                                        </div>
+                                        <p className="text-sm text-slate-400">Buscando <span className="font-mono text-emerald-400">{searchTerm}</span>...</p>
+                                    </div>
+                                )}
+
                                 {/* Historial */}
-                                {showHistory && !results.length && !searchTerm && (
+                                {showHistory && !results.length && !searchTerm && !loading && (
                                     <div className="py-2">
                                         <div className="px-4 py-2 text-xs font-bold uppercase tracking-wider text-slate-500 flex items-center gap-2">
                                             <History className="h-3 w-3" /> Recientes
