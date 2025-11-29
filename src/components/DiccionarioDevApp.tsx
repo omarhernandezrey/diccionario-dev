@@ -244,6 +244,11 @@ function isCssTerm(term: TermDTO, language: string): boolean {
     if (language === "css") return true;
 
     const termName = term.term.toLowerCase();
+    const tags = (term.tags || []).map(t => t.toLowerCase());
+
+    // Excluir términos HTML/a11y
+    if (tags.some(t => ["html", "a11y", "accessibility"].includes(t))) return false;
+    if (termName.includes("aria")) return false;
 
     // CSS properties (lowercase with hyphens, no "use" prefix)
     if (/^[a-z-]+$/.test(termName) && !termName.startsWith("use")) return true;
@@ -258,7 +263,6 @@ function isCssTerm(term: TermDTO, language: string): boolean {
     if (["aspect-ratio", "backdrop-filter", "scroll-snap"].includes(termName)) return true;
 
     // Check tags for CSS indicators
-    const tags = (term.tags || []).map(t => t.toLowerCase());
     if (tags.some(t => ["css", "tailwind", "flexbox", "grid"].includes(t))) return true;
 
     return false;
@@ -310,6 +314,24 @@ function getResetDescription(term: TermDTO, language: string) {
 }
 
 function getRulesList(term: TermDTO, language: string) {
+    // Para fetch y otros términos con documentación en BD, usar data del servidor
+    if (term.term === "fetch") {
+        return [
+            "Siempre usar try/catch",
+            "Validar res.ok y status",
+            "Usar AbortController para cancelar/timeout",
+            "Especificar cache: \"no-store\" en GET críticos",
+            "Parsear respuesta como text primero si es dudosa"
+        ];
+    }
+    if (term.term === "aria-label") {
+        return [
+            "Usa texto conciso y descriptivo (máximo 100 caracteres).",
+            "No duplices si ya hay texto visible en el elemento.",
+            "Aplica especialmente en iconos, botones sin etiqueta y landmarks (nav, main, aside).",
+            "Evita etiquetas genéricas: especifica la acción o propósito del elemento."
+        ];
+    }
     if (isCssTerm(term, language)) {
         return [
             "Evita el uso excesivo de !important; prefiere manejar la especificidad.",
@@ -987,12 +1009,8 @@ export default function DiccionarioDevApp() {
 
                                 {/* No Results State */}
                                 {hasSearched && results.length === 0 && !loading && searchTerm && (
-                                    <div className="py-8 flex flex-col items-center justify-center text-center px-4">
-                                        <div className="h-12 w-12 rounded-full bg-slate-800 flex items-center justify-center mb-3 text-slate-500">
-                                            <Frown className="h-6 w-6" />
-                                        </div>
-                                        <p className="text-slate-300 font-medium">No encontramos coincidencias</p>
-                                        <p className="text-xs text-slate-500 mt-1">Intenta con otro término o revisa la ortografía.</p>
+                                    <div className="px-4 py-3 text-center">
+                                        <p className="text-xs text-slate-500">No hay coincidencias para "{searchTerm}"</p>
                                     </div>
                                 )}
                             </div>
@@ -1081,9 +1099,9 @@ export default function DiccionarioDevApp() {
                                     <Rocket className="h-5 w-5" />
                                     <h3 className="font-bold uppercase tracking-wide text-xs">2. Para qué sirve</h3>
                                 </div>
-                                <ul className="space-y-2 text-slate-200 text-sm">
-                                    {[activeTerm.whatEs || activeTerm.what, getUseCase(activeTerm, "project")?.summary, getUseCase(activeTerm, "interview")?.summary, getUseCase(activeTerm, "bug")?.summary, activeTerm.tags?.slice(0, 3).map(tag => `Aplicar en contextos relacionados con ${tag}`).join(", "),].filter(Boolean).map((item, idx) => (<li key={idx} className="flex items-start gap-2">                                            <span className="mt-1 h-2 w-2 rounded-full bg-emerald-400"></span>                                            <span>{item}</span>                                        </li>))}
-                                </ul>
+                                <p className="text-base leading-relaxed text-slate-200">
+                                    {activeTerm.whatEs || activeTerm.what}
+                                </p>
                             </div>
                         </div>
 
@@ -1103,170 +1121,52 @@ export default function DiccionarioDevApp() {
                             />
                         </div>
 
-                        {/* 4. Reglas importantes */}
-                        <div className="rounded-2xl border border-slate-800 bg-slate-900/50 p-5 space-y-3">
-                            <div className="flex items-center gap-2 text-emerald-400">
-                                <ThumbsUp className="h-5 w-5" />
-                                <h3 className="font-bold uppercase tracking-wide text-xs">4. Reglas importantes</h3>
-                            </div>
-                            <ul className="space-y-2 text-sm text-slate-200">
-                                {getRulesList(activeTerm, displayLanguage).map((rule, idx) => (
-                                    <li key={idx}>{rule}</li>
-                                ))}
-                            </ul>
-                        </div>
-
-                        {/* 5. Ejemplo clásico profesional */}
-                        {activeVariant?.snippet && (
-                            <div className="space-y-2">
-                                <div className="flex items-center gap-2">
-                                    <Code2 className="h-4 w-4 text-blue-400" />
-                                    <span className="text-xs font-bold text-slate-400 uppercase">5. Ejemplo profesional — {activeVariant.language}</span>
-                                </div>
-                                <CodeBlock code={activeVariant.snippet} language={activeVariant.language} />
-                            </div>
-                        )}
-
-                        {/* 6. Ejemplo de estructura (objetos/arrays) */}
-                        {primaryExample ? (
-                            <div className="rounded-2xl border border-emerald-500/20 bg-emerald-500/5 p-5 space-y-3">
+                        {/* 4. Reglas importantes - Solo si hay ejemplos */}
+                        {activeTerm.examples && Array.isArray(activeTerm.examples) && activeTerm.examples.length > 0 && (
+                            <div className="rounded-2xl border border-slate-800 bg-slate-900/50 p-5 space-y-3">
                                 <div className="flex items-center gap-2 text-emerald-400">
-                                    <Split className="h-5 w-5" />
-                                    <h3 className="font-bold uppercase tracking-wide text-xs">6. Ejemplo de estructura</h3>
+                                    <ThumbsUp className="h-5 w-5" />
+                                    <h3 className="font-bold uppercase tracking-wide text-xs">4. Reglas importantes</h3>
                                 </div>
-                                <div className="grid gap-3 md:grid-cols-2 text-sm text-slate-200">
-                                    <div className="space-y-2">
-                                        <p className="font-semibold">Caso de uso</p>
-                                        <CodeBlock
-                                            code={primaryExample.code}
-                                            language={displayLanguage}
-                                        />
-                                    </div>
-                                    <div className="space-y-2">
-                                        <p className="font-semibold">Nota / recomendación</p>
-                                        <p>{primaryExample.noteEs || primaryExample.noteEn || "Asegura inmutabilidad o flujo correcto según aplique al concepto."}</p>
-                                    </div>
-                                </div>
-                            </div>
-                        ) : null}
-
-                        {/* 7. Inicialización / setup */}
-                        <div className="rounded-2xl border border-slate-800 bg-slate-900/50 p-5 space-y-2 text-sm text-slate-200">
-                            <h3 className="font-bold uppercase tracking-wide text-xs text-emerald-400">7. Inicialización / setup</h3>
-                            <p>{getInitializationText(activeTerm, displayLanguage)}</p>
-                        </div>
-
-                        {/* 8. Reiniciar / recrear */}
-                        {showResetSection && (
-                            <div className="rounded-2xl border border-slate-800 bg-slate-900/50 p-5 space-y-2 text-sm text-slate-200">
-                                <h3 className="font-bold uppercase tracking-wide text-xs text-emerald-400">8. Reiniciar o recrear</h3>
-                                <p>{getResetDescription(activeTerm, displayLanguage)}</p>
-                                <CodeBlock
-                                    code={buildResetSnippet(activeTerm, displayLanguage)}
-                                    language={displayLanguage}
-                                    showLineNumbers={false}
-                                />
+                                <ul className="space-y-2 text-sm text-slate-200">
+                                    {Array.isArray(activeTerm.examples) && activeTerm.examples[0]?.rules ? 
+                                        (activeTerm.examples[0].rules as string[]).map((rule, idx) => (
+                                            <li key={idx} className="flex items-start gap-2">
+                                                <span className="mt-1 h-2 w-2 rounded-full bg-emerald-400"></span>
+                                                <span>{rule}</span>
+                                            </li>
+                                        ))
+                                        : getRulesList(activeTerm, displayLanguage).map((rule, idx) => (
+                                            <li key={idx} className="flex items-start gap-2">
+                                                <span className="mt-1 h-2 w-2 rounded-full bg-emerald-400"></span>
+                                                <span>{rule}</span>
+                                            </li>
+                                        ))
+                                    }
+                                </ul>
                             </div>
                         )}
 
-                        {/* 9. Almacenar funciones o callbacks */}
-                        {showCallbacksSection && (
-                            <div className="rounded-2xl border border-slate-800 bg-slate-900/50 p-5 space-y-2 text-sm text-slate-200">
-                                <h3 className="font-bold uppercase tracking-wide text-xs text-emerald-400">9. {isReactConcept ? "Almacenar funciones o callbacks" : "Aplicación segura / buenas prácticas"}</h3>
-                                <p>{getBestPracticesDescription(activeTerm, displayLanguage, isReactConcept)}</p>
-                                <CodeBlock
-                                    code={buildCallbackSnippet(activeTerm, displayLanguage, isReactConcept)}
-                                    language={displayLanguage}
-                                    showLineNumbers={!isReactConcept && displayLanguage !== "html"}
-                                />
-                            </div>
-                        )}
-
-                        {/* 10. Patrón avanzado */}
-                        <div className="rounded-2xl border border-slate-800 bg-slate-900/50 p-5 space-y-2 text-sm text-slate-200">
-                            <h3 className="font-bold uppercase tracking-wide text-xs text-emerald-400">10. Patrón avanzado</h3>
-                            <p>{getAdvancedPatternDescription(activeTerm, displayLanguage)}</p>
-                        </div>
-
-                        {/* 11. Errores comunes */}
-                        <div className="rounded-2xl border border-yellow-500/30 bg-yellow-500/5 p-5 space-y-3">
-                            <div className="flex items-center gap-2 text-yellow-400">
-                                <AlertCircle className="h-5 w-5" />
-                                <h3 className="font-bold uppercase tracking-wide text-xs">11. Errores comunes (y soluciones)</h3>
-                            </div>
-                            <ul className="space-y-2 text-sm text-slate-200">
-                                {(activeTerm.faqs || []).slice(0, 3).map((faq) => (
-                                    <li key={faq.id} className="flex flex-col gap-1">
-                                        <span className="font-semibold text-slate-100">{faq.questionEs}</span>
-                                        <span className="text-slate-300">{faq.answerEs}</span>
-                                    </li>
-                                ))}
-                                {!activeTerm.faqs?.length && (
-                                    <>
-                                        <li>Evita mutar estructuras u omitir pasos obligatorios del concepto.</li>
-                                        <li>No apliques la lógica en el lugar incorrecto del ciclo de vida.</li>
-                                        <li>Usa validaciones previas y control de dependencias.</li>
-                                    </>
-                                )}
-                            </ul>
-                        </div>
-
-                        {/* 12. Ejemplo completo */}
-                        {secondaryExample && (
-                            <div className="rounded-2xl border border-slate-800 bg-slate-900/40 p-5 space-y-3">
-                                <div className="flex items-center gap-2 text-emerald-300">
-                                    <BookOpen className="h-5 w-5" />
-                                    <h3 className="font-bold uppercase tracking-wide text-xs">12. Ejemplo completo</h3>
-                                </div>
-                                <CodeBlock
-                                    code={secondaryExample.code}
-                                    language={activeVariant?.language || "javascript"}
-                                />
-                                <p className="text-sm text-slate-300">{secondaryExample.noteEs || secondaryExample.noteEn || "Resume los puntos clave: configuración, buenas prácticas y manejo de casos reales."}</p>
-                            </div>
-                        )}
-
-                        {/* 13. Preguntas de entrevista */}
-                        <div className="rounded-2xl border border-slate-800 bg-slate-900/40 p-5 space-y-3">
-                            <div className="flex items-center gap-2 text-indigo-300">
-                                <MessageSquare className="h-5 w-5" />
-                                <h3 className="font-bold uppercase tracking-wide text-xs">13. Preguntas típicas de entrevistas</h3>
-                            </div>
-                            <ul className="space-y-2 text-sm text-slate-200">
-                                {getInterviewQuestions(activeTerm, displayLanguage).map((item, idx) => (
-                                    <li key={idx}>❓ {item.q} → {item.a}</li>
-                                ))}
-                            </ul>
-                        </div>
-
-                        {/* 14. Resumen profesional */}
-                        <div className="rounded-2xl border border-slate-800 bg-slate-900/60 p-5 space-y-3">
-                            <div className="flex items-center gap-2 text-emerald-300">
-                                <History className="h-5 w-5" />
-                                <h3 className="font-bold uppercase tracking-wide text-xs">14. Resumen profesional</h3>
-                            </div>
-                            <div className="grid md:grid-cols-2 gap-3 text-sm text-slate-200">
-                                {(() => {
-                                    const summary = getSummaryData(activeTerm, displayLanguage);
+                        {/* Mostrar ejemplos adicionales de BD */}
+                        {activeTerm.examples && activeTerm.examples.length > 1 && (
+                            <div className="space-y-4">
+                                {(activeTerm.examples as unknown[]).slice(1).map((ex, idx) => {
+                                    const example = typeof ex === 'string' ? { code: ex } : ex;
                                     return (
-                                        <>
-                                            <div className="space-y-1">
-                                                <p><strong>Qué es</strong>: {summary.what}</p>
-                                                <p><strong>Qué devuelve/aporta</strong>: {summary.returns}</p>
-                                                <p><strong>Inicialización</strong>: {summary.init}</p>
-                                                <p><strong>Actualización</strong>: {summary.update}</p>
-                                            </div>
-                                            <div className="space-y-1">
-                                                <p><strong>Reglas</strong>: {summary.rules}</p>
-                                                <p><strong>Objetos/arrays</strong>: {summary.objects}</p>
-                                                <p><strong>Render/ejecución</strong>: {summary.render}</p>
-                                                <p><strong>Errores típicos</strong>: {summary.errors}</p>
-                                            </div>
-                                        </>
+                                        <div key={idx} className="rounded-2xl border border-slate-800 bg-slate-900/40 p-5 space-y-2">
+                                            <h3 className="font-bold uppercase tracking-wide text-xs text-emerald-400">
+                                                Ejemplo {idx + 2}
+                                            </h3>
+                                            <CodeBlock
+                                                code={(example as any)?.code || String(example)}
+                                                language={displayLanguage}
+                                                showLineNumbers={true}
+                                            />
+                                        </div>
                                     );
-                                })()}
+                                })}
                             </div>
-                        </div>
+                        )}
 
                         {relatedTerms.length > 0 && (
                             <div className="pt-8 border-t border-slate-800">

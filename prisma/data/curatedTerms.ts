@@ -6,91 +6,80 @@ export const curatedTerms: SeedTermInput[] = [
     term: "fetch",
     translation: "traer datos del servidor",
     category: Category.frontend,
-    descriptionEs: "API nativa del navegador para hacer solicitudes HTTP con promesas.",
-    descriptionEn: "Native browser API to perform HTTP requests returning promises.",
-    aliases: ["fetch API", "window.fetch"],
-    tags: ["http", "api", "promises"],
+    descriptionEs: "API nativa del navegador para hacer solicitudes HTTP asincrónicas basadas en promesas.",
+    descriptionEn: "Native browser API for asynchronous HTTP requests that returns promises.",
+    aliases: ["fetch API", "window.fetch", "native fetch"],
+    tags: ["http", "api", "promises", "abortcontroller"],
     example: {
-      titleEs: "Traer publicaciones",
-      titleEn: "Fetch posts",
-      code: `// Declaramos una función asíncrona llamada loadPosts.
-// Las funciones asíncronas permiten usar "await" para esperar respuestas de promesas.
-async function loadPosts() {
+      titleEs: "GET con verificación de estado",
+      titleEn: "GET with status check",
+      code: `async function loadPosts() {
+  const res = await fetch("/api/posts", { cache: "no-store" });
 
-  // Hacemos una petición HTTP a la ruta "/api/posts".
-  // "await" pausa la ejecución hasta que la respuesta llegue.
-  const response = await fetch("/api/posts");
+  if (!res.ok) throw new Error(\`HTTP \${res.status} \${res.statusText}\`);
 
-  // Verificamos si la respuesta NO fue exitosa.
-  // "response.ok" es true cuando el código HTTP es 200–299.
-  // Si no es exitosa, lanzamos un error para detener el flujo.
-  if (!response.ok) throw new Error("Error al cargar");
-
-  // Convertimos la respuesta a formato JSON.
-  // Esto también es una operación asíncrona que devuelve una promesa.
-  return response.json();
+  return res.json();
 }`,
-      noteEs: "Controlas estados pending/success/error con promesas.",
-      noteEn: "You manage pending/success/error states with promises.",
+      noteEs: "Siempre valida res.ok y devuelve JSON parseado.",
+      noteEn: "Always check res.ok and parse JSON before using it.",
     },
     secondExample: {
-      titleEs: "Fetch con Async/Await y Headers",
-      titleEn: "Fetch with Async/Await and Headers",
-      code: `async function postData(url = "", data = {}) {
-  const response = await fetch(url, {
-    method: "POST", 
-    headers: {
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify(data), 
-  });
-  return response.json(); 
-}`,
-      noteEs: "Ejemplo común para enviar datos JSON.",
-      noteEn: "Common pattern for sending JSON data.",
-    },
-    exerciseExample: {
-      titleEs: "Crear publicación con manejo de errores",
-      titleEn: "Create post with error handling",
-      code: `// Función para crear una nueva publicación en el servidor
-async function createPost(title, content) {
-  
+      titleEs: "Timeout y cancelación con AbortController",
+      titleEn: "Timeout and cancel with AbortController",
+      code: `async function fetchWithTimeout(url, timeoutMs = 8000) {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), timeoutMs);
+
   try {
-    // Hacemos una petición POST con datos en el body
-    // Configuramos headers para indicar que enviamos JSON
-    const response = await fetch("/api/posts", {
-      method: "POST", // Método HTTP para crear recursos
-      headers: {
-        "Content-Type": "application/json", // Tipo de contenido
-      },
-      // Convertimos el objeto JavaScript a string JSON
-      body: JSON.stringify({ title, content }),
-    });
+    const res = await fetch(url, { signal: controller.signal });
+    if (!res.ok) throw new Error(\`HTTP \${res.status}\`);
 
-    // Verificamos si hubo error en la respuesta
-    if (!response.ok) {
-      // Intentamos obtener el mensaje de error del servidor
-      const error = await response.json();
-      throw new Error(error.message || "Error al crear");
-    }
-
-    // Si todo salió bien, retornamos la publicación creada
-    const newPost = await response.json();
-    return newPost;
-    
-  } catch (error) {
-    // Capturamos errores de red o del servidor
-    console.error("Error:", error.message);
-    throw error; // Re-lanzamos para que el llamador lo maneje
+    const text = await res.text();
+    return text ? JSON.parse(text) : null;
+  } finally {
+    clearTimeout(timer);
   }
 }`,
-      noteEs: "Maneja errores de red y del servidor de forma robusta.",
-      noteEn: "Handles both network and server errors robustly.",
+      noteEs: "Evita fetch colgados, maneja respuestas vacías y permite cancelar.",
+      noteEn: "Prevents hanging requests, handles empty bodies, and supports cancelation.",
     },
-    whatEs: "Nos ayuda a comunicarnos con APIs REST o GraphQL sin depender de librerías externas.",
-    whatEn: "It lets you talk to REST or GraphQL APIs without extra libraries.",
-    howEs: "Usa await fetch(url, { method, headers, body }) y maneja los posibles errores con try/catch.",
-    howEn: "Call await fetch(url, { method, headers, body }) and wrap it with try/catch for error handling.",
+    exerciseExample: {
+      titleEs: "POST JSON con reintento básico",
+      titleEn: "JSON POST with basic retry",
+      code: `async function postJson(url, payload, retries = 1) {
+  let lastError;
+
+  for (let attempt = 0; attempt <= retries; attempt++) {
+    try {
+      const res = await fetch(url, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+
+      if (!res.ok) {
+        const message = await res.text();
+        throw new Error(\`HTTP \${res.status}: \${message || res.statusText}\`);
+      }
+
+      const text = await res.text();
+      return text ? JSON.parse(text) : null;
+    } catch (error) {
+      lastError = error;
+      if (attempt === retries) throw error;
+      await new Promise((resolve) => setTimeout(resolve, 500 * (attempt + 1)));
+    }
+  }
+
+  throw lastError;
+}`,
+      noteEs: "Diferencia errores HTTP de fallos de red y agrega reintentos con backoff corto.",
+      noteEn: "Separates HTTP errors from network failures and adds short backoff retries.",
+    },
+    whatEs: "Consumir APIs REST o GraphQL y enviar/recibir JSON sin dependencias externas.",
+    whatEn: "Consume REST/GraphQL APIs and send/receive JSON without extra dependencies.",
+    howEs: "Usa fetch(url, { method, headers, body, signal }) con AbortController para timeouts, valida res.ok y maneja cuerpos vacíos o no-JSON.",
+    howEn: "Use fetch(url, { method, headers, body, signal }) with AbortController for timeouts, check res.ok, and handle empty or non-JSON bodies.",
   },
   {
     term: "useEffect",
