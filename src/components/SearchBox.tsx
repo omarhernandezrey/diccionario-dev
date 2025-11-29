@@ -568,38 +568,74 @@ function ResultPreview({ term, activeContext, variant }: { term: TermDTO; active
         />
       </div>
 
-      {/* Content Grid */}
-      <div className="mt-6 grid gap-6 lg:grid-cols-2">
-        {/* Meanings */}
-        {[{ label: 'Significado (ES)', value: meaningEs }, { label: 'Meaning (EN)', value: meaningEn }].map((block) => (
-          <div key={block.label} className="py-2">
-            <p className="text-xs font-bold uppercase tracking-widest text-neo-primary mb-2">{block.label}</p>
-            <p className="text-lg leading-relaxed text-neo-text-primary">{block.value}</p>
+      {/* Definition + Code Side by Side */}
+      <div className="mt-6 grid gap-6 md:gap-8 md:grid-cols-[1fr_1fr]">
+        {/* Left: Definition & What */}
+        <div className="space-y-6">
+          {/* Meanings */}
+          <div>
+            <div className="flex items-center gap-2 mb-3">
+              <span className="h-1.5 w-4 rounded-full bg-neo-primary flex-shrink-0"></span>
+              <p className="text-xs font-bold uppercase tracking-widest text-neo-primary">1. DEFINICIÓN</p>
+            </div>
+            <div className="space-y-3">
+              {[{ label: 'ES', value: meaningEs }, { label: 'EN', value: meaningEn }].map((block) => (
+                <div key={block.label}>
+                  <span className="text-xs text-neo-text-secondary font-medium mb-1 block">{block.label}</span>
+                  <p className="text-sm leading-relaxed text-neo-text-primary break-words">{block.value}</p>
+                </div>
+              ))}
+            </div>
           </div>
-        ))}
+
+          {/* What it solves */}
+          <div>
+            <div className="flex items-center gap-2 mb-3">
+              <span className="h-1.5 w-4 rounded-full bg-neo-primary flex-shrink-0"></span>
+              <p className="text-xs font-bold uppercase tracking-widest text-neo-primary">2. PROPÓSITO</p>
+            </div>
+            <div className="space-y-3">
+              {[{ label: 'ES', value: whatEs }, { label: 'EN', value: whatEn }].map((block) => (
+                <div key={block.label}>
+                  <span className="text-xs text-neo-text-secondary font-medium mb-1 block">{block.label}</span>
+                  <p className="text-sm leading-relaxed text-neo-text-primary break-words">{block.value}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+
+        {/* Right: Code Snippet Only */}
+        <div>
+          <div className="flex items-center gap-2 mb-3">
+            <span className="h-1.5 w-4 rounded-full bg-neo-primary flex-shrink-0"></span>
+            <p className="text-xs font-bold uppercase tracking-widest text-neo-primary">3. CÓDIGO</p>
+          </div>
+          <SelectorPanel
+            variantOptions={variantOptions}
+            variantLang={variantLang}
+            onVariantChange={setVariantLang}
+            activeVariant={activeVariant}
+            snippetLabel={snippetLabel}
+            snippetCode={snippetCode}
+          />
+        </div>
       </div>
 
-      {/* What it solves */}
-      <div className="mt-6 grid gap-6 lg:grid-cols-2">
-        {[{ label: `${t('terms.what')} (ES)`, value: whatEs }, { label: `${t('terms.what')} (EN)`, value: whatEn }].map((block) => (
-          <div key={block.label} className="py-2">
-            <p className="text-xs font-bold uppercase tracking-widest text-neo-primary mb-2">{block.label}</p>
-            <p className="text-lg leading-relaxed text-neo-text-primary">{block.value}</p>
+      {/* Preview Below - Full Width */}
+      {activeVariant ? (
+        <div className="mt-10">
+          <div className="flex items-center gap-2 mb-4">
+            <span className="h-1.5 w-4 rounded-full bg-neo-primary flex-shrink-0"></span>
+            <p className="text-xs font-bold uppercase tracking-widest text-neo-primary">4. PREVIEW</p>
           </div>
-        ))}
-      </div>
-
-      {/* Code Snippet */}
-      <div className="mt-6">
-        <SelectorPanel
-          variantOptions={variantOptions}
-          variantLang={variantLang}
-          onVariantChange={setVariantLang}
-          activeVariant={activeVariant}
-          snippetLabel={snippetLabel}
-          snippetCode={snippetCode}
-        />
-      </div>
+          <StyleAwareCode 
+            term={term} 
+            snippet={activeVariant.snippet || snippetCode} 
+            language={activeVariant.language || 'css'}
+          />
+        </div>
+      ) : null}
 
       {/* Examples */}
       {term.examples?.length ? (
@@ -1056,7 +1092,7 @@ function CodeBlock({ code, label, language = "tsx" }: { code: string; label?: st
   const normalized = (code ?? "").trimEnd().replace(/\r\n/g, "\n") || "// Sin código";
   return (
     <div className="overflow-hidden rounded-xl border border-neo-border/40 bg-[#0d1117] my-4 group transition-all hover:border-neo-primary/30">
-      <div className="flex items-center justify-between gap-2 border-b border-neo-border/10 bg-white/5 px-3 py-2 md:px-4 md:py-2.5 text-xs text-neo-text-secondary">
+      <div className="flex items-center justify-between gap-2 border-b border-neo-border/10 bg-white/5 px-3 py-2.5 md:px-5 md:py-3 text-xs md:text-sm text-neo-text-secondary">
         <div className="flex items-center gap-3">
           <span className="flex gap-1.5 opacity-50 group-hover:opacity-100 transition-opacity">
             <span className="h-2.5 w-2.5 rounded-full bg-[#ff5f56]" />
@@ -1072,27 +1108,32 @@ function CodeBlock({ code, label, language = "tsx" }: { code: string; label?: st
         style={dracula}
         customStyle={{
           borderRadius: 0,
-          maxHeight: "24rem",
+          maxHeight: "32rem",
           overflow: "auto",
           backgroundColor: "transparent",
           margin: 0,
-          whiteSpace: "pre", // Force no wrap
+          whiteSpace: "pre-wrap",
+          wordWrap: "break-word",
+          paddingRight: "1rem",
         }}
         codeTagProps={{
           style: {
-            whiteSpace: "pre",
+            whiteSpace: "pre-wrap",
+            wordBreak: "break-word",
             fontFamily: '"JetBrains Mono", monospace',
           },
         }}
         lineNumberStyle={{
-          minWidth: "2em",
-          paddingRight: "0.5em",
+          minWidth: "2.5em",
+          paddingRight: "1em",
+          paddingLeft: "0.5em",
           textAlign: "right",
-          color: "rgba(255,255,255,0.3)",
+          color: "rgba(255,255,255,0.4)",
           userSelect: "none",
+          flexShrink: 0,
         }}
         showLineNumbers
-        className="scroll-silent !p-2 md:!p-6 !text-[9px] md:!text-[13px] !leading-[1.3] md:!leading-relaxed tracking-tight"
+        className="scroll-silent !p-3 md:!p-6 lg:!p-8 !text-xs md:!text-sm lg:!text-base !leading-relaxed md:!leading-loose tracking-tight [&_pre]:!bg-transparent"
       >
         {normalized}
       </SyntaxHighlighter>

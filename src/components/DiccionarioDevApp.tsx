@@ -26,7 +26,8 @@ import {
     X,
     FileJson,
     ThumbsUp,
-    Rocket
+    Rocket,
+    Eye
 } from "lucide-react";
 import { Prism as SyntaxHighlighter } from "react-syntax-highlighter";
 import { dracula } from "react-syntax-highlighter/dist/cjs/styles/prism";
@@ -98,6 +99,13 @@ function CodeBlock({ code, language = "javascript", showLineNumbers = true }: { 
     );
 }
 
+function StyleAwareCode({ term, snippet, language, showLineNumbers = true }: { term: TermDTO; snippet: string; language: string; showLineNumbers?: boolean }) {
+    if (isCssTerm(term, language)) {
+        return <TailwindStylePreview term={term} snippet={snippet} />;
+    }
+    return <CodeBlock code={snippet} language={language} showLineNumbers={showLineNumbers} />;
+}
+
 // Sanitiza snippets para evitar tags peligrosos en el preview
 function sanitizeSnippet(snippet: string) {
     return snippet.replace(/<script[\s\S]*?>[\s\S]*?<\/script>/gi, "").trim();
@@ -133,29 +141,96 @@ function buildVisualPreview(snippet: string, scopeId: string, termLabel: string)
     }
 
     const scopedCss = scopeCssToPreview(sanitized, scopeId);
+    const classMatches = Array.from(new Set(Array.from(sanitized.matchAll(/\.([a-zA-Z0-9_-]+)\s*[{,]/g)).map((m) => m[1]))).slice(0, 6);
+    const tagMatches = Array.from(new Set(Array.from(sanitized.matchAll(/^\s*([a-z][a-z0-9-]*)\s*[{]/gim)).map((m) => m[1]))).slice(0, 3);
+    const selectorsForPreview = classMatches.length ? classMatches : tagMatches;
 
     const baseCss = `
 .${scopeId} {
-  display: flex;
-  gap: 14px;
-  align-items: center;
-  justify-content: space-between;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 16px;
   padding: 18px;
-  flex-wrap: wrap;
-  background: radial-gradient(circle at 12% 20%, rgba(16,185,129,0.12), transparent 32%), radial-gradient(circle at 82% 8%, rgba(59,130,246,0.15), transparent 30%), #0f172a;
-  border-radius: 16px;
+  background: radial-gradient(circle at 12% 20%, rgba(16,185,129,0.14), transparent 32%), radial-gradient(circle at 82% 8%, rgba(59,130,246,0.16), transparent 30%), #0f172a;
+  border-radius: 18px;
   border: 1px solid rgba(148,163,184,0.22);
-  box-shadow: 0 18px 60px rgba(15,23,42,0.45);
+  box-shadow: 0 18px 60px rgba(15,23,42,0.45), inset 0 1px 0 rgba(255,255,255,0.04);
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
 }
+.${scopeId}::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background-image: linear-gradient(90deg, rgba(255,255,255,0.03) 1px, transparent 1px), linear-gradient(0deg, rgba(255,255,255,0.03) 1px, transparent 1px);
+  background-size: 40px 40px;
+  opacity: 0.5;
+  pointer-events: none;
+  z-index: 0;
+}
+.${scopeId} .preview-card,
 .${scopeId} .preview-chip {
-  background: rgba(255,255,255,0.04);
+  position: relative;
+  z-index: 1;
+  background: rgba(255,255,255,0.03);
   border: 1px solid rgba(148,163,184,0.25);
   color: #e2e8f0;
+  border-radius: 14px;
+  box-shadow: 0 10px 35px rgba(15,23,42,0.55);
+}
+.${scopeId} .preview-card {
+  padding: 16px;
+  min-height: 140px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  background: linear-gradient(135deg, rgba(59,130,246,0.08), rgba(16,185,129,0.08));
+}
+.${scopeId} .preview-card h4 {
+  font-size: 1.05rem;
+  margin: 0 0 6px;
+  letter-spacing: 0.01em;
+}
+.${scopeId} .preview-card p {
+  margin: 0;
+  color: rgba(226,232,240,0.8);
+  font-size: 0.95rem;
+  line-height: 1.5;
+}
+.${scopeId} .preview-card .cta {
+  margin-top: 10px;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
   padding: 10px 14px;
   border-radius: 12px;
-  font-size: 0.9rem;
+  font-weight: 700;
   letter-spacing: 0.01em;
-  box-shadow: 0 10px 35px rgba(15,23,42,0.55);
+  background: linear-gradient(135deg, #22d3ee, #16a34a);
+  color: #0b1020;
+  border: 1px solid rgba(34,211,238,0.4);
+  box-shadow: 0 10px 30px rgba(34,211,238,0.25);
+}
+.${scopeId} .preview-chip {
+  padding: 12px 14px;
+  font-size: 0.95rem;
+  letter-spacing: 0.01em;
+}
+.${scopeId} .demo-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 8px;
+}
+.${scopeId} .demo-item {
+  padding: 10px 12px;
+  border-radius: 12px;
+  background: rgba(255,255,255,0.04);
+  border: 1px solid rgba(148,163,184,0.2);
+  color: #e2e8f0;
+  font-size: 0.9rem;
+  text-transform: none;
 }
 .${scopeId} .preview-chip:nth-child(2) {
   background: linear-gradient(135deg, rgba(6,182,212,0.12), rgba(16,185,129,0.12));
@@ -167,11 +242,24 @@ function buildVisualPreview(snippet: string, scopeId: string, termLabel: string)
 }
 `;
 
+    const previewItems = selectorsForPreview.length
+        ? selectorsForPreview.map((sel, idx) => `<div class="preview-chip ${sel}">.${sel} ${idx === 0 ? "(container)" : ""}</div>`).join("\n")
+        : `<div class="preview-chip">Visual</div><div class="preview-chip">Responsive</div>`;
+
     const previewHtml = `<style>${baseCss}${scopedCss}</style>
 <div class="${scopeId}">
-  <div class="preview-chip">Layout vivo</div>
-  <div class="preview-chip">${termLabel}</div>
-  <div class="preview-chip">Responsive</div>
+  <div class="preview-card">
+    <div>
+      <p style="color: rgba(148,163,184,0.9); font-size: 12px; letter-spacing: 0.1em; text-transform: uppercase; margin: 0 0 8px;">Vista de estilo</p>
+      <h4>${termLabel}</h4>
+      <p>Visualiza el efecto aplicado sobre un layout responsivo.</p>
+    </div>
+    <div class="demo-grid">
+      ${selectorsForPreview.map((sel) => `<div class="demo-item ${sel}">.${sel}</div>`).join("") || '<div class="demo-item">Demo</div>'}
+    </div>
+    <button class="cta">Acción</button>
+  </div>
+  ${previewItems}
 </div>`;
 
     return {
@@ -499,7 +587,10 @@ function GeminiLoader({ term }: { term: string }) {
 
 function TailwindStylePreview({ term, snippet }: { term: TermDTO; snippet: string }) {
     const [copied, setCopied] = useState(false);
-    const scopeId = useMemo(() => `tw-preview-${term.id}`, [term.id]);
+    const scopeId = useMemo(() => {
+        const hash = Math.abs([...snippet].reduce((acc, ch) => acc + ch.charCodeAt(0) * 17, term.id || 1));
+        return `tw-preview-${term.id}-${hash.toString(16)}`;
+    }, [snippet, term.id]);
     const { previewHtml, language, codeForDisplay } = useMemo(
         () => buildVisualPreview(snippet, scopeId, term.term),
         [snippet, scopeId, term.term]
@@ -512,11 +603,20 @@ function TailwindStylePreview({ term, snippet }: { term: TermDTO; snippet: strin
     };
 
     return (
-        <section className="rounded-3xl border border-slate-800 bg-slate-900/70 shadow-[0_20px_70px_rgba(0,0,0,0.35)] overflow-hidden">
-            <div className="flex items-center justify-between px-6 py-4 border-b border-slate-800 bg-gradient-to-r from-slate-900/90 to-slate-950/90">
-                <div>
-                    <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-emerald-300/80">Preview estilo Tailwind</p>
-                    <p className="text-sm text-slate-300">Código y vista en vivo lado a lado</p>
+        <section className="rounded-3xl border border-slate-800 bg-gradient-to-br from-slate-950 via-slate-950/70 to-slate-900 shadow-[0_30px_90px_rgba(0,0,0,0.45)] overflow-hidden">
+            <div className="flex flex-wrap items-center gap-3 justify-between px-6 py-4 border-b border-slate-800 bg-gradient-to-r from-slate-950 to-slate-900">
+                <div className="flex items-center gap-3">
+                    <div className="h-10 w-10 rounded-2xl bg-gradient-to-br from-emerald-500/30 via-cyan-400/20 to-blue-500/20 border border-emerald-500/30 flex items-center justify-center shadow-[0_10px_30px_rgba(16,185,129,0.25)]">
+                        <Code2 className="h-5 w-5 text-emerald-200" />
+                    </div>
+                    <div>
+                        <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-emerald-300/80">Preview estilo Tailwind</p>
+                        <p className="text-sm text-slate-300">Código y vista en vivo lado a lado</p>
+                        <div className="mt-1 flex gap-2 text-[11px] text-slate-400">
+                            <span className="inline-flex items-center gap-1 rounded-full bg-slate-800/60 px-2 py-1 border border-slate-700">Live</span>
+                            <span className="inline-flex items-center gap-1 rounded-full bg-slate-800/60 px-2 py-1 border border-slate-700">{language === "html" ? "HTML" : "CSS"}</span>
+                        </div>
+                    </div>
                 </div>
                 <button
                     onClick={handleCopy}
@@ -527,13 +627,26 @@ function TailwindStylePreview({ term, snippet }: { term: TermDTO; snippet: strin
                 </button>
             </div>
 
-            <div className="grid md:grid-cols-2">
-                <div className="border-b md:border-b-0 md:border-r border-slate-800 bg-[#0c1424]">
-                    <div className="px-6 pt-5 pb-2 text-[11px] font-semibold uppercase tracking-[0.08em] text-slate-400">
-                        Código
+            <div className="grid gap-0 md:grid-cols-2 lg:grid-cols-[minmax(0,1.05fr)_minmax(0,0.95fr)]">
+                <div className="border-b md:border-b-0 md:border-r border-slate-800 bg-[#0c1424] bg-opacity-90">
+                    <div className="px-6 pt-5 pb-2 flex items-center justify-between">
+                        <div className="text-[11px] font-semibold uppercase tracking-[0.08em] text-slate-400">
+                            Código
+                        </div>
+                        <div className="flex items-center gap-1 text-[10px] text-slate-500">
+                            <span className="h-2 w-2 rounded-full bg-emerald-400 animate-pulse" /> Auto-actualiza
+                        </div>
                     </div>
                     <div className="px-4 pb-4">
                         <div className="rounded-2xl border border-slate-800 bg-[#0f192d] shadow-inner max-h-[420px] overflow-auto">
+                            <div className="flex items-center gap-1 px-3 py-2 border-b border-slate-800 bg-[#0b1526]">
+                                <span className="flex items-center gap-1">
+                                    <span className="h-3 w-3 rounded-full bg-red-500/80" />
+                                    <span className="h-3 w-3 rounded-full bg-amber-400/80" />
+                                    <span className="h-3 w-3 rounded-full bg-emerald-500/80" />
+                                </span>
+                                <span className="ml-2 text-[11px] uppercase tracking-[0.08em] text-slate-400">Snippet</span>
+                            </div>
                             <CodeBlock code={codeForDisplay} language={language === "html" ? "html" : "css"} />
                         </div>
                     </div>
@@ -542,13 +655,20 @@ function TailwindStylePreview({ term, snippet }: { term: TermDTO; snippet: strin
                 <div className="relative bg-slate-950">
                     <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_20%_30%,rgba(16,185,129,0.15),transparent_30%),radial-gradient(circle_at_80%_10%,rgba(14,165,233,0.14),transparent_28%)]" />
                     <div className="relative p-6">
-                        <div className="text-[11px] font-semibold uppercase tracking-[0.08em] text-slate-400">
-                            Preview en vivo
+                        <div className="flex items-center justify-between">
+                            <div className="text-[11px] font-semibold uppercase tracking-[0.08em] text-slate-400">
+                                Preview en vivo
+                            </div>
+                            <div className="flex items-center gap-2 text-[11px] text-slate-400">
+                                <span className="rounded-full bg-emerald-500/15 px-2 py-1 border border-emerald-500/30 text-emerald-200">Docs-like</span>
+                                <span className="rounded-full bg-slate-800/70 px-2 py-1 border border-slate-700">Responsive</span>
+                            </div>
                         </div>
-                        <div className="mt-3 rounded-2xl border border-slate-800 bg-slate-900/70 p-4 min-h-[240px] shadow-[0_15px_40px_rgba(0,0,0,0.35)]">
-                            <div className="rounded-xl bg-slate-950/60 border border-slate-800 p-4 overflow-hidden">
-                                <div className="text-[11px] text-slate-500 uppercase font-semibold mb-3">Aplicando clases y estilos</div>
-                                <div className="min-h-[140px] overflow-hidden" dangerouslySetInnerHTML={{ __html: previewHtml }} />
+                        <div className="mt-3 rounded-2xl border border-slate-800 bg-slate-900/70 p-4 min-h-[260px] shadow-[0_15px_40px_rgba(0,0,0,0.35)]">
+                            <div className="rounded-xl bg-slate-950/60 border border-slate-800 p-4 overflow-hidden relative">
+                                <div className="absolute inset-0 opacity-40 pointer-events-none bg-[radial-gradient(circle_at_20%_20%,rgba(14,165,233,0.08),transparent_35%),radial-gradient(circle_at_80%_10%,rgba(168,85,247,0.08),transparent_32%)]" />
+                                <div className="relative text-[11px] text-slate-500 uppercase font-semibold mb-3">Aplicando clases y estilos</div>
+                                <div className="relative min-h-[180px] overflow-hidden" dangerouslySetInnerHTML={{ __html: previewHtml }} />
                             </div>
                         </div>
                     </div>
@@ -853,6 +973,7 @@ export default function DiccionarioDevApp() {
     const primaryExample = activeTerm?.examples?.[0];
     const activeVariant = activeTerm?.variants?.[0];
     const displayLanguage = getDisplayLanguage(activeTerm, activeVariant);
+    const isCssActive = activeTerm ? isCssTerm(activeTerm, displayLanguage) : false;
     if (!mounted) {
         return null;
     }
@@ -939,7 +1060,7 @@ export default function DiccionarioDevApp() {
 
             {/* --- Header Sticky --- */}
             <header className="sticky top-0 z-50 border-b border-slate-800 bg-slate-950/80 backdrop-blur-md">
-                <div className="mx-auto max-w-5xl px-4 py-4">
+                <div className="mx-auto max-w-7xl px-4 py-4">
                     <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
                         {/* Logo & Title */}
                         <div className="flex items-center gap-3 cursor-pointer group" onClick={() => { setSearchTerm(""); setActiveTerm(null); }}>
@@ -1174,7 +1295,7 @@ export default function DiccionarioDevApp() {
             </header>
 
             {/* --- Main Content --- */}
-            <main className="mx-auto max-w-5xl px-4 py-8">
+            <main className="mx-auto w-full max-w-7xl px-4 lg:px-6 xl:px-8 py-8">
                 {activeTerm ? (
                     <div className="animate-in fade-in slide-in-from-bottom-4 duration-500 space-y-8">
                         <div className="rounded-2xl border border-slate-800 bg-slate-900/60 p-6 shadow-2xl">
@@ -1215,78 +1336,80 @@ export default function DiccionarioDevApp() {
                             </div>
                         </div>
 
-                        {/* 1. Definición */}
-                        <div className="grid gap-4 md:grid-cols-2">
-                            <div className="rounded-2xl border border-slate-800 bg-slate-900/50 p-5 backdrop-blur-sm flex flex-col gap-3">
-                                <div className="flex items-center gap-2 text-emerald-400">
-                                    <Brain className="h-5 w-5" />
-                                    <h3 className="font-bold uppercase tracking-wide text-xs">1. Definición</h3>
-                                </div>
+                        {/* SECCIÓN 1: DEFINICIÓN */}
+                        <div className="rounded-2xl border border-slate-800 bg-slate-900/50 p-6 space-y-4">
+                            <div className="flex items-center gap-2 text-emerald-400">
+                                <Brain className="h-5 w-5" />
+                                <h3 className="font-bold uppercase tracking-wide text-sm">1. Definición</h3>
+                            </div>
+                            <div className="space-y-2">
                                 <p className="text-base leading-relaxed text-slate-200">
                                     {activeTerm.meaningEs || activeTerm.meaning}
                                 </p>
-                                <CodeBlock
-                                    code={primaryExample?.code || activeVariant?.snippet || buildDefaultSnippet(activeTerm, displayLanguage, "definición")}
-                                    language={displayLanguage}
-                                />
-                                <p className="text-xs text-slate-500 italic">
+                                <p className="text-sm text-slate-400 italic">
                                     EN: {activeTerm.meaningEn || activeTerm.meaning}
                                 </p>
                             </div>
-
-                            {/* 2. Para qué sirve */}
-                            <div className="rounded-2xl border border-slate-800 bg-slate-900/50 p-5 backdrop-blur-sm flex flex-col gap-3">
-                                <div className="flex items-center gap-2 text-blue-400">
-                                    <Rocket className="h-5 w-5" />
-                                    <h3 className="font-bold uppercase tracking-wide text-xs">2. Para qué sirve</h3>
-                                </div>
-                                <p className="text-base leading-relaxed text-slate-200">
-                                    {activeTerm.whatEs || activeTerm.what}
-                                </p>
-                            </div>
                         </div>
 
-                        {/* 3. Cómo funciona */}
-                        <div className="rounded-2xl border border-amber-500/20 bg-gradient-to-br from-amber-500/5 to-transparent p-5 flex flex-col gap-3 relative overflow-hidden">
-                            <div className="absolute top-0 right-0 -mt-2 -mr-2 w-16 h-16 bg-amber-500/10 rounded-full blur-xl"></div>
-                            <div className="flex items-center gap-2 text-amber-400 relative z-10">
-                                <Lightbulb className="h-5 w-5" />
-                                <h3 className="font-bold uppercase tracking-wide text-xs">3. Cómo funciona</h3>
+                        {/* SECCIÓN 2: PARA QUÉ SIRVE */}
+                        <div className="rounded-2xl border border-slate-800 bg-slate-900/50 p-6 space-y-4">
+                            <div className="flex items-center gap-2 text-blue-400">
+                                <Rocket className="h-5 w-5" />
+                                <h3 className="font-bold uppercase tracking-wide text-sm">2. Para qué sirve</h3>
                             </div>
-                            <p className="text-base leading-relaxed text-slate-200 relative z-10">
-                                {activeTerm.howEs || activeTerm.how || "Sigue el flujo recomendado y aplica el patrón principal respetando su ciclo de vida."}
+                            <p className="text-base leading-relaxed text-slate-200">
+                                {activeTerm.whatEs || activeTerm.what}
                             </p>
-                            <CodeBlock
-                                code={primaryExample?.code || activeVariant?.snippet || buildDefaultSnippet(activeTerm, displayLanguage, "como-funciona")}
-                                language={displayLanguage}
-                            />
                         </div>
 
-                        {isCssTerm(activeTerm, displayLanguage) && (
-                            <TailwindStylePreview
-                                term={activeTerm}
-                                snippet={primaryExample?.code || activeVariant?.snippet || buildDefaultSnippet(activeTerm, displayLanguage, "preview")}
-                            />
+                        {/* SECCIÓN 3: PREVIEW EN VIVO (Solo para CSS) */}
+                        {isCssActive && (
+                            <div className="space-y-4">
+                                <h3 className="text-lg font-bold text-slate-100 flex items-center gap-2">
+                                    <Eye className="h-5 w-5 text-teal-400" />
+                                    3. Preview en vivo
+                                </h3>
+                                
+                                <div className="rounded-2xl border border-slate-800 bg-slate-950 p-6 overflow-hidden">
+                                    <StyleAwareCode
+                                        term={activeTerm}
+                                        snippet={primaryExample?.code || activeVariant?.snippet || buildDefaultSnippet(activeTerm, displayLanguage, "definición")}
+                                        language={displayLanguage}
+                                    />
+                                </div>
+                            </div>
                         )}
 
-                        {/* 4. Reglas importantes - Solo si hay ejemplos */}
+                        {/* SECCIÓN 4: CÓMO FUNCIONA */}
+                        <div className="rounded-2xl border border-amber-500/20 bg-gradient-to-br from-amber-500/5 to-transparent p-6 space-y-4">
+                            <div className="flex items-center gap-2 text-amber-400">
+                                <Lightbulb className="h-5 w-5" />
+                                <h3 className="font-bold uppercase tracking-wide text-sm">4. Cómo funciona</h3>
+                            </div>
+                            <p className="text-base leading-relaxed text-slate-200">
+                                {activeTerm.howEs || activeTerm.how || "Sigue el flujo recomendado y aplica el patrón principal respetando su ciclo de vida."}
+                            </p>
+                        </div>
+
+                        {/* SECCIÓN 5: REGLAS IMPORTANTES */}
                         {activeTerm.examples && Array.isArray(activeTerm.examples) && activeTerm.examples.length > 0 && (
-                            <div className="rounded-2xl border border-slate-800 bg-slate-900/50 p-5 space-y-3">
+                            <div className="rounded-2xl border border-slate-800 bg-slate-900/50 p-6 space-y-4">
                                 <div className="flex items-center gap-2 text-emerald-400">
                                     <ThumbsUp className="h-5 w-5" />
-                                    <h3 className="font-bold uppercase tracking-wide text-xs">4. Reglas importantes</h3>
+                                    <h3 className="font-bold uppercase tracking-wide text-sm">5. Reglas importantes</h3>
                                 </div>
-                                <ul className="space-y-2 text-sm text-slate-200">
+                                <ul className="space-y-3 text-sm text-slate-200">
                                     {Array.isArray(activeTerm.examples) && activeTerm.examples[0]?.rules ?
                                         (activeTerm.examples[0].rules as string[]).map((rule, idx) => (
-                                            <li key={idx} className="flex items-start gap-2">
-                                                <span className="mt-1 h-2 w-2 rounded-full bg-emerald-400"></span>
+                                            <li key={idx} className="flex items-start gap-3">
+                                                <span className="mt-1 h-2 w-2 rounded-full bg-emerald-400 flex-shrink-0"></span>
                                                 <span>{rule}</span>
                                             </li>
                                         ))
                                         : getRulesList(activeTerm, displayLanguage).map((rule, idx) => (
-                                            <li key={idx} className="flex items-start gap-2">
-                                                <span className="mt-1 h-2 w-2 rounded-full bg-emerald-400"></span>
+                                            <li key={idx} className="flex items-start gap-3">
+                                                <span className="mt-1 h-2 w-2 rounded-full bg-emerald-400 flex-shrink-0"></span>
                                                 <span>{rule}</span>
                                             </li>
                                         ))
@@ -1297,19 +1420,28 @@ export default function DiccionarioDevApp() {
 
                         {/* Mostrar ejemplos adicionales de BD */}
                         {activeTerm.examples && activeTerm.examples.length > 1 && (
-                            <div className="space-y-4">
+                            <div className="space-y-6">
+                                <h3 className="text-lg font-bold text-slate-100 flex items-center gap-2">
+                                    <Eye className="h-5 w-5 text-teal-400" />
+                                    Ejemplos Adicionales
+                                </h3>
+                                
                                 {(activeTerm.examples as unknown[]).slice(1).map((ex, idx) => {
                                     const example: TermExampleDTO = typeof ex === 'string' ? { code: ex } : (ex as TermExampleDTO);
                                     return (
-                                        <div key={idx} className="rounded-2xl border border-slate-800 bg-slate-900/40 p-5 space-y-2">
-                                            <h3 className="font-bold uppercase tracking-wide text-xs text-emerald-400">
-                                                Ejemplo {idx + 2}
-                                            </h3>
-                                            <CodeBlock
-                                                code={example.code || String(ex)}
-                                                language={displayLanguage}
-                                                showLineNumbers={true}
-                                            />
+                                        <div key={idx} className="space-y-3">
+                                            <h4 className="font-bold uppercase tracking-wide text-sm text-emerald-400">
+                                                Ejemplo {idx + 2}: {example.title || ''}
+                                            </h4>
+                                            
+                                            <div className="rounded-2xl border border-slate-800 bg-slate-950 p-6 overflow-hidden">
+                                                <StyleAwareCode
+                                                    term={activeTerm}
+                                                    snippet={example.code || String(ex)}
+                                                    language={displayLanguage}
+                                                    showLineNumbers={true}
+                                                />
+                                            </div>
                                         </div>
                                     );
                                 })}
