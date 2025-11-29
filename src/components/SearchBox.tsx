@@ -6,7 +6,7 @@ import { dracula } from "react-syntax-highlighter/dist/cjs/styles/prism";
 import { useI18n } from "@/lib/i18n";
 import type { TermDTO, TermVariantDTO, TermExampleDTO, TermExerciseDTO } from "@/types/term";
 import type { StructuralTranslationResult } from "@/types/translate";
-import { TbBriefcase, TbMicrophone, TbBug, TbBulb, TbListCheck, TbTarget } from "react-icons/tb";
+import { TbBriefcase, TbMicrophone, TbBug, TbBulb, TbListCheck, TbTarget, TbSparkles } from "react-icons/tb";
 
 type SearchBoxVariant = "dark" | "light";
 
@@ -295,21 +295,23 @@ export default function SearchBox({ variant = "dark" }: SearchBoxProps) {
             />
           ) : null}
         </div>
-        <div className="flex flex-wrap gap-2 text-sm" aria-label={t("search.quickFilters")}>
-          {quickTerms.map((term) => (
-            <button
-              key={term}
-              type="button"
-              className={`rounded-full border px-3 py-1 transition ${tone(
-                "border-neo-border bg-neo-surface text-neo-text-secondary hover:bg-white",
-                "border-neo-border bg-neo-surface text-neo-text-secondary hover:bg-neo-card hover:text-neo-text-primary",
-              )}`}
-              onClick={() => setSearch(term)}
-            >
-              #{term}
-            </button>
-          ))}
-        </div>
+        {status !== "loading" && (
+          <div className="flex flex-wrap gap-2 text-sm" aria-label={t("search.quickFilters")}>
+            {quickTerms.map((term) => (
+              <button
+                key={term}
+                type="button"
+                className={`rounded-full border px-3 py-1 transition ${tone(
+                  "border-neo-border bg-neo-surface text-neo-text-secondary hover:bg-white",
+                  "border-neo-border bg-neo-surface text-neo-text-secondary hover:bg-neo-card hover:text-neo-text-primary",
+                )}`}
+                onClick={() => setSearch(term)}
+              >
+                #{term}
+              </button>
+            ))}
+          </div>
+        )}
         {clipboardHint ? (
           <p className={`text-sm font-semibold ${tone("text-neo-text-primary", "text-accent-secondary")}`}>{clipboardHint}</p>
         ) : null}
@@ -371,7 +373,9 @@ export default function SearchBox({ variant = "dark" }: SearchBoxProps) {
             </header>
             <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
               {status === "loading" ? (
-                <SkeletonList />
+                <div className="col-span-full">
+                  <GeminiLoader term={debounced} variant={variant} />
+                </div>
               ) : items.length ? (
                 items.map((term) => {
                   const active = selected?.id === term.id;
@@ -1229,21 +1233,7 @@ function CopyButton({ code }: { code: string }) {
   );
 }
 
-function SkeletonList() {
-  return (
-    <ul className="space-y-3">
-      {Array.from({ length: 5 }).map((_, index) => (
-        <li key={index} className="animate-pulse rounded-2xl border border-white/5 bg-white/5 px-4 py-3">
-          <div className="flex items-center justify-between">
-            <span className="h-4 w-28 rounded-full bg-white/20" />
-            <span className="h-4 w-12 rounded-full bg-white/10" />
-          </div>
-          <div className="mt-2 h-3 w-32 rounded-full bg-white/10" />
-        </li>
-      ))}
-    </ul>
-  );
-}
+
 
 function detectInputMode(value: string): string {
   const trimmed = value.trim();
@@ -1265,6 +1255,57 @@ function shouldTriggerStructuralTranslation(value: string): boolean {
   if (/<[a-z][\s\S]*?>/i.test(trimmed)) return true;
   if (/\b(function|class|const|let|def)\b/i.test(trimmed)) return true;
   return false;
+}
+
+function GeminiLoader({ term, variant }: { term: string; variant: SearchBoxVariant }) {
+  const isLight = variant === "light";
+  const tone = (light: string, dark: string) => (isLight ? light : dark);
+
+  return (
+    <div className={`relative flex flex-col items-center justify-center overflow-hidden rounded-3xl border py-16 px-8 text-center backdrop-blur-xl transition-all duration-500 ${tone(
+      "border-neo-border/60 bg-white/60 shadow-xl shadow-neo-primary/5",
+      "border-white/10 bg-black/20 shadow-2xl shadow-black/20"
+    )}`}>
+      {/* Ambient Background Glow */}
+      <div className={`absolute inset-0 -z-10 bg-[radial-gradient(circle_at_center,_var(--tw-gradient-stops))] opacity-40 ${tone(
+        "from-neo-primary/10 via-transparent to-transparent",
+        "from-emerald-500/10 via-transparent to-transparent"
+      )}`} />
+
+      <div className="relative z-10 flex flex-col items-center gap-8">
+        {/* The Dots - Premium & Glowing */}
+        <div className="flex items-center gap-4">
+          {[0, 150, 300].map((delay) => (
+            <div
+              key={delay}
+              className={`h-4 w-4 rounded-full animate-bounce ${tone(
+                "bg-gradient-to-br from-neo-primary to-neo-accent-purple shadow-[0_0_15px_rgba(77,154,255,0.4)]",
+                "bg-gradient-to-br from-emerald-400 to-cyan-500 shadow-[0_0_20px_rgba(52,211,153,0.6)]"
+              )}`}
+              style={{ animationDelay: `${delay}ms`, animationDuration: '1s' }}
+            />
+          ))}
+        </div>
+
+        {/* The Text - Modern & Clean */}
+        <div className="space-y-3">
+          <p className={`text-xl font-medium tracking-tight ${tone("text-neo-text-primary", "text-white/90")}`}>
+            Buscando <span className={`font-bold text-transparent bg-clip-text ${tone(
+              "bg-gradient-to-r from-neo-primary to-neo-accent-purple",
+              "bg-gradient-to-r from-emerald-400 to-cyan-400"
+            )}`}>&quot;{term}&quot;</span>
+          </p>
+          <div className={`flex items-center justify-center gap-2 text-xs font-medium uppercase tracking-widest animate-pulse ${tone(
+            "text-neo-text-secondary",
+            "text-white/40"
+          )}`}>
+            <TbSparkles className={`text-sm ${tone("text-neo-primary", "text-emerald-400")}`} />
+            <span>Procesando contexto semántico...</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
 }
 
 function useDebounce<T>(value: T, delay = 250) {

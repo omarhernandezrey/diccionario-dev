@@ -332,6 +332,88 @@ function getRulesList(term: TermDTO, language: string) {
     ];
 }
 
+function GeminiStar() {
+    return (
+        <div className="relative w-16 h-16 flex items-center justify-center">
+            {/* Core Star - Slow Spin */}
+            <svg viewBox="0 0 24 24" className="absolute w-full h-full animate-[spin_3s_linear_infinite] z-10">
+                <defs>
+                    <linearGradient id="gemini-core" x1="0%" y1="0%" x2="100%" y2="100%">
+                        <stop offset="0%" stopColor="#60a5fa" />
+                        <stop offset="50%" stopColor="#c084fc" />
+                        <stop offset="100%" stopColor="#f472b6" />
+                    </linearGradient>
+                </defs>
+                <path
+                    d="M12 0L14.5 9.5L24 12L14.5 14.5L12 24L9.5 14.5L0 12L9.5 9.5L12 0Z"
+                    fill="url(#gemini-core)"
+                    className="drop-shadow-[0_0_10px_rgba(192,132,252,0.8)]"
+                />
+            </svg>
+
+            {/* Outer Aura - Reverse Spin & Blur */}
+            <svg viewBox="0 0 24 24" className="absolute w-[140%] h-[140%] animate-[spin_6s_linear_infinite_reverse] opacity-50 blur-sm z-0">
+                <path
+                    d="M12 0L14.5 9.5L24 12L14.5 14.5L12 24L9.5 14.5L0 12L9.5 9.5L12 0Z"
+                    fill="url(#gemini-core)"
+                />
+            </svg>
+
+            {/* Sparkles Particles */}
+            <div className="absolute top-0 right-0 w-1 h-1 bg-white rounded-full animate-ping" style={{ animationDuration: '1.5s' }} />
+            <div className="absolute bottom-2 left-2 w-1 h-1 bg-blue-400 rounded-full animate-pulse" />
+        </div>
+    );
+}
+
+function GeminiLoader({ term }: { term: string }) {
+    const [statusText, setStatusText] = useState("Analizando intención...");
+
+    // Cycle through "AI thinking" states
+    useEffect(() => {
+        const states = [
+            "Analizando intención...",
+            "Consultando base de conocimiento...",
+            "Sintetizando respuesta...",
+            "Optimizando formato..."
+        ];
+        let i = 0;
+        const interval = setInterval(() => {
+            i = (i + 1) % states.length;
+            setStatusText(states[i]);
+        }, 800);
+        return () => clearInterval(interval);
+    }, []);
+
+    return (
+        <div className="relative flex flex-col items-center justify-center py-12 px-8 text-center">
+
+            <div className="relative z-10 flex flex-col items-center gap-10">
+                {/* The Star */}
+                <GeminiStar />
+
+                {/* The Text */}
+                <div className="space-y-4 max-w-md">
+                    <p className="text-2xl font-medium tracking-tight text-white">
+                        <span className="opacity-60">Generando para </span>
+                        <span className="font-bold text-transparent bg-clip-text bg-gradient-to-r from-blue-400 via-purple-400 to-pink-400 animate-gradient-x">
+                            &quot;{term}&quot;
+                        </span>
+                    </p>
+
+                    {/* Status Pill */}
+                    <div className="inline-flex items-center gap-2.5 px-4 py-1.5 rounded-full bg-white/5 border border-white/10 backdrop-blur-md">
+                        <div className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+                        <span className="text-xs font-mono font-medium tracking-wider text-white/50 uppercase min-w-[180px] text-left">
+                            {statusText}
+                        </span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    );
+}
+
 // --- Componente Principal ---
 
 export default function DiccionarioDevApp() {
@@ -863,13 +945,8 @@ export default function DiccionarioDevApp() {
 
                                 {/* Loading State */}
                                 {loading && (
-                                    <div className="px-4 py-8 flex flex-col items-center justify-center gap-3">
-                                        <div className="flex gap-2">
-                                            <div className="h-2 w-2 bg-emerald-400 rounded-full animate-bounce" style={{ animationDelay: "0ms" }}></div>
-                                            <div className="h-2 w-2 bg-emerald-400 rounded-full animate-bounce" style={{ animationDelay: "150ms" }}></div>
-                                            <div className="h-2 w-2 bg-emerald-400 rounded-full animate-bounce" style={{ animationDelay: "300ms" }}></div>
-                                        </div>
-                                        <p className="text-sm text-slate-400">Buscando <span className="font-mono text-emerald-400">{searchTerm}</span>...</p>
+                                    <div className="p-4">
+                                        <GeminiLoader term={searchTerm} />
                                     </div>
                                 )}
 
@@ -1049,7 +1126,7 @@ export default function DiccionarioDevApp() {
                                     <h3 className="font-bold uppercase tracking-wide text-xs">4. Reglas importantes</h3>
                                 </div>
                                 <ul className="space-y-2 text-sm text-slate-200">
-                                    {Array.isArray(activeTerm.examples) && activeTerm.examples[0]?.rules ? 
+                                    {Array.isArray(activeTerm.examples) && activeTerm.examples[0]?.rules ?
                                         (activeTerm.examples[0].rules as string[]).map((rule, idx) => (
                                             <li key={idx} className="flex items-start gap-2">
                                                 <span className="mt-1 h-2 w-2 rounded-full bg-emerald-400"></span>
