@@ -1116,10 +1116,10 @@ export default function DiccionarioDevApp() {
                             </div>
                             <div className="space-y-2">
                                 <p className="text-base leading-relaxed text-slate-200">
-                                    {activeTerm.meaningEs || activeTerm.meaning}
+                                    {activeTerm.meaningEs || activeTerm.meaning || "Definición no disponible. Consulta la documentación asociada al término."}
                                 </p>
                                 <p className="text-sm text-slate-400 italic">
-                                    EN: {activeTerm.meaningEn || activeTerm.meaning}
+                                    EN: {activeTerm.meaningEn || activeTerm.meaning || "Definition not available."}
                                 </p>
                             </div>
                         </div>
@@ -1131,16 +1131,16 @@ export default function DiccionarioDevApp() {
                                 <h3 className="font-bold uppercase tracking-wide text-sm">2. Para qué sirve</h3>
                             </div>
                             <p className="text-base leading-relaxed text-slate-200">
-                                {activeTerm.whatEs || activeTerm.what}
+                                {activeTerm.whatEs || activeTerm.what || "Propósito no disponible. Revisa referencias adicionales del término."}
                             </p>
                         </div>
 
-                        {/* SECCIÓN 3: PREVIEW EN VIVO (Solo para CSS) */}
+                        {/* SECCIÓN 3 (opcional): PREVIEW EN VIVO SOLO TAILWIND */}
                         {isCssActive && (
                             <div className="space-y-4">
                                 <h3 className="text-lg font-bold text-slate-100 flex items-center gap-2">
                                     <Eye className="h-5 w-5 text-teal-400" />
-                                    3. Preview en vivo
+                                    Preview en vivo
                                 </h3>
                                 
                                 <div className="rounded-2xl border border-slate-800 bg-slate-950 p-6 overflow-hidden">
@@ -1153,35 +1153,40 @@ export default function DiccionarioDevApp() {
                             </div>
                         )}
 
-                        {/* SECCIÓN 4: CÓMO FUNCIONA */}
+                        {/* SECCIÓN 3: CÓMO FUNCIONA */}
                         <div className="rounded-2xl border border-amber-500/20 bg-linear-to-br from-amber-500/5 to-transparent p-6 space-y-4">
                             <div className="flex items-center gap-2 text-amber-400">
                                 <Lightbulb className="h-5 w-5" />
-                                <h3 className="font-bold uppercase tracking-wide text-sm">4. Cómo funciona</h3>
+                                <h3 className="font-bold uppercase tracking-wide text-sm">3. Cómo funciona</h3>
                             </div>
                             <p className="text-base leading-relaxed text-slate-200">
-                                {activeTerm.howEs || activeTerm.how || "Sigue el flujo recomendado y aplica el patrón principal respetando su ciclo de vida."}
+                                {activeTerm.howEs || activeTerm.how || activeTerm.whatEs || activeTerm.what || "Sigue el flujo recomendado y aplica el patrón principal respetando su ciclo de vida."}
                             </p>
+                            <div className="rounded-2xl border border-slate-800 bg-slate-950 p-4 overflow-hidden">
+                                <StyleAwareCode
+                                    term={activeTerm}
+                                    snippet={primaryExample?.code || activeVariant?.snippet || buildDefaultSnippet(activeTerm, displayLanguage, "como-funciona")}
+                                    language={displayLanguage}
+                                />
+                            </div>
                         </div>
 
-                        {/* SECCIÓN 5: REGLAS IMPORTANTES */}
-                        {activeTerm.examples && Array.isArray(activeTerm.examples) && activeTerm.examples.length > 0 && (
-                            <div className="rounded-2xl border border-slate-800 bg-slate-900/50 p-6 space-y-4">
-                                <div className="flex items-center gap-2 text-emerald-400">
-                                    <ThumbsUp className="h-5 w-5" />
-                                    <h3 className="font-bold uppercase tracking-wide text-sm">5. Reglas importantes</h3>
-                                </div>
-                                <ul className="space-y-3 text-sm text-slate-200">
-                                    {getRulesList(activeTerm, displayLanguage).map((rule, idx) => (
-                                            <li key={idx} className="flex items-start gap-3">
-                                                <span className="mt-1 h-2 w-2 rounded-full bg-emerald-400 shrink-0"></span>
-                                                <span>{rule}</span>
-                                            </li>
-                                        ))
-                                    }
-                                </ul>
+                        {/* SECCIÓN 4: REGLAS IMPORTANTES */}
+                        <div className="rounded-2xl border border-slate-800 bg-slate-900/50 p-6 space-y-4">
+                            <div className="flex items-center gap-2 text-emerald-400">
+                                <ThumbsUp className="h-5 w-5" />
+                                <h3 className="font-bold uppercase tracking-wide text-sm">4. Reglas importantes</h3>
                             </div>
-                        )}
+                            <ul className="space-y-3 text-sm text-slate-200">
+                                {getRulesList(activeTerm, displayLanguage).map((rule, idx) => (
+                                        <li key={idx} className="flex items-start gap-3">
+                                            <span className="mt-1 h-2 w-2 rounded-full bg-emerald-400 shrink-0"></span>
+                                            <span>{rule}</span>
+                                        </li>
+                                    ))
+                                }
+                            </ul>
+                        </div>
 
                         {/* Mostrar ejemplos adicionales de BD */}
                         {activeTerm.examples && activeTerm.examples.length > 1 && (

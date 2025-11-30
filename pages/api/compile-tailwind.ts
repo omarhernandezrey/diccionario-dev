@@ -36,6 +36,10 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   } catch (e: unknown) {
     const message = e instanceof Error ? e.message : "Unknown error";
     console.error("compile-tailwind error:", e);
+    // Si falta el plugin de PostCSS en Tailwind 4, devolvemos CSS vacío para no romper el preview.
+    if (typeof message === "string" && message.includes("use `@tailwindcss/postcss`")) {
+      return res.status(200).json({ css: "" });
+    }
     res.status(500).json({ error: message });
   }
 }
