@@ -33,6 +33,7 @@ import { Prism as SyntaxHighlighter } from "react-syntax-highlighter";
 import { dracula } from "react-syntax-highlighter/dist/cjs/styles/prism";
 import type { TermDTO, TermExampleDTO } from "@/types/term";
 import TailwindStylePreview from "./TailwindStylePreview";
+import { LivePreview } from "./LivePreview";
 import { getHtmlForPreview, extractRawCss } from "@/lib/tailwindPreview";
 
 function getDisplayLanguage(term: TermDTO | null, variant?: { language?: string | null }) {
@@ -173,6 +174,26 @@ function useLocalStorage<T>(key: string, initialValue: T): [T, (value: T | ((val
 }
 
 // --- Helpers de Texto Contextual ---
+
+// Centralized HTML detection
+function isHtmlTerm(term: TermDTO, language: string): boolean {
+    if (language === "html") return true;
+
+    const termName = term.term.toLowerCase();
+    const tags = (term.tags || []).map(t => t.toLowerCase());
+
+    // HTML elements
+    const htmlElements = ["html", "head", "body", "base", "link", "meta", "style-element", "title", "script", "noscript", "template", "slot", "div", "span", "p", "a", "button"];
+    if (htmlElements.includes(termName)) return true;
+
+    // Check tags for HTML indicators
+    if (tags.some(t => ["html", "a11y", "accessibility"].includes(t))) return true;
+
+    // ARIA attributes
+    if (termName.includes("aria")) return true;
+
+    return false;
+}
 
 // Centralized CSS detection (matches backend logic in seed.ts)
 function isCssTerm(term: TermDTO, language: string): boolean {
@@ -746,6 +767,7 @@ export default function DiccionarioDevApp() {
     const activeVariant = activeTerm?.variants?.[0];
     const displayLanguage = getDisplayLanguage(activeTerm, activeVariant);
     const isCssActive = activeTerm ? isCssTerm(activeTerm, displayLanguage) : false;
+    const isHtmlActive = activeTerm ? isHtmlTerm(activeTerm, displayLanguage) : false;
     if (!mounted) {
         return null;
     }
@@ -1166,17 +1188,35 @@ export default function DiccionarioDevApp() {
                             </div>
                             
                             {activeVariant?.snippet && (
-                                <div className="rounded-2xl border border-slate-800 bg-slate-950 p-6 overflow-hidden">
-                                    <div className="mb-4 flex items-center gap-2 text-emerald-400">
-                                        <Code2 className="h-5 w-5" />
-                                        <h4 className="font-bold uppercase tracking-wide text-sm">Ejemplo de Código</h4>
+                                <>
+                                    <div className="rounded-2xl border border-slate-800 bg-slate-950 p-6 overflow-hidden">
+                                        <div className="mb-4 flex items-center gap-2 text-emerald-400">
+                                            <Code2 className="h-5 w-5" />
+                                            <h4 className="font-bold uppercase tracking-wide text-sm">Ejemplo de Código</h4>
+                                        </div>
+                                        <StyleAwareCode
+                                            term={activeTerm}
+                                            snippet={activeVariant.snippet}
+                                            language={displayLanguage}
+                                        />
                                     </div>
-                                    <StyleAwareCode
-                                        term={activeTerm}
-                                        snippet={activeVariant.snippet}
-                                        language={displayLanguage}
-                                    />
-                                </div>
+
+                                    {/* LIVE PREVIEW - Para HTML, CSS y JavaScript */}
+                                    {(displayLanguage === 'html' || isHtmlActive || displayLanguage === 'css' || displayLanguage === 'javascript' || displayLanguage === 'jsx') && (
+                                        <div>
+                                            <div className="mb-3 flex items-center gap-2 text-blue-400">
+                                                <Eye className="h-5 w-5" />
+                                                <h4 className="font-bold uppercase tracking-wide text-sm">Preview en Vivo</h4>
+                                            </div>
+                                            <LivePreview
+                                                code={activeVariant.snippet}
+                                                language={displayLanguage as 'html' | 'javascript' | 'jsx' | 'css'}
+                                                title={`Demo de ${activeTerm.term}`}
+                                                height="450px"
+                                            />
+                                        </div>
+                                    )}
+                                </>
                             )}
                         </div>
 
