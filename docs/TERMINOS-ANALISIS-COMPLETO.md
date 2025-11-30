@@ -261,6 +261,15 @@ Add a concise, action-oriented aria-label; avoid duplicating visible text.
     <path d="M4 6h16M4 12h16M4 18h16" stroke="currentColor" stroke-width="2"/>
   </svg>
 </button>
+
+<!-- Ejemplo avanzado con aria-label dinámico -->
+<button 
+  aria-label="Favorito"
+  onclick="this.classList.toggle('liked'); this.setAttribute('aria-label', this.classList.contains('liked') ? 'Remover de favoritos' : 'Agregar a favoritos')"
+  class="w-8 h-8 flex items-center justify-center"
+>
+  ♥
+</button>
 ```
 
 ### 🔍 Casos de Uso
@@ -399,17 +408,33 @@ Set aspect-ratio on media containers or graphical components and let the browser
 
 #### CSS
 ```css
-.video-card {
-  /* Establecemos una relación de aspecto 16:9 */
-  /* El navegador calculará automáticamente la altura */
-  /* basándose en el ancho del elemento */
+/* Mantener proporción 16:9 para videos */
+.video-container {
   aspect-ratio: 16 / 9;
-  
-  /* Color de fondo mientras carga el video */
-  background: #0f172a;
-  
-  /* Bordes redondeados para estética moderna */
-  border-radius: 1rem;
+  width: 100%;
+  background: #000;
+  overflow: hidden;
+}
+
+.video-container iframe {
+  width: 100%;
+  height: 100%;
+  border: none;
+}
+
+/* Imagen con proporción cuadrada 1:1 */
+.avatar {
+  width: 64px;
+  aspect-ratio: 1;
+  border-radius: 50%;
+  object-fit: cover;
+}
+
+/* Tarjeta con proporción custom */
+.card {
+  aspect-ratio: 3 / 4;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  border-radius: 8px;
 }
 ```
 
@@ -554,18 +579,33 @@ Combine it with rgba backgrounds and subtle borders to add depth without clutter
 
 #### CSS
 ```css
+/* Efecto blur en el fondo */
+.modal-backdrop {
+  backdrop-filter: blur(4px);
+  background-color: rgba(0, 0, 0, 0.5);
+  position: fixed;
+  inset: 0;
+  z-index: 40;
+}
+
+/* Navbar con efecto glass morphism */
+.navbar {
+  backdrop-filter: blur(10px) brightness(1.1);
+  background-color: rgba(255, 255, 255, 0.7);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+  padding: 1rem;
+  position: sticky;
+  top: 0;
+  z-index: 50;
+}
+
+/* Tarjeta con efecto glassmorphism */
 .glass-card {
-  /* Aplicamos efectos al contenido detrás del elemento */
-  /* blur(18px) = desenfoque de 18 píxeles */
-  /* saturate(120%) = aumentamos la saturación de color en 20% */
-  backdrop-filter: blur(18px) saturate(120%);
-  
-  /* Fondo semi-transparente (REQUERIDO para que funcione backdrop-filter) */
-  /* rgba(15, 23, 42, 0.45) = color oscuro con 45% de opacidad */
-  background: rgba(15, 23, 42, 0.45);
-  
-  /* Borde sutil semi-transparente para definir los límites */
-  border: 1px solid rgba(255, 255, 255, 0.15);
+  backdrop-filter: blur(8px) saturate(180%);
+  background-color: rgba(255, 255, 255, 0.75);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 12px;
+  padding: 2rem;
 }
 ```
 
@@ -843,7 +883,20 @@ Apply the bg-gradient-to-r class in the class attribute along with from-*, to-* 
 
 #### HTML
 ```html
-<button class="bg-gradient-to-r from-emerald-500 via-teal-500 to-sky-500 text-white px-4 py-2 rounded-lg shadow">CTA</button>
+<!-- Gradient de izquierda a derecha (Tailwind) -->
+<div class="bg-gradient-to-r from-pink-500 via-red-500 to-yellow-500 p-8 rounded-lg">
+  <h1 class="text-white font-bold text-2xl">Título con Gradient</h1>
+</div>
+
+<!-- Gradient personalizado en CSS puro -->
+<div style="background: linear-gradient(to right, #3b82f6, #10b981, #f59e0b); padding: 2rem; border-radius: 8px;">
+  <p style="color: white; font-weight: bold;">Contenido con fondo gradiente</p>
+</div>
+
+<!-- Combinación con otros estilos -->
+<button class="px-6 py-3 bg-gradient-to-r from-purple-600 to-blue-600 text-white font-semibold rounded-lg hover:shadow-lg transition-shadow">
+  Click aquí
+</button>
 ```
 
 ### 🔍 Casos de Uso
@@ -1126,31 +1179,44 @@ Create declarative pipelines that build, test and deploy using ephemeral environ
 
 #### Go
 ```go
-name: ci
-# Definimos cuándo se ejecuta este workflow.
-# En este caso, en cada "push" a la rama "main".
+# Configuración básica de CI/CD con GitHub Actions
+name: Build and Test
+
 on:
   push:
+    branches: [main, develop]
+  pull_request:
     branches: [main]
 
 jobs:
-  test:
-    # Especificamos el sistema operativo del runner.
+  build:
     runs-on: ubuntu-latest
+    
     steps:
-      # Paso 1: Descargar el código del repositorio.
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v3
       
-      # Paso 2: Instalar Node.js versión 20.
-      - uses: actions/setup-node@v4
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
         with:
-          node-version: 20
-          
-      # Paso 3: Instalar dependencias de forma limpia (CI).
-      - run: npm ci
+          node-version: '18'
+          cache: 'npm'
       
-      # Paso 4: Ejecutar la suite de tests.
-      - run: npm test
+      - name: Install dependencies
+        run: npm ci
+      
+      - name: Run linter
+        run: npm run lint
+      
+      - name: Run tests
+        run: npm run test
+      
+      - name: Build project
+        run: npm run build
+      
+      - name: Upload coverage
+        uses: codecov/codecov-action@v3
+        with:
+          files: ./coverage/coverage-final.json
 ```
 
 ### 🔍 Casos de Uso
@@ -1307,16 +1373,27 @@ Use clamp(min, preferred, max) on numeric properties like font-size, width, gaps
 
 #### CSS
 ```css
+/* Tamaño fluido de fuente: mínimo 1rem, máximo 2rem */
 h1 {
-  /* Usamos clamp() para crear tipografía responsive */
-  /* Sintaxis: clamp(mínimo, valor preferido, máximo) */
-  /* 2.5rem = tamaño mínimo en pantallas pequeñas */
-  /* 4vw = crece con el ancho del viewport */
-  /* 3.75rem = tamaño máximo en pantallas grandes */
-  font-size: clamp(2.5rem, 4vw, 3.75rem);
-  
-  /* Altura de línea compacta para títulos */
-  line-height: 1.1;
+  font-size: clamp(1rem, 2vw + 0.5rem, 2rem);
+}
+
+/* Ancho fluido: mínimo 300px, máximo 1200px */
+.container {
+  width: clamp(300px, 90vw, 1200px);
+  margin: 0 auto;
+}
+
+/* Padding fluido que responde al viewport */
+.card {
+  padding: clamp(1rem, 5vw, 2rem);
+  margin-bottom: clamp(0.5rem, 2vw, 1rem);
+}
+
+/* Altura de línea responsiva */
+p {
+  line-height: clamp(1.5, 1.5vw, 1.8);
+  font-size: clamp(0.875rem, 1vw, 1.125rem);
 }
 ```
 
@@ -1459,15 +1536,39 @@ Wrap the expensive logic with debounce(fn, wait) and clear the timer on unmount.
 
 #### TypeScript
 ```ts
-// Creamos una versión "debounced" de nuestra función de búsqueda.
-// useMemo asegura que no se recree la función en cada render.
-const debouncedChange = useMemo(() => 
-  debounce((value) => {
-    // Esta lógica solo se ejecutará si pasan 250ms
-    // sin que el usuario escriba nada nuevo.
-    search(value);
-  }, 250), 
-[]); // El array vacío [] indica que solo se crea al montar el componente.
+// Función debounce genérica
+function debounce<T extends (...args: any[]) => any>(
+  func: T,
+  delay: number
+): (...args: Parameters<T>) => void {
+  let timeoutId: NodeJS.Timeout;
+  
+  return (...args: Parameters<T>) => {
+    clearTimeout(timeoutId);
+    timeoutId = setTimeout(() => func(...args), delay);
+  };
+}
+
+// Uso en un componente React
+import { useMemo } from 'react';
+
+function SearchComponent() {
+  const debouncedSearch = useMemo(
+    () => debounce((query: string) => {
+      console.log('Buscando:', query);
+      // Hacer llamada a API
+    }, 300),
+    []
+  );
+  
+  return (
+    <input
+      type="text"
+      onChange={(e) => debouncedSearch(e.target.value)}
+      placeholder="Escribe para buscar..."
+    />
+  );
+}
 ```
 
 ### 🔍 Casos de Uso
@@ -1616,24 +1717,29 @@ Craft a Dockerfile, build the image and orchestrate services via Compose or Kube
 
 #### Go
 ```go
-# Usamos una imagen base ligera de Node.js (Alpine Linux).
+# Usar imagen base ligera de Node.js
 FROM node:20-alpine
 
-# Establecemos el directorio de trabajo dentro del contenedor.
+# Establecer directorio de trabajo
 WORKDIR /app
 
-# Copiamos primero los archivos de dependencias.
-# Esto aprovecha la caché de capas de Docker si no han cambiado.
+# Copiar archivos de dependencias primero
 COPY package*.json ./
 
-# Instalamos solo las dependencias de producción.
+# Instalar solo dependencias de producción
 RUN npm ci --only=production
 
-# Copiamos el resto del código fuente de la aplicación.
+# Copiar código fuente
 COPY . .
 
-# Definimos el comando por defecto para iniciar el servidor.
-CMD ["node", "dist/server.js"]
+# Compilar si es necesario
+RUN npm run build
+
+# Exponer puerto
+EXPOSE 3000
+
+# Comando para iniciar
+CMD ["npm", "start"]
 ```
 
 ### 🔍 Casos de Uso
@@ -1786,12 +1892,30 @@ Use fetch(url, { method, headers, body, signal }) with AbortController for timeo
 
 #### TypeScript
 ```ts
-async function loadPosts() {
-  const res = await fetch("/api/posts", { cache: "no-store" });
+// GET simple
+async function getUser(id: number) {
+  const response = await fetch(`/api/users/${id}`);
+  if (!response.ok) throw new Error('Failed to fetch');
+  return response.json();
+}
 
-  if (!res.ok) throw new Error(`HTTP ${res.status} ${res.statusText}`);
+// POST con datos
+async function createPost(data: { title: string; body: string }) {
+  const response = await fetch('/api/posts', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(data),
+  });
+  return response.json();
+}
 
-  return res.json();
+// Con timeout
+function fetchWithTimeout(url: string, timeout = 5000) {
+  const controller = new AbortController();
+  const id = setTimeout(() => controller.abort(), timeout);
+  
+  return fetch(url, { signal: controller.signal })
+    .finally(() => clearTimeout(id));
 }
 ```
 
@@ -1953,11 +2077,32 @@ Apply flex and flex-col on the container; adjust gap and alignment with justify/
 
 #### TypeScript
 ```ts
-<div class="flex flex-col gap-3 p-4 border rounded-lg">
-  <h3 class="text-lg font-semibold">Título</h3>
-  <p class="text-sm text-slate-500">Descripción breve del item.</p>
-  <button class="self-end bg-emerald-500 text-white px-3 py-2 rounded">Acción</button>
-</div>
+/* Dirección de columna vertical */
+.flex-column {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+/* Combinación con other flex properties */
+.card-layout {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  align-items: center;
+  height: 300px;
+  padding: 1rem;
+  border-radius: 8px;
+  background: #f5f5f5;
+}
+
+/* Con Tailwind CSS -->
+<!-- Solo usar la clase -->
+<!-- <div class="flex flex-col gap-4">
+  <div>Elemento 1</div>
+  <div>Elemento 2</div>
+  <div>Elemento 3</div>
+</div> -->
 ```
 
 ### 🔍 Casos de Uso
@@ -2103,19 +2248,33 @@ Write the schema, map resolvers and expose it using Apollo, Mercurius or Yoga.
 
 #### JavaScript
 ```js
-const resolvers = {
-  Query: {
-    // Resolver para la query "term".
-    // Recibe: parent, argumentos (args), y contexto (ctx).
-    term: (_parent, args, ctx) => {
-      // Usamos Prisma desde el contexto para buscar en la DB.
-      // Buscamos un término único por su "slug".
-      return ctx.prisma.term.findUnique({ 
-        where: { slug: args.slug } 
-      });
-    },
-  },
-};
+# Definir tipo de Usuario
+type User {
+  id: ID!
+  name: String!
+  email: String!
+  posts: [Post!]!
+}
+
+# Definir tipo de Post
+type Post {
+  id: ID!
+  title: String!
+  content: String!
+  author: User!
+}
+
+# Root Query
+type Query {
+  user(id: ID!): User
+  posts(limit: Int = 10): [Post!]!
+}
+
+# Root Mutation
+type Mutation {
+  createUser(name: String!, email: String!): User!
+  createPost(title: String!, content: String!, authorId: ID!): Post!
+}
 ```
 
 ### 🔍 Casos de Uso
@@ -2260,18 +2419,33 @@ Mix repeat with minmax for fluid columns or name grid lines with brackets to pla
 
 #### CSS
 ```css
-.dashboard {
-  /* Activamos CSS Grid en el contenedor */
+/* Grid con 3 columnas iguales */
+.grid-3 {
   display: grid;
-  
-  /* Creamos columnas que se adaptan automáticamente */
-  /* repeat(auto-fit, ...) = crea tantas columnas como quepan */
-  /* minmax(240px, 1fr) = cada columna mínimo 240px, máximo 1 fracción del espacio */
-  /* Resultado: las tarjetas se reorganizan automáticamente según el espacio */
-  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
-  
-  /* Espacio entre las tarjetas del grid */
+  grid-template-columns: repeat(3, 1fr);
+  gap: 1rem;
+}
+
+/* Grid responsivo con auto-fit */
+.responsive-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
   gap: 1.5rem;
+  padding: 1rem;
+}
+
+/* Grid con tamaños específicos */
+.custom-grid {
+  display: grid;
+  grid-template-columns: 200px 1fr 100px;
+  gap: 1rem;
+}
+
+/* Grid con media queries -->
+@media (max-width: 768px) {
+  .responsive-grid {
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  }
 }
 ```
 
@@ -2689,18 +2863,38 @@ Sign tokens with a strong secret, set short TTLs and validate them in middleware
 
 #### JavaScript
 ```js
-// Firmamos un nuevo token JWT.
-// El primer argumento es el payload (datos del usuario).
-const token = jwt.sign(
-  { sub: user.id, role: user.role }, 
+import jwt from 'jsonwebtoken';
+
+// Generar JWT
+function generateToken(payload: { id: number; email: string }) {
+  const secret = process.env.JWT_SECRET || 'secret-key';
+  return jwt.sign(payload, secret, { expiresIn: '24h' });
+}
+
+// Verificar JWT
+function verifyToken(token: string) {
+  try {
+    const secret = process.env.JWT_SECRET || 'secret-key';
+    return jwt.verify(token, secret);
+  } catch (error) {
+    throw new Error('Invalid token');
+  }
+}
+
+// Middleware Express
+function authenticateToken(req, res, next) {
+  const authHeader = req.headers['authorization'];
+  const token = authHeader?.split(' ')[1];
   
-  // El segundo argumento es la clave secreta para firmar.
-  // Usamos una variable de entorno por seguridad.
-  process.env.JWT_SECRET!, 
+  if (!token) return res.sendStatus(401);
   
-  // Configuramos opciones como la expiración (1 hora).
-  { expiresIn: "1h" }
-);
+  try {
+    req.user = verifyToken(token);
+    next();
+  } catch {
+    res.sendStatus(403);
+  }
+}
 ```
 
 ### 🔍 Casos de Uso
@@ -3268,16 +3462,31 @@ Describe models in schema.prisma, run migrate dev and use the generated client i
 
 #### TypeScript
 ```ts
-// Usamos el cliente de Prisma para buscar en la base de datos.
-// "await" espera a que la consulta termine.
-const term = await prisma.term.findUnique({
-  // Condición de búsqueda: donde el slug coincida.
-  where: { slug },
-  
-  // Incluimos relaciones: queremos traer también las variantes del término.
-  include: { variants: true },
-});
-// TypeScript infiere el shape del resultado automáticamente.
+// schema.prisma
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+model User {
+  id    Int     @id @default(autoincrement())
+  email String  @unique
+  name  String?
+  posts Post[]
+}
+
+model Post {
+  id    Int     @id @default(autoincrement())
+  title String
+  content String
+  published Boolean @default(false)
+  author User @relation(fields: [authorId], references: [id])
+  authorId Int
+}
 ```
 
 ### 🔍 Casos de Uso
@@ -3418,19 +3627,42 @@ Design resources (URLs), use proper HTTP verbs and return representations (JSON)
 
 #### JavaScript
 ```js
-// Definimos una ruta GET para obtener un usuario por ID.
-// ":id" es un parámetro dinámico en la URL.
-app.get('/users/:id', async (req, res) => {
-  
-  // Buscamos el usuario en la DB usando el ID de los parámetros.
-  const user = await db.findUser(req.params.id);
-  
-  // Si no existe, devolvemos un error 404 (Not Found) temprano.
-  if (!user) return res.status(404).json({ error: 'Not found' });
-  
-  // Si existe, devolvemos el usuario en formato JSON con estado 200 (OK).
-  res.json(user);
+// API REST con Express
+import express from 'express';
+
+const app = express();
+app.use(express.json());
+
+// GET todos los usuarios
+app.get('/api/users', (req, res) => {
+  res.json([{ id: 1, name: 'Juan' }]);
 });
+
+// GET usuario por ID
+app.get('/api/users/:id', (req, res) => {
+  const { id } = req.params;
+  res.json({ id, name: 'Juan' });
+});
+
+// POST crear usuario
+app.post('/api/users', (req, res) => {
+  const { name, email } = req.body;
+  res.status(201).json({ id: 1, name, email });
+});
+
+// PUT actualizar usuario
+app.put('/api/users/:id', (req, res) => {
+  const { id } = req.params;
+  const { name } = req.body;
+  res.json({ id, name });
+});
+
+// DELETE usuario
+app.delete('/api/users/:id', (req, res) => {
+  res.sendStatus(204);
+});
+
+app.listen(3000);
 ```
 
 ### 🔍 Casos de Uso
@@ -3724,28 +3956,34 @@ Set scroll-snap-type on the container plus scroll-snap-align on the children.
 
 #### CSS
 ```css
-.carousel {
-  /* Usamos grid para layout horizontal */
-  display: grid;
-  
-  /* Las columnas se crean automáticamente en dirección horizontal */
-  grid-auto-flow: column;
-  
-  /* Espacio entre cada slide del carrusel */
-  gap: 1rem;
-  
-  /* Permitimos scroll horizontal */
-  overflow-x: auto;
-  
-  /* Activamos snap en el eje X (horizontal) */
-  /* "mandatory" = siempre se ajusta a un punto de snap */
+/* Contenedor con scroll snap */
+.scroll-container {
   scroll-snap-type: x mandatory;
+  overflow-x: scroll;
+  scroll-behavior: smooth;
+  width: 100%;
+  height: 500px;
 }
 
-/* Configuramos cada slide individual */
-.carousel > article {
-  /* Cada slide se centra cuando el usuario hace scroll */
+/* Elementos que snappean */
+.scroll-item {
   scroll-snap-align: center;
+  scroll-snap-stop: always;
+  flex-shrink: 0;
+  width: 100%;
+  height: 100%;
+}
+
+/* Gallery con scroll snap vertical -->
+.gallery {
+  scroll-snap-type: y proximity;
+  overflow-y: scroll;
+  height: 100vh;
+}
+
+.gallery-item {
+  scroll-snap-align: start;
+  height: 100vh;
 }
 ```
 
@@ -4561,21 +4799,44 @@ List dependencies in the array; return a cleanup to release resources.
 
 #### TypeScript
 ```ts
-import { useEffect } from "react";
+import { useEffect, useState } from 'react';
 
-function OnlineStatus() {
+// Efecto que corre al montar
+useEffect(() => {
+  console.log('Componente montado');
+  
+  return () => {
+    console.log('Componente desmontado');
+  };
+}, []);
+
+// Efecto que corre cuando count cambia
+function Counter() {
+  const [count, setCount] = useState(0);
+  
   useEffect(() => {
-    function handleOnline() {
-      console.log("Estoy online");
-    }
+    document.title = `Count: ${count}`;
+  }, [count]);
+  
+  return (
+    <>
+      <p>Count: {count}</p>
+      <button onClick={() => setCount(count + 1)}>+</button>
+    </>
+  );
+}
 
-    window.addEventListener("online", handleOnline);
-
-    // 🔥 Limpieza: se ejecuta al desmontar o al cambiar dependencias.
-    return () => window.removeEventListener("online", handleOnline);
-  }, []); // Array vacío => solo al montar/desmontar
-
-  return <p>Escuchando estado de red...</p>;
+// Efecto con cleanup
+function Timer() {
+  useEffect(() => {
+    const interval = setInterval(() => {
+      console.log('Tick');
+    }, 1000);
+    
+    return () => clearInterval(interval);
+  }, []);
+  
+  return <div>Timer running...</div>;
 }
 ```
 
@@ -4730,20 +4991,47 @@ Import useState from react, provide an initial value and call the setter to upda
 
 #### TypeScript
 ```ts
-export function Counter() {
-  // Inicializamos el estado "count" en 0.
-  // "setCount" es la función que usaremos para actualizarlo.
-  const [count, setCount] = useState(0);
+import { useState } from 'react';
 
+// Estado simple
+function Counter() {
+  const [count, setCount] = useState(0);
+  
   return (
-    // Al hacer clic, llamamos a setCount.
-    // Usamos una función callback (value => value + 1) para asegurar
-    // que trabajamos con el valor más reciente del estado.
-    <button onClick={() => setCount((value) => value + 1)}>
-      {/* Renderizamos el valor actual de count */}
-      {count}
-    </button>
+    <>
+      <p>Count: {count}</p>
+      <button onClick={() => setCount(count + 1)}>+</button>
+    </>
   );
+}
+
+// Estado con objeto
+function Form() {
+  const [form, setForm] = useState({ name: '', email: '' });
+  
+  const handleChange = (e) => {
+    setForm({
+      ...form,
+      [e.target.name]: e.target.value
+    });
+  };
+  
+  return (
+    <>
+      <input name="name" value={form.name} onChange={handleChange} />
+      <input name="email" value={form.email} onChange={handleChange} />
+    </>
+  );
+}
+
+// Estado con función inicial
+function ExpensiveComponent() {
+  const [data, setData] = useState(() => {
+    console.log('Calculando...');
+    return []// Cálculo costoso
+  });
+  
+  return <div>{data.length}</div>;
 }
 ```
 
