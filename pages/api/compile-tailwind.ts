@@ -1,6 +1,5 @@
 import { NextApiRequest, NextApiResponse } from "next";
 import postcss from "postcss";
-import tailwindcss from "tailwindcss";
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   if (req.method !== "POST") {
@@ -11,8 +10,22 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   const { html } = (req.body || {}) as { html?: string };
 
   try {
+    // Carga perezosa para no fallar si no existe @tailwindcss/postcss
+    let tailwindPlugin: any = null;
+    try {
+      // eslint-disable-next-line @typescript-eslint/no-var-requires
+      tailwindPlugin = require("@tailwindcss/postcss");
+    } catch (e) {
+      // eslint-disable-next-line @typescript-eslint/no-var-requires
+      tailwindPlugin = require("tailwindcss");
+    }
+
+    if (!tailwindPlugin) {
+      return res.status(200).json({ css: "" });
+    }
+
     const result = await postcss([
-      tailwindcss({
+      tailwindPlugin({
         content: [{ raw: html || "" }],
         theme: {},
         corePlugins: true,

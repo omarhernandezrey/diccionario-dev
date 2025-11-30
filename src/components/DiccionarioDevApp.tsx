@@ -102,41 +102,13 @@ function CodeBlock({ code, language = "javascript", showLineNumbers = true }: { 
 }
 
 function CssLiveBlock({ snippet, language }: { snippet: string; language: string }) {
-    const [compiledCss, setCompiledCss] = useState("");
     const html = useMemo(() => getHtmlForPreview(snippet), [snippet]);
     const rawCss = useMemo(() => extractRawCss(snippet), [snippet]);
-
-    useEffect(() => {
-        let mounted = true;
-        const hasTailwindClasses = /class(Name)?=/.test(html);
-        if (!hasTailwindClasses) {
-            setCompiledCss("");
-            return;
-        }
-
-        const compile = async () => {
-            try {
-                const res = await fetch("/api/compile-tailwind", {
-                    method: "POST",
-                    headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({ html })
-                });
-                if (!res.ok) throw new Error(`HTTP ${res.status}`);
-                const data = await res.json();
-                if (mounted) setCompiledCss(data.css || "");
-            } catch (err) {
-                console.error("Error compilando Tailwind:", err);
-                if (mounted) setCompiledCss("");
-            }
-        };
-        compile();
-        return () => { mounted = false; };
-    }, [html]);
 
     return (
         <div className="grid gap-4 lg:grid-cols-2">
             <CodeBlock code={snippet} language={language} showLineNumbers />
-            <TailwindStylePreview html={html} rawCss={rawCss} compiledCss={compiledCss} css={compiledCss || rawCss} />
+            <TailwindStylePreview html={html} rawCss={rawCss} compiledCss="" />
         </div>
     );
 }
