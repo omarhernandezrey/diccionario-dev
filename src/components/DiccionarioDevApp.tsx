@@ -1155,30 +1155,51 @@ export default function DiccionarioDevApp() {
                             
                             {activeVariant?.snippet && (
                                 <>
-                                    <div className="rounded-2xl border border-slate-800 bg-slate-950 p-6 overflow-hidden">
-                                        <div className="mb-4 flex items-center gap-2 text-emerald-400">
-                                            <Code2 className="h-5 w-5" />
-                                            <h4 className="font-bold uppercase tracking-wide text-sm">Ejemplo de Código</h4>
-                                        </div>
-                                        <StyleAwareCode
-                                            term={activeTerm}
-                                            snippet={activeVariant.snippet}
-                                            language={displayLanguage}
-                                        />
-                                    </div>
-
                                     {/* LIVE PREVIEW - Para HTML, CSS y JavaScript */}
                                     {(displayLanguage === 'html' || isHtmlActive || displayLanguage === 'css' || displayLanguage === 'javascript' || displayLanguage === 'jsx') && (
-                                        <div>
-                                            <div className="mb-3 flex items-center gap-2 text-blue-400">
-                                                <Eye className="h-5 w-5" />
-                                                <h4 className="font-bold uppercase tracking-wide text-sm">Preview en Vivo</h4>
+                                        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                                            {/* Código */}
+                                            <div className="rounded-2xl border border-slate-800 bg-slate-950 p-6 overflow-hidden">
+                                                <div className="mb-4 flex items-center gap-2 text-emerald-400">
+                                                    <Code2 className="h-5 w-5" />
+                                                    <h4 className="font-bold uppercase tracking-wide text-sm">Ejemplo de Código</h4>
+                                                </div>
+                                                <StyleAwareCode
+                                                    term={activeTerm}
+                                                    snippet={activeVariant.snippet}
+                                                    language={displayLanguage}
+                                                />
                                             </div>
-                                            <LivePreview
-                                                code={activeVariant.snippet}
-                                                language={displayLanguage as 'html' | 'javascript' | 'jsx' | 'css'}
-                                                title={`Demo de ${activeTerm.term}`}
-                                                height="450px"
+
+                                            {/* Preview */}
+                                            <div className="rounded-2xl border border-slate-800 bg-slate-950 p-6 overflow-hidden flex flex-col">
+                                                <div className="mb-3 flex items-center gap-2 text-blue-400">
+                                                    <Eye className="h-5 w-5" />
+                                                    <h4 className="font-bold uppercase tracking-wide text-sm">Preview en Vivo</h4>
+                                                </div>
+                                                <div className="flex-1">
+                                                    <LivePreview
+                                                        code={activeVariant.snippet}
+                                                        language={displayLanguage as 'html' | 'javascript' | 'jsx' | 'css'}
+                                                        title={`Demo de ${activeTerm.term}`}
+                                                        height="450px"
+                                                    />
+                                                </div>
+                                            </div>
+                                        </div>
+                                    )}
+
+                                    {/* Si NO es HTML/CSS/JS - mostrar solo código */}
+                                    {!(displayLanguage === 'html' || isHtmlActive || displayLanguage === 'css' || displayLanguage === 'javascript' || displayLanguage === 'jsx') && (
+                                        <div className="rounded-2xl border border-slate-800 bg-slate-950 p-6 overflow-hidden">
+                                            <div className="mb-4 flex items-center gap-2 text-emerald-400">
+                                                <Code2 className="h-5 w-5" />
+                                                <h4 className="font-bold uppercase tracking-wide text-sm">Ejemplo de Código</h4>
+                                            </div>
+                                            <StyleAwareCode
+                                                term={activeTerm}
+                                                snippet={activeVariant.snippet}
+                                                language={displayLanguage}
                                             />
                                         </div>
                                     )}
