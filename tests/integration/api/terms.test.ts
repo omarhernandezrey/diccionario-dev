@@ -1,8 +1,9 @@
-import { describe, it, expect, beforeAll, afterAll } from 'vitest';
+import { describe, it, expect, beforeAll, afterAll, vi } from 'vitest';
 import { testApiHandler } from 'next-test-api-route-handler';
-import { prisma } from '@/lib/prisma';
 import * as termsRoute from '@/app/api/terms/route';
-import { vi } from 'vitest';
+import { prisma, resetPrismaMock } from './prisma-mock';
+
+vi.mock('@/lib/prisma', () => import('./prisma-mock'));
 
 vi.mock('@/lib/bootstrap-dataset', () => ({
     ensureDictionarySeeded: vi.fn().mockResolvedValue(undefined),
@@ -10,6 +11,7 @@ vi.mock('@/lib/bootstrap-dataset', () => ({
 
 describe('GET /api/terms', () => {
     beforeAll(async () => {
+        resetPrismaMock();
         // Crear datos de prueba
         await prisma.term.createMany({
             data: [

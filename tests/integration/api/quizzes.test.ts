@@ -1,11 +1,15 @@
-import { describe, it, expect, beforeAll, afterAll } from 'vitest';
+import { describe, it, expect, beforeAll, afterAll, vi } from 'vitest';
 import { testApiHandler } from 'next-test-api-route-handler';
-import { prisma } from '@/lib/prisma';
 import { Difficulty } from '@prisma/client';
 import * as quizzesRoute from '@/app/api/quizzes/route';
+import { prisma, resetPrismaMock } from './prisma-mock';
+
+vi.mock('@/lib/prisma', () => import('./prisma-mock'));
+vi.mock('@/lib/bootstrap-quizzes', () => ({ ensureQuizzesSeeded: vi.fn().mockResolvedValue(undefined) }));
 
 describe('GET /api/quizzes', () => {
     beforeAll(async () => {
+        resetPrismaMock();
         // Crear quizzes de prueba
         await prisma.quizTemplate.createMany({
             data: [
