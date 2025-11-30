@@ -109,7 +109,7 @@ section.cards > article {
   "bg-gradient-to-r": {
     language: "html",
     snippet: `<!-- Gradient de izquierda a derecha (Tailwind) -->
-<div class="bg-gradient-to-r from-pink-500 via-red-500 to-yellow-500 p-8 rounded-lg">
+<div class="bg-linear-to-r from-pink-500 via-red-500 to-yellow-500 p-8 rounded-lg">
   <h1 class="text-white font-bold text-2xl">Título con Gradient</h1>
 </div>
 
@@ -119,7 +119,7 @@ section.cards > article {
 </div>
 
 <!-- Combinación con otros estilos -->
-<button class="px-6 py-3 bg-gradient-to-r from-purple-600 to-blue-600 text-white font-semibold rounded-lg hover:shadow-lg transition-shadow">
+<button class="px-6 py-3 bg-linear-to-r from-purple-600 to-blue-600 text-white font-semibold rounded-lg hover:shadow-lg transition-shadow">
   Click aquí
 </button>`,
   },

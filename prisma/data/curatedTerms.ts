@@ -818,4 +818,692 @@ Content-Type: application/json
     howEs: "Diseña recursos (URLs), usa verbos HTTP correctos (GET, POST, PUT, DELETE) y devuelve representaciones (JSON).",
     howEn: "Design resources (URLs), use proper HTTP verbs and return representations (JSON).",
   },
+  {
+    term: "html",
+    translation: "elemento raíz HTML",
+    category: Category.frontend,
+    descriptionEs: "Etiqueta raíz que envuelve todo el documento y define el idioma base.",
+    descriptionEn: "Root element that wraps the entire document and defines the base language.",
+    aliases: ["<html>", "root element", "html tag"],
+    tags: ["html", "dom", "document", "a11y"],
+    example: {
+      titleEs: "Documento mínimo con idioma",
+      titleEn: "Minimal document with language",
+      code: `<!DOCTYPE html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Diccionario Dev</title>
+  </head>
+  <body>
+    <p>Hola mundo</p>
+  </body>
+</html>`,
+      noteEs: "El atributo lang habilita anuncios correctos en lectores de pantalla.",
+      noteEn: "The lang attribute helps screen readers announce content correctly.",
+    },
+    secondExample: {
+      titleEs: "Dirección y tema global",
+      titleEn: "Global direction and theme",
+      code: `<html lang="en" dir="ltr" data-theme="dark">
+  <head>
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+  </head>
+  <body>
+    <main>Contenido</main>
+  </body>
+</html>`,
+      noteEs: "data-* y dir en html se heredan a todo el árbol DOM.",
+      noteEn: "data-* and dir on html cascade to the whole DOM tree.",
+    },
+    exerciseExample: {
+      titleEs: "Shell base para SPA",
+      titleEn: "Base shell for SPA",
+      code: `<!DOCTYPE html>
+<html lang="es" class="font-sans">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Panel</title>
+  </head>
+  <body>
+    <div id="app">Cargando...</div>
+  </body>
+</html>`,
+      noteEs: "Prepara el nodo raíz para hidratar una app sin dependencias externas.",
+      noteEn: "Prepares the root node to hydrate an app without extra dependencies.",
+    },
+    languageOverride: Language.html,
+    whatEs: "Define el contenedor raíz del DOM y el idioma para accesibilidad y estilos globales.",
+    whatEn: "Defines the DOM root container and language for accessibility and global styles.",
+    howEs: "Incluye siempre <!DOCTYPE html> y el atributo lang en la etiqueta html.",
+    howEn: "Always include <!DOCTYPE html> and the lang attribute on the html tag.",
+  },
+  {
+    term: "head",
+    translation: "cabecera del documento",
+    category: Category.frontend,
+    descriptionEs: "Sección que agrupa metadatos, enlaces a recursos y el título de la página.",
+    descriptionEn: "Section that holds metadata, resource links, and the page title.",
+    aliases: ["<head>", "document head"],
+    tags: ["html", "metadata", "seo", "performance"],
+    example: {
+      titleEs: "Head básico para layout responsivo",
+      titleEn: "Basic head for responsive layout",
+      code: `<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Dashboard</title>
+  <link rel="stylesheet" href="/styles/app.css" />
+</head>`,
+      noteEs: "charset y viewport deben ir primero para que el navegador procese el documento correctamente.",
+      noteEn: "charset and viewport should be first so the browser parses the document correctly.",
+    },
+    secondExample: {
+      titleEs: "Optimización de fuentes y analytics",
+      titleEn: "Fonts and analytics optimization",
+      code: `<head>
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link rel="preload" href="/fonts/inter-var.woff2" as="font" type="font/woff2" crossorigin />
+  <link rel="icon" href="/favicon.ico" />
+  <title>Tienda | Marca</title>
+  <script src="/analytics.js" defer></script>
+</head>`,
+      noteEs: "Los hints (preconnect/preload) reducen la latencia de recursos críticos.",
+      noteEn: "Hints like preconnect/preload cut latency for critical assets.",
+    },
+    exerciseExample: {
+      titleEs: "Head listo para PWA",
+      titleEn: "PWA-ready head",
+      code: `<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <link rel="manifest" href="/manifest.webmanifest" />
+  <meta name="theme-color" content="#0f172a" />
+  <link rel="apple-touch-icon" href="/icons/icon-192.png" />
+  <title>App Offline</title>
+</head>`,
+      noteEs: "Incluye manifest y theme-color para que el navegador trate la app como instalable.",
+      noteEn: "Add manifest and theme-color so the browser treats the app as installable.",
+    },
+    languageOverride: Language.html,
+    whatEs: "Centraliza los metadatos y recursos que afectan cómo se carga y presenta la página.",
+    whatEn: "Centralizes metadata and resources that drive how the page loads and is presented.",
+    howEs: "Coloca charset y viewport al inicio; añade títulos, íconos y hints según tus necesidades.",
+    howEn: "Place charset and viewport first; add titles, icons, and hints as needed.",
+  },
+  {
+    term: "body",
+    translation: "cuerpo del documento",
+    category: Category.frontend,
+    descriptionEs: "Contenedor principal del contenido visible y de los manejadores de eventos de la página.",
+    descriptionEn: "Main container for visible content and page event handlers.",
+    aliases: ["<body>", "document body"],
+    tags: ["html", "dom", "layout", "a11y"],
+    example: {
+      titleEs: "Estructura semántica básica",
+      titleEn: "Basic semantic structure",
+      code: `<body>
+  <header>
+    <h1>Diccionario Dev</h1>
+    <nav>
+      <a href="/">Inicio</a>
+      <a href="/glosario">Glosario</a>
+    </nav>
+  </header>
+  <main>
+    <article>
+      <h2>Términos nuevos</h2>
+      <p>Explora conceptos claves.</p>
+    </article>
+  </main>
+  <footer>© 2024</footer>
+</body>`,
+      noteEs: "Usa etiquetas semánticas para mejorar accesibilidad y SEO.",
+      noteEn: "Use semantic tags to improve accessibility and SEO.",
+    },
+    secondExample: {
+      titleEs: "Body con tema y atajo de acceso",
+      titleEn: "Body with theme and skip link",
+      code: `<body class="bg-slate-50 text-slate-900" data-theme="light">
+  <a href="#contenido" class="sr-only focus:not-sr-only">Saltar al contenido</a>
+  <main id="contenido">
+    <p>Contenido principal.</p>
+  </main>
+</body>`,
+      noteEs: "La clase sr-only permite accesos directos visibles al enfocar.",
+      noteEn: "sr-only links become visible on focus for keyboard navigation.",
+    },
+    exerciseExample: {
+      titleEs: "Body listo para hidratar",
+      titleEn: "Hydration-ready body",
+      code: `<body>
+  <noscript>Esta app requiere JavaScript.</noscript>
+  <div id="root">Cargando...</div>
+  <script type="module" src="/main.js" defer></script>
+</body>`,
+      noteEs: "Separa un contenedor root y agrega fallback sin JS.",
+      noteEn: "Separates a root container and adds a no-JS fallback.",
+    },
+    languageOverride: Language.html,
+    whatEs: "Agrupa todo lo que el usuario ve e interactúa dentro del documento.",
+    whatEn: "Wraps everything the user sees and interacts with in the document.",
+    howEs: "Estructura el body con regiones semánticas y deja un nodo root para apps SPA/SSR.",
+    howEn: "Structure body with semantic regions and leave a root node for SPA/SSR apps.",
+  },
+  {
+    term: "base",
+    translation: "URL base del documento",
+    category: Category.frontend,
+    descriptionEs: "Etiqueta que define la URL y el target por defecto para enlaces y rutas relativas.",
+    descriptionEn: "Tag that sets the default URL and target for relative links and resources.",
+    aliases: ["<base>", "base href"],
+    tags: ["html", "routing", "seo"],
+    example: {
+      titleEs: "Base para abrir enlaces en nueva pestaña",
+      titleEn: "Base to open links in new tab",
+      code: `<head>
+  <base href="https://ejemplo.com/app/" target="_blank" />
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <a href="docs/guia.pdf">Ver guía</a>
+</body>`,
+      noteEs: "El target global aplica a todos los anchors sin target explícito.",
+      noteEn: "The global target applies to all anchors without an explicit target.",
+    },
+    secondExample: {
+      titleEs: "Base para rutas relativas en SPA",
+      titleEn: "Base for relative SPA routes",
+      code: `<head>
+  <base href="/dashboard/" />
+</head>
+<body>
+  <a href="reports">Reportes</a>
+  <img src="assets/avatar.png" alt="Avatar" />
+</body>`,
+      noteEs: "Coloca base al inicio del head para que el navegador resuelva rutas correctamente.",
+      noteEn: "Place base at the start of head so the browser resolves routes correctly.",
+    },
+    exerciseExample: {
+      titleEs: "Base por entorno",
+      titleEn: "Environment-driven base",
+      code: `<head>
+  <!-- Cambia href en build según entorno -->
+  <base href="%PUBLIC_URL%/" />
+  <link rel="stylesheet" href="app.css" />
+</head>`,
+      noteEs: "En builds estáticos puedes interpolar la URL pública para servir desde subdirectorios.",
+      noteEn: "Static builds can interpolate the public URL to serve from subdirectories.",
+    },
+    languageOverride: Language.html,
+    whatEs: "Controla cómo se resuelven los enlaces relativos y el target predeterminado del documento.",
+    whatEn: "Controls how relative links resolve and sets the document's default target.",
+    howEs: "Declara base una sola vez al inicio del head y evita cambiarla dinámicamente.",
+    howEn: "Declare base only once at the top of head and avoid changing it at runtime.",
+  },
+  {
+    term: "link",
+    translation: "enlace a recursos",
+    category: Category.frontend,
+    descriptionEs: "Elemento vacío que referencia recursos externos como estilos, íconos o hints de carga.",
+    descriptionEn: "Void element referencing external resources like styles, icons, or loading hints.",
+    aliases: ["<link>", "stylesheet tag"],
+    tags: ["html", "performance", "css", "preload"],
+    example: {
+      titleEs: "Cargar una hoja de estilos",
+      titleEn: "Load a stylesheet",
+      code: `<head>
+  <link rel="stylesheet" href="/css/app.css" />
+</head>`,
+      noteEs: "rel=\"stylesheet\" bloquea el render hasta descargar el CSS.",
+      noteEn: "rel=\"stylesheet\" blocks render until CSS is downloaded.",
+    },
+    secondExample: {
+      titleEs: "Optimizar fuentes con preload",
+      titleEn: "Optimize fonts with preload",
+      code: `<head>
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link rel="preload" href="/fonts/inter-var.woff2" as="font" type="font/woff2" crossorigin />
+  <link rel="stylesheet" href="/css/typography.css" />
+</head>`,
+      noteEs: "Preload reduce el CLS al adelantar la descarga de fuentes críticas.",
+      noteEn: "Preload reduces CLS by fetching critical fonts early.",
+    },
+    exerciseExample: {
+      titleEs: "Íconos y theme alterno",
+      titleEn: "Icons and alternate theme",
+      code: `<head>
+  <link rel="icon" href="/favicon.ico" />
+  <link rel="apple-touch-icon" href="/icons/icon-192.png" />
+  <link rel="alternate stylesheet" title="Dark" href="/css/dark.css" />
+</head>`,
+      noteEs: "Puedes ofrecer un stylesheet alterno para cambios de tema manuales.",
+      noteEn: "You can expose an alternate stylesheet for manual theme switching.",
+    },
+    languageOverride: Language.html,
+    whatEs: "Permite declarar recursos externos y pistas de carga que afectan el rendimiento.",
+    whatEn: "Lets you declare external assets and loading hints that affect performance.",
+    howEs: "Usa rel adecuado (stylesheet, preload, preconnect) y define crossorigin cuando aplica.",
+    howEn: "Use the proper rel (stylesheet, preload, preconnect) and set crossorigin when needed.",
+  },
+  {
+    term: "meta",
+    translation: "metadatos del documento",
+    category: Category.frontend,
+    descriptionEs: "Etiqueta para definir charset, viewport, SEO, social cards y preferencias de color.",
+    descriptionEn: "Tag to declare charset, viewport, SEO, social cards, and color preferences.",
+    aliases: ["<meta>", "meta tag"],
+    tags: ["html", "seo", "a11y", "performance"],
+    example: {
+      titleEs: "Metas esenciales",
+      titleEn: "Essential metas",
+      code: `<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="description" content="Glosario práctico para devs." />
+</head>`,
+      noteEs: "charset y viewport deben estar al inicio; description mejora el snippet en buscadores.",
+      noteEn: "Place charset and viewport first; description improves search snippets.",
+    },
+    secondExample: {
+      titleEs: "Tarjetas sociales completas",
+      titleEn: "Complete social cards",
+      code: `<head>
+  <meta property="og:title" content="Diccionario Dev" />
+  <meta property="og:description" content="Conceptos clave explicados con ejemplos." />
+  <meta property="og:image" content="https://ejemplo.com/og-card.png" />
+  <meta name="twitter:card" content="summary_large_image" />
+</head>`,
+      noteEs: "Open Graph y Twitter card controlan el preview al compartir enlaces.",
+      noteEn: "Open Graph and Twitter cards control previews when sharing links.",
+    },
+    exerciseExample: {
+      titleEs: "Preferencias de color y PWA",
+      titleEn: "Color preferences and PWA",
+      code: `<head>
+  <meta name="theme-color" content="#0f172a" />
+  <meta name="color-scheme" content="light dark" />
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self';" />
+</head>`,
+      noteEs: "theme-color y color-scheme ajustan UI del navegador; CSP fortalece seguridad.",
+      noteEn: "theme-color and color-scheme tune browser UI; CSP hardens security.",
+    },
+    languageOverride: Language.html,
+    whatEs: "Comunica al navegador y a los buscadores cómo interpretar y mostrar la página.",
+    whatEn: "Tells the browser and crawlers how to interpret and present the page.",
+    howEs: "Define charset/viewport primero y añade metas específicas para SEO, social y seguridad.",
+    howEn: "Define charset/viewport first and add targeted metas for SEO, social, and security.",
+  },
+  {
+    term: "style-element",
+    translation: "etiqueta style",
+    category: Category.frontend,
+    descriptionEs: "Elemento que aloja CSS embebido dentro del documento sin archivo externo.",
+    descriptionEn: "Element that hosts embedded CSS inside the document without an external file.",
+    aliases: ["<style>", "embedded styles"],
+    tags: ["html", "css", "inline styles"],
+    example: {
+      titleEs: "Estilo rápido en el head",
+      titleEn: "Quick style in head",
+      code: `<head>
+  <style>
+    button {
+      background: #0f172a;
+      color: white;
+      padding: 0.75rem 1rem;
+      border-radius: 0.5rem;
+    }
+  </style>
+</head>`,
+      noteEs: "Ideal para prototipos o estilos críticos pequeños.",
+      noteEn: "Great for prototypes or small critical styles.",
+    },
+    secondExample: {
+      titleEs: "Tema con atributos de datos",
+      titleEn: "Theme using data attributes",
+      code: `<style>
+  [data-theme="dark"] body { background: #0b1221; color: #e2e8f0; }
+  [data-theme="light"] body { background: #ffffff; color: #0f172a; }
+</style>`,
+      noteEs: "Puedes cambiar el tema aplicando data-theme en html o body.",
+      noteEn: "Switch themes by toggling data-theme on html or body.",
+    },
+    exerciseExample: {
+      titleEs: "CSS crítico inline",
+      titleEn: "Inline critical CSS",
+      code: `<style>
+  /* Layout principal para evitar FOUC */
+  body { margin: 0; font-family: system-ui, -apple-system, sans-serif; }
+  main { max-width: 960px; margin: 0 auto; padding: 1.5rem; }
+  .card { border: 1px solid #e2e8f0; border-radius: 0.75rem; padding: 1rem; }
+</style>`,
+      noteEs: "Coloca estilos críticos inline para mejorar el LCP inicial.",
+      noteEn: "Inline critical styles to improve initial LCP.",
+    },
+    languageOverride: Language.html,
+    whatEs: "Permite definir CSS rápido o crítico sin dependencias externas.",
+    whatEn: "Lets you define quick or critical CSS without external dependencies.",
+    howEs: "Ubica style en el head y evita CSS extenso inline; migra a archivos cuando crezca.",
+    howEn: "Place style in head and avoid large inline CSS; move to files as it grows.",
+  },
+  {
+    term: "title",
+    translation: "título del documento",
+    category: Category.frontend,
+    descriptionEs: "Texto que se muestra en la pestaña del navegador y sirve como título principal de la página.",
+    descriptionEn: "Text shown in the browser tab and used as the page's primary title.",
+    aliases: ["<title>", "document title"],
+    tags: ["html", "seo", "ux"],
+    example: {
+      titleEs: "Título claro para dashboard",
+      titleEn: "Clear dashboard title",
+      code: `<head>
+  <title>Dashboard | Diccionario Dev</title>
+</head>`,
+      noteEs: "Incluye el contexto del producto para que sea reconocible en la pestaña.",
+      noteEn: "Include product context so the tab is recognizable.",
+    },
+    secondExample: {
+      titleEs: "Título por sección",
+      titleEn: "Section-based title",
+      code: `<head>
+  <title>Perfil de usuario | App</title>
+</head>`,
+      noteEs: "Combina sección + marca para mejorar SEO y usabilidad.",
+      noteEn: "Combine section + brand to improve SEO and usability.",
+    },
+    exerciseExample: {
+      titleEs: "Título para landing",
+      titleEn: "Landing title",
+      code: `<head>
+  <title>Aprende HTML en minutos</title>
+  <meta name="description" content="Guías cortas y ejemplos listos para usar." />
+</head>`,
+      noteEs: "Alinea el título con la meta description para evitar discrepancias en buscadores.",
+      noteEn: "Align the title with meta description to avoid mismatches in search results.",
+    },
+    languageOverride: Language.html,
+    whatEs: "Nombra la página en la pestaña del navegador y aporta señal primaria a SEO.",
+    whatEn: "Names the page in the browser tab and gives primary SEO signal.",
+    howEs: "Ponlo dentro de head y mantenlo corto (50–60 caracteres).",
+    howEn: "Place it inside head and keep it concise (50–60 characters).",
+  },
+  {
+    term: "script",
+    translation: "carga de JavaScript",
+    category: Category.frontend,
+    descriptionEs: "Etiqueta para ejecutar o enlazar scripts controlando estrategia con defer, async o type=module.",
+    descriptionEn: "Tag to execute or load scripts while controlling strategy with defer, async, or type=module.",
+    aliases: ["<script>", "script tag"],
+    tags: ["html", "javascript", "performance", "security"],
+    example: {
+      titleEs: "Script módulo con defer",
+      titleEn: "Module script with defer",
+      code: `<body>
+  <script type="module" src="/js/app.js" defer></script>
+</body>`,
+      noteEs: "type=module usa ES modules y defer evita bloquear el render.",
+      noteEn: "type=module leverages ES modules and defer avoids render blocking.",
+    },
+    secondExample: {
+      titleEs: "Config inline segura",
+      titleEn: "Safe inline config",
+      code: `<head>
+  <script nonce="abc123">
+    window.appConfig = { apiBase: "/api" };
+  </script>
+</head>`,
+      noteEs: "Usa nonce o hash si tienes CSP para permitir scripts inline controlados.",
+      noteEn: "Use a nonce or hash with CSP to allow controlled inline scripts.",
+    },
+    exerciseExample: {
+      titleEs: "Carga diferida y fallback",
+      titleEn: "Deferred load with fallback",
+      code: `<body>
+  <div id="root">Cargando...</div>
+  <script src="https://cdn.example.com/react.production.min.js" crossorigin defer></script>
+  <script src="/js/app.bundle.js" defer></script>
+  <noscript>Activa JavaScript para usar la aplicación.</noscript>
+</body>`,
+      noteEs: "Agrupa scripts al final del body y agrega noscript como respaldo.",
+      noteEn: "Group scripts at the end of body and add noscript as fallback.",
+    },
+    languageOverride: Language.html,
+    whatEs: "Inyecta JavaScript en la página controlando bloqueo, integridad y seguridad.",
+    whatEn: "Injects JavaScript into the page while controlling blocking, integrity, and security.",
+    howEs: "Prefiere type=module + defer; aplica nonce/CSP y coloca scripts al final cuando sean clásicos.",
+    howEn: "Prefer type=module + defer; apply nonce/CSP and place classic scripts at the end.",
+  },
+  {
+    term: "noscript",
+    translation: "contenido sin JavaScript",
+    category: Category.frontend,
+    descriptionEs: "Bloque alternativo que se muestra cuando el navegador no ejecuta JavaScript.",
+    descriptionEn: "Alternative block displayed when the browser does not run JavaScript.",
+    aliases: ["<noscript>", "no script fallback"],
+    tags: ["html", "progressive enhancement", "a11y"],
+    example: {
+      titleEs: "Aviso de funcionalidad limitada",
+      titleEn: "Limited functionality notice",
+      code: `<body>
+  <noscript>
+    <div class="alert">Activa JavaScript para usar todas las funciones.</div>
+  </noscript>
+</body>`,
+      noteEs: "Informa a usuarios sin JS sobre las limitaciones.",
+      noteEn: "Let no-JS users know about limitations.",
+    },
+    secondExample: {
+      titleEs: "Estilos alternos sin JS",
+      titleEn: "Alternate styles without JS",
+      code: `<head>
+  <noscript>
+    <style>
+      .requires-js { display: none; }
+    </style>
+  </noscript>
+</head>`,
+      noteEs: "Oculta UI que depende de JS para evitar confusión.",
+      noteEn: "Hide JS-dependent UI to avoid confusion.",
+    },
+    exerciseExample: {
+      titleEs: "Fallback de datos estáticos",
+      titleEn: "Static data fallback",
+      code: `<body>
+  <section class="requires-js">
+    <div id="app">Cargando app...</div>
+  </section>
+  <noscript>
+    <article>
+      <h1>Versión estática</h1>
+      <p>Descarga el PDF con la guía completa.</p>
+      <a href="/guia.pdf">Abrir guía</a>
+    </article>
+  </noscript>
+</body>`,
+      noteEs: "Ofrece una ruta alternativa para acceso a contenido esencial.",
+      noteEn: "Provide an alternate path to essential content.",
+    },
+    languageOverride: Language.html,
+    whatEs: "Comunica contenido alternativo cuando JS está deshabilitado o bloqueado.",
+    whatEn: "Communicates alternate content when JS is disabled or blocked.",
+    howEs: "Coloca noscript cerca de la UI dependiente y ofrece acciones claras.",
+    howEn: "Place noscript near JS-dependent UI and offer clear actions.",
+  },
+  {
+    term: "template",
+    translation: "plantilla HTML reutilizable",
+    category: Category.frontend,
+    descriptionEs: "Contenedor inerte que guarda marcado reutilizable hasta que se instancia vía JavaScript.",
+    descriptionEn: "Inactive container that stores reusable markup until instantiated via JavaScript.",
+    aliases: ["<template>", "html template"],
+    tags: ["html", "dom", "web components"],
+    example: {
+      titleEs: "Clonar tarjeta desde template",
+      titleEn: "Clone card from template",
+      code: `<template id="card-template">
+  <article class="card">
+    <h3 class="title"></h3>
+    <p class="body"></p>
+  </article>
+</template>
+<script>
+  const tpl = document.getElementById("card-template");
+  const card = tpl.content.cloneNode(true);
+  card.querySelector(".title").textContent = "Nueva entrada";
+  card.querySelector(".body").textContent = "Detalle del término.";
+  document.body.appendChild(card);
+</script>`,
+      noteEs: "template.content no se renderiza hasta clonarlo y adjuntarlo al DOM.",
+      noteEn: "template.content stays inert until cloned and attached to the DOM.",
+    },
+    secondExample: {
+      titleEs: "Renderizar listas dinámicas",
+      titleEn: "Render dynamic lists",
+      code: `<template id="item-template">
+  <li class="item">
+    <span class="label"></span>
+  </li>
+</template>
+<ul id="list"></ul>
+<script>
+  const tpl = document.getElementById("item-template");
+  const list = document.getElementById("list");
+  ["HTML", "CSS", "JS"].forEach((label) => {
+    const node = tpl.content.cloneNode(true);
+    node.querySelector(".label").textContent = label;
+    list.appendChild(node);
+  });
+</script>`,
+      noteEs: "Evita innerHTML manual y conserva estructura consistente.",
+      noteEn: "Avoids manual innerHTML while keeping structure consistent.",
+    },
+    exerciseExample: {
+      titleEs: "Modal reutilizable",
+      titleEn: "Reusable modal",
+      code: `<template id="modal-template">
+  <div class="backdrop">
+    <div class="modal">
+      <h2 class="title"></h2>
+      <p class="body"></p>
+      <button class="close">Cerrar</button>
+    </div>
+  </div>
+</template>
+<script>
+  function openModal(title, body) {
+    const tpl = document.getElementById("modal-template");
+    const fragment = tpl.content.cloneNode(true);
+    fragment.querySelector(".title").textContent = title;
+    fragment.querySelector(".body").textContent = body;
+    fragment.querySelector(".close").addEventListener("click", () => {
+      document.body.removeChild(modalNode);
+    });
+    const modalNode = fragment.firstElementChild;
+    document.body.appendChild(modalNode);
+  }
+</script>`,
+      noteEs: "Centraliza el HTML de modales y solo rellena textos dinámicos al abrir.",
+      noteEn: "Keeps modal HTML centralized and only fills dynamic text on open.",
+    },
+    languageOverride: Language.html,
+    whatEs: "Guarda marcado listo para clonar sin ejecutarse hasta que lo uses.",
+    whatEn: "Stores markup ready to clone without executing until you use it.",
+    howEs: "Define el template en el HTML y clónalo con template.content.cloneNode(true) antes de inyectarlo.",
+    howEn: "Define the template in HTML and clone it with template.content.cloneNode(true) before injecting.",
+  },
+  {
+    term: "slot",
+    translation: "ranura de contenido",
+    category: Category.frontend,
+    descriptionEs: "Marcador dentro del shadow DOM donde se proyecta contenido hijo de un componente.",
+    descriptionEn: "Placeholder inside shadow DOM where child content is projected.",
+    aliases: ["<slot>", "web components slot"],
+    tags: ["html", "web components", "shadow dom"],
+    example: {
+      titleEs: "Slot por defecto y nombrado",
+      titleEn: "Default and named slot",
+      code: `<template id="card-shell">
+  <style>
+    .card { border: 1px solid #e2e8f0; padding: 1rem; border-radius: 0.75rem; }
+    .title { font-weight: 700; }
+  </style>
+  <article class="card">
+    <h3 class="title"><slot name="title">Título</slot></h3>
+    <p><slot>Contenido por defecto</slot></p>
+    <div class="actions"><slot name="actions"></slot></div>
+  </article>
+</template>
+<script>
+  class AppCard extends HTMLElement {
+    constructor() {
+      super();
+      const root = this.attachShadow({ mode: "open" });
+      const tpl = document.getElementById("card-shell");
+      root.appendChild(tpl.content.cloneNode(true));
+    }
+  }
+  customElements.define("app-card", AppCard);
+</script>
+<app-card>
+  <span slot="title">Resumen</span>
+  <span>Detalle corto.</span>
+  <button slot="actions">Acción</button>
+</app-card>`,
+      noteEs: "slot proyecta nodos hijos dentro del shadow DOM preservando accesibilidad.",
+      noteEn: "slot projects child nodes into shadow DOM while keeping accessibility.",
+    },
+    secondExample: {
+      titleEs: "Fallback para slot vacío",
+      titleEn: "Fallback for empty slot",
+      code: `<template id="pill-shell">
+  <style>.pill { padding: 0.25rem 0.75rem; border-radius: 999px; background: #e2e8f0; }</style>
+  <span class="pill"><slot>Estado pendiente</slot></span>
+</template>
+<script>
+  class AppPill extends HTMLElement {
+    constructor() {
+      super();
+      const root = this.attachShadow({ mode: "open" });
+      const tpl = document.getElementById("pill-shell");
+      root.appendChild(tpl.content.cloneNode(true));
+    }
+  }
+  customElements.define("app-pill", AppPill);
+</script>
+<app-pill></app-pill>`,
+      noteEs: "Si no se pasa contenido, se muestra el fallback definido dentro del slot.",
+      noteEn: "If no content is provided, the fallback defined inside the slot is rendered.",
+    },
+    exerciseExample: {
+      titleEs: "Slot para layout compuesto",
+      titleEn: "Slot for composed layout",
+      code: `<template id="panel-shell">
+  <style>
+    .panel { display: grid; gap: 0.5rem; padding: 1rem; border: 1px solid #cbd5e1; }
+    .header { display: flex; justify-content: space-between; align-items: center; }
+  </style>
+  <section class="panel">
+    <header class="header">
+      <slot name="title">Panel</slot>
+      <slot name="toolbar"></slot>
+    </header>
+    <div class="content"><slot></slot></div>
+  </section>
+</template>
+<app-panel>
+  <h2 slot="title">Usuarios</h2>
+  <button slot="toolbar">Refrescar</button>
+  <p>Lista de usuarios...</p>
+</app-panel>`,
+      noteEs: "Define slots por región para recomponer layouts sin duplicar HTML.",
+      noteEn: "Define region-specific slots to recompose layouts without duplicating HTML.",
+    },
+    languageOverride: Language.html,
+    whatEs: "Expone puntos de inserción en web components para que el consumidor personalice el contenido.",
+    whatEn: "Exposes insertion points in web components so consumers customize content.",
+    howEs: "Declara slots en tu shadow DOM y usa atributos slot en el contenido hijo que proyectas.",
+    howEn: "Declare slots in your shadow DOM and use slot attributes on projected child content.",
+  },
 ];
