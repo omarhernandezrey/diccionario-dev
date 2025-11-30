@@ -48,15 +48,22 @@ function normalizeLikeParam(param?: string | number) {
 function filterTermsFromSql(sql: string, params: Array<string | number>) {
   let filtered = [...termStore];
   let index = 0;
+  const lowerSql = sql.toLowerCase();
+  const hasPagination = /limit\s+\$\d+/i.test(sql);
+  const filterParamCount = params.length - (hasPagination ? 2 : 0);
+  const hasCategoryFilter = sql.includes("\"category\"");
+  const hasTextSearch = lowerSql.includes(" ilike $");
+  const hasTagFilter =
+    sql.includes("\"tags\"") && filterParamCount > (hasCategoryFilter ? 1 : 0) + (hasTextSearch ? 8 : 0);
 
-  if (sql.includes("\"category\"")) {
+  if (hasCategoryFilter) {
     const category = params[index++] as string | undefined;
     if (category) {
       filtered = filtered.filter((term) => term.category === category);
     }
   }
 
-  if (sql.includes("\"tags\"")) {
+  if (hasTagFilter) {
     const rawTag = params[index++] as string | undefined;
     const tag = normalizeLikeParam(rawTag);
     if (tag) {
@@ -64,7 +71,7 @@ function filterTermsFromSql(sql: string, params: Array<string | number>) {
     }
   }
 
-  if (sql.toLowerCase().includes("lower(")) {
+  if (hasTextSearch) {
     const like = normalizeLikeParam(params[index]);
     if (like) {
       filtered = filtered.filter((term) => {
