@@ -1,0 +1,1378 @@
+{
+  "timestamp": "2025-11-30T00:34:22.994Z",
+  "totalTerms": 31,
+  "averageCompleteness": 100,
+  "termsAnalyzed": [
+    {
+      "id": 14,
+      "term": "align-items",
+      "category": "frontend",
+      "status": "approved",
+      "fields": {
+        "translation": "alinear elementos en el eje cruzado",
+        "titleEs": "alinear elementos en el eje cruzado",
+        "titleEn": "align-items",
+        "aliases": [
+          "alignItems",
+          "align-items property"
+        ],
+        "tags": [
+          "css",
+          "flexbox",
+          "layout"
+        ],
+        "meaningEs": "En programación \"align-items\" se refiere a Propiedad de flexbox y grid que alinea los hijos verticalmente cuando sobra espacio en el eje cruzado..",
+        "meaningEn": "Flexbox and grid property that aligns items along the cross axis whenever there is extra space.",
+        "what": "Se usa para definir cómo se acomodan los elementos respecto al eje perpendicular al flujo.",
+        "whatEs": "Se usa para definir cómo se acomodan los elementos respecto al eje perpendicular al flujo.",
+        "whatEn": "It controls how children sit on the cross axis when there is remaining room.",
+        "how": "Declara display:flex o display:grid y ajusta align-items en el contenedor. Experimenta con valores como center, flex-end o stretch.",
+        "howEs": "Declara display:flex o display:grid y ajusta align-items en el contenedor. Experimenta con valores como center, flex-end o stretch.",
+        "howEn": "Set display:flex or grid on the container and tweak align-items with values such as center, flex-end or stretch."
+      },
+      "relations": {
+        "variants": 1,
+        "useCases": 3,
+        "faqs": 3,
+        "exercises": 1
+      },
+      "completeness": {
+        "hasDefinition": true,
+        "hasWhat": true,
+        "hasHow": true,
+        "hasVariants": true,
+        "hasUseCases": true,
+        "hasFaqs": true,
+        "hasExercises": true,
+        "completenessPercentage": 100
+      }
+    },
+    {
+      "id": 5,
+      "term": "aria-label",
+      "category": "frontend",
+      "status": "approved",
+      "fields": {
+        "translation": "etiqueta accesible",
+        "titleEs": "etiqueta accesible",
+        "titleEn": "aria-label",
+        "aliases": [
+          "aria label",
+          "accessibility label"
+        ],
+        "tags": [
+          "html",
+          "a11y",
+          "accessibility"
+        ],
+        "meaningEs": "En programación \"aria-label\" se refiere a Atributo HTML que proporciona texto accesible para lectores de pantalla cuando no hay texto visible..",
+        "meaningEn": "HTML attribute providing accessible text for screen readers when no visible text exists.",
+        "what": "Hace que controles sin texto visible sean anunciados correctamente por tecnologías asistivas.",
+        "whatEs": "Hace que controles sin texto visible sean anunciados correctamente por tecnologías asistivas.",
+        "whatEn": "Ensures controls without visible text are announced by assistive tech.",
+        "how": "Añade aria-label conciso y accionable; evita duplicar cuando ya hay texto visible.",
+        "howEs": "Añade aria-label conciso y accionable; evita duplicar cuando ya hay texto visible.",
+        "howEn": "Add a concise, action-oriented aria-label; avoid duplicating visible text."
+      },
+      "relations": {
+        "variants": 1,
+        "useCases": 3,
+        "faqs": 3,
+        "exercises": 1
+      },
+      "completeness": {
+        "hasDefinition": true,
+        "hasWhat": true,
+        "hasHow": true,
+        "hasVariants": true,
+        "hasUseCases": true,
+        "hasFaqs": true,
+        "hasExercises": true,
+        "completenessPercentage": 100
+      }
+    },
+    {
+      "id": 17,
+      "term": "aspect-ratio",
+      "category": "frontend",
+      "status": "approved",
+      "fields": {
+        "translation": "relación de aspecto nativa",
+        "titleEs": "relación de aspecto nativa",
+        "titleEn": "aspect-ratio",
+        "aliases": [
+          "aspectRatio"
+        ],
+        "tags": [
+          "css",
+          "media",
+          "responsive"
+        ],
+        "meaningEs": "En programación \"aspect-ratio\" se refiere a Propiedad que reserva el alto correcto de un elemento aunque sólo definas el ancho..",
+        "meaningEn": "Property that locks the intrinsic ratio so height is calculated automatically from width.",
+        "what": "Resuelve placeholders para videos, iframes o componentes con proporción fija.",
+        "whatEs": "Resuelve placeholders para videos, iframes o componentes con proporción fija.",
+        "whatEn": "Keeps placeholders for videos, iframes or cards perfectly scaled.",
+        "how": "Declara aspect-ratio en contenedores multimedia o componentes gráficos y deja que el layout se ajuste.",
+        "howEs": "Declara aspect-ratio en contenedores multimedia o componentes gráficos y deja que el layout se ajuste.",
+        "howEn": "Set aspect-ratio on media containers or graphical components and let the browser honor it."
+      },
+      "relations": {
+        "variants": 1,
+        "useCases": 3,
+        "faqs": 3,
+        "exercises": 1
+      },
+      "completeness": {
+        "hasDefinition": true,
+        "hasWhat": true,
+        "hasHow": true,
+        "hasVariants": true,
+        "hasUseCases": true,
+        "hasFaqs": true,
+        "hasExercises": true,
+        "completenessPercentage": 100
+      }
+    },
+    {
+      "id": 19,
+      "term": "backdrop-filter",
+      "category": "frontend",
+      "status": "approved",
+      "fields": {
+        "translation": "aplicar desenfoques al fondo",
+        "titleEs": "aplicar desenfoques al fondo",
+        "titleEn": "backdrop-filter",
+        "aliases": [
+          "frosted glass"
+        ],
+        "tags": [
+          "css",
+          "effects",
+          "ui"
+        ],
+        "meaningEs": "En programación \"backdrop-filter\" se refiere a Permite difuminar o saturar el contenido que está detrás de un elemento translúcido..",
+        "meaningEn": "Applies blur or color effects to what lives behind a translucent element.",
+        "what": "Es útil para overlays, barras flotantes o paneles donde quieres ver el contenido subyacente.",
+        "whatEs": "Es útil para overlays, barras flotantes o paneles donde quieres ver el contenido subyacente.",
+        "whatEn": "Great for overlays, floating panels or nav bars where you want to hint at underlying content.",
+        "how": "Combínalo con background rgba() y border suaves para dar profundidad sin saturar la UI.",
+        "howEs": "Combínalo con background rgba() y border suaves para dar profundidad sin saturar la UI.",
+        "howEn": "Combine it with rgba backgrounds and subtle borders to add depth without clutter."
+      },
+      "relations": {
+        "variants": 1,
+        "useCases": 3,
+        "faqs": 3,
+        "exercises": 1
+      },
+      "completeness": {
+        "hasDefinition": true,
+        "hasWhat": true,
+        "hasHow": true,
+        "hasVariants": true,
+        "hasUseCases": true,
+        "hasFaqs": true,
+        "hasExercises": true,
+        "completenessPercentage": 100
+      }
+    },
+    {
+      "id": 24,
+      "term": "base",
+      "category": "frontend",
+      "status": "approved",
+      "fields": {
+        "translation": "URL base para enlaces relativos",
+        "titleEs": "Elemento BASE",
+        "titleEn": "BASE Element",
+        "aliases": [
+          "base URL",
+          "base element",
+          "relative links"
+        ],
+        "tags": [
+          "html",
+          "url",
+          "links",
+          "seo"
+        ],
+        "meaningEs": "En programación \"base\" se refiere al elemento HTML que especifica una URL base para todos los enlaces relativos de la página, permitiendo que el navegador resuelva correctamente rutas relativas.",
+        "meaningEn": "The HTML element that specifies a base URL for all relative links on the page, allowing the browser to correctly resolve relative paths.",
+        "what": "Se usa para definir un URL base único para toda la página, útil cuando los archivos están en subdirectorios o cuando necesitas cambiar la raíz de referencias sin modificar cada enlace.",
+        "whatEs": "Se usa para definir un URL base único para toda la página, útil cuando los archivos están en subdirectorios o cuando necesitas cambiar la raíz de referencias sin modificar cada enlace.",
+        "whatEn": "It defines a single base URL for the entire page, useful when files are in subdirectories or when you need to change the root of references without modifying each link.",
+        "how": "Incluye la etiqueta <base href=\"URL\"> en el <head> antes de otros enlaces; todas las rutas relativas se resolverán respecto a esta URL base.",
+        "howEs": "Incluye la etiqueta <base href=\"URL\"> en el <head> antes de otros enlaces; todas las rutas relativas se resolverán respecto a esta URL base.",
+        "howEn": "Include <base href=\"URL\"> tag in <head> before other links; all relative paths will be resolved relative to this base URL."
+      },
+      "relations": {
+        "variants": 1,
+        "useCases": 3,
+        "faqs": 3,
+        "exercises": 1
+      },
+      "completeness": {
+        "hasDefinition": true,
+        "hasWhat": true,
+        "hasHow": true,
+        "hasVariants": true,
+        "hasUseCases": true,
+        "hasFaqs": true,
+        "hasExercises": true,
+        "completenessPercentage": 100
+      }
+    },
+    {
+      "id": 3,
+      "term": "bg-gradient-to-r",
+      "category": "frontend",
+      "status": "approved",
+      "fields": {
+        "translation": "degradado horizontal Tailwind",
+        "titleEs": "degradado horizontal Tailwind",
+        "titleEn": "bg-gradient-to-r",
+        "aliases": [
+          "gradient tailwind",
+          "bg gradient"
+        ],
+        "tags": [
+          "tailwind",
+          "css",
+          "ui"
+        ],
+        "meaningEs": "En programación \"bg-gradient-to-r\" se refiere a Clase utilitaria de Tailwind CSS que aplica un fondo degradado de izquierda a derecha..",
+        "meaningEn": "Tailwind utility that applies a left-to-right gradient background.",
+        "what": "Aporta contraste y jerarquía visual a botones o secciones sin escribir CSS adicional.",
+        "whatEs": "Aporta contraste y jerarquía visual a botones o secciones sin escribir CSS adicional.",
+        "whatEn": "Adds contrast and visual hierarchy to buttons or sections without extra CSS.",
+        "how": "Aplica la clase bg-gradient-to-r en el atributo class junto con from-*, to-* y opcionalmente via-*. Para texto usa bg-clip-text y text-transparent. Combina con variantes como hover:, dark: o md: para diseños responsivos.",
+        "howEs": "Aplica la clase bg-gradient-to-r en el atributo class junto con from-*, to-* y opcionalmente via-*. Para texto usa bg-clip-text y text-transparent. Combina con variantes como hover:, dark: o md: para diseños responsivos.",
+        "howEn": "Apply the bg-gradient-to-r class in the class attribute along with from-*, to-* and optionally via-*. For text use bg-clip-text and text-transparent. Combine with variants like hover:, dark: or md: for responsive designs."
+      },
+      "relations": {
+        "variants": 1,
+        "useCases": 3,
+        "faqs": 3,
+        "exercises": 1
+      },
+      "completeness": {
+        "hasDefinition": true,
+        "hasWhat": true,
+        "hasHow": true,
+        "hasVariants": true,
+        "hasUseCases": true,
+        "hasFaqs": true,
+        "hasExercises": true,
+        "completenessPercentage": 100
+      }
+    },
+    {
+      "id": 23,
+      "term": "body",
+      "category": "frontend",
+      "status": "approved",
+      "fields": {
+        "translation": "contenido visible del documento",
+        "titleEs": "Elemento BODY",
+        "titleEn": "BODY Element",
+        "aliases": [
+          "document body",
+          "content section"
+        ],
+        "tags": [
+          "html",
+          "content",
+          "document",
+          "structure"
+        ],
+        "meaningEs": "En programación \"body\" se refiere al elemento HTML que contiene todo el contenido visible de la página: texto, imágenes, formularios, enlaces y elementos interactivos que el usuario ve en el navegador.",
+        "meaningEn": "The HTML element that contains all visible page content: text, images, forms, links and interactive elements that users see in the browser.",
+        "what": "Se usa para envolver todo el contenido que debe mostrarse al usuario, permitiendo aplicar estilos globales y scripts que manipulen el contenido visible.",
+        "whatEs": "Se usa para envolver todo el contenido que debe mostrarse al usuario, permitiendo aplicar estilos globales y scripts que manipulen el contenido visible.",
+        "whatEn": "It wraps all content that should be displayed to users, allowing global styles and scripts that manipulate visible content.",
+        "how": "Coloca todos los elementos de contenido dentro del <body> después del </head>; organiza el contenido usando estructura semántica con header, main, section, article, footer.",
+        "howEs": "Coloca todos los elementos de contenido dentro del <body> después del </head>; organiza el contenido usando estructura semántica con header, main, section, article, footer.",
+        "howEn": "Place all content elements inside <body> after </head>; organize content using semantic structure with header, main, section, article, footer."
+      },
+      "relations": {
+        "variants": 1,
+        "useCases": 3,
+        "faqs": 3,
+        "exercises": 1
+      },
+      "completeness": {
+        "hasDefinition": true,
+        "hasWhat": true,
+        "hasHow": true,
+        "hasVariants": true,
+        "hasUseCases": true,
+        "hasFaqs": true,
+        "hasExercises": true,
+        "completenessPercentage": 100
+      }
+    },
+    {
+      "id": 11,
+      "term": "CI/CD",
+      "category": "devops",
+      "status": "approved",
+      "fields": {
+        "translation": "entrega continua",
+        "titleEs": "entrega continua",
+        "titleEn": "CI/CD",
+        "aliases": [
+          "pipelines"
+        ],
+        "tags": [
+          "automation",
+          "quality"
+        ],
+        "meaningEs": "En programación \"CI/CD\" se refiere a Práctica que automatiza tests, builds y despliegues en cada cambio..",
+        "meaningEn": "Practice that automates tests, builds and deployments on every change.",
+        "what": "Nos da feedback rápido sobre regresiones y acelera releases.",
+        "whatEs": "Nos da feedback rápido sobre regresiones y acelera releases.",
+        "whatEn": "Delivers fast feedback on regressions and accelerates releases.",
+        "how": "Define pipelines declarativos que compilen, prueben y desplieguen usando ambientes efímeros.",
+        "howEs": "Define pipelines declarativos que compilen, prueben y desplieguen usando ambientes efímeros.",
+        "howEn": "Create declarative pipelines that build, test and deploy using ephemeral environments."
+      },
+      "relations": {
+        "variants": 1,
+        "useCases": 3,
+        "faqs": 3,
+        "exercises": 1
+      },
+      "completeness": {
+        "hasDefinition": true,
+        "hasWhat": true,
+        "hasHow": true,
+        "hasVariants": true,
+        "hasUseCases": true,
+        "hasFaqs": true,
+        "hasExercises": true,
+        "completenessPercentage": 100
+      }
+    },
+    {
+      "id": 15,
+      "term": "clamp",
+      "category": "frontend",
+      "status": "approved",
+      "fields": {
+        "translation": "limitar valores con un rango lógico",
+        "titleEs": "limitar valores con un rango lógico",
+        "titleEn": "clamp",
+        "aliases": [
+          "clamp()"
+        ],
+        "tags": [
+          "css",
+          "fluid",
+          "typography"
+        ],
+        "meaningEs": "En programación \"clamp\" se refiere a Función CSS que fija un mínimo, un valor ideal y un máximo sin medias queries..",
+        "meaningEn": "CSS helper that sets a min, preferred and max value without media queries.",
+        "what": "Resuelve diseños fluidos declarando un valor responsive sin cálculos manuales.",
+        "whatEs": "Resuelve diseños fluidos declarando un valor responsive sin cálculos manuales.",
+        "whatEn": "It gives you responsive sizing logic with a single expression.",
+        "how": "Define clamp(min, preferido, max) en propiedades numéricas: font-size, width, gaps o padding.",
+        "howEs": "Define clamp(min, preferido, max) en propiedades numéricas: font-size, width, gaps o padding.",
+        "howEn": "Use clamp(min, preferred, max) on numeric properties like font-size, width, gaps or padding."
+      },
+      "relations": {
+        "variants": 1,
+        "useCases": 3,
+        "faqs": 3,
+        "exercises": 1
+      },
+      "completeness": {
+        "hasDefinition": true,
+        "hasWhat": true,
+        "hasHow": true,
+        "hasVariants": true,
+        "hasUseCases": true,
+        "hasFaqs": true,
+        "hasExercises": true,
+        "completenessPercentage": 100
+      }
+    },
+    {
+      "id": 7,
+      "term": "debounce",
+      "category": "frontend",
+      "status": "approved",
+      "fields": {
+        "translation": "espera antes de ejecutar",
+        "titleEs": "espera antes de ejecutar",
+        "titleEn": "debounce",
+        "aliases": [
+          "debouncer"
+        ],
+        "tags": [
+          "performance",
+          "ux"
+        ],
+        "meaningEs": "En programación \"debounce\" se refiere a Patrón que retrasa la ejecución hasta que pasa un intervalo sin nuevos eventos..",
+        "meaningEn": "Pattern that delays execution until no new events fire within a window.",
+        "what": "Sirve para buscadores, auto guardados o listeners scroll.",
+        "whatEs": "Sirve para buscadores, auto guardados o listeners scroll.",
+        "whatEn": "Useful for search bars, autosave workflows or scroll listeners.",
+        "how": "Envuelve la función costosa con debounce(fn, tiempo) y limpia el timer al desmontar.",
+        "howEs": "Envuelve la función costosa con debounce(fn, tiempo) y limpia el timer al desmontar.",
+        "howEn": "Wrap the expensive logic with debounce(fn, wait) and clear the timer on unmount."
+      },
+      "relations": {
+        "variants": 1,
+        "useCases": 3,
+        "faqs": 3,
+        "exercises": 1
+      },
+      "completeness": {
+        "hasDefinition": true,
+        "hasWhat": true,
+        "hasHow": true,
+        "hasVariants": true,
+        "hasUseCases": true,
+        "hasFaqs": true,
+        "hasExercises": true,
+        "completenessPercentage": 100
+      }
+    },
+    {
+      "id": 9,
+      "term": "Docker",
+      "category": "devops",
+      "status": "approved",
+      "fields": {
+        "translation": "contenedores reproducibles",
+        "titleEs": "contenedores reproducibles",
+        "titleEn": "Docker",
+        "aliases": [
+          "docker compose"
+        ],
+        "tags": [
+          "containers",
+          "devops"
+        ],
+        "meaningEs": "En programación \"Docker\" se refiere a Plataforma para empacar aplicaciones y dependencias en contenedores aislados..",
+        "meaningEn": "Platform to package apps and dependencies into isolated containers.",
+        "what": "Facilita ambientes consistentes y despliegues predecibles.",
+        "whatEs": "Facilita ambientes consistentes y despliegues predecibles.",
+        "whatEn": "Gives consistent environments and predictable deployments.",
+        "how": "Escribe un Dockerfile, construye la imagen y orquesta servicios con compose o Kubernetes.",
+        "howEs": "Escribe un Dockerfile, construye la imagen y orquesta servicios con compose o Kubernetes.",
+        "howEn": "Craft a Dockerfile, build the image and orchestrate services via Compose or Kubernetes."
+      },
+      "relations": {
+        "variants": 1,
+        "useCases": 3,
+        "faqs": 3,
+        "exercises": 1
+      },
+      "completeness": {
+        "hasDefinition": true,
+        "hasWhat": true,
+        "hasHow": true,
+        "hasVariants": true,
+        "hasUseCases": true,
+        "hasFaqs": true,
+        "hasExercises": true,
+        "completenessPercentage": 100
+      }
+    },
+    {
+      "id": 1,
+      "term": "fetch",
+      "category": "frontend",
+      "status": "approved",
+      "fields": {
+        "translation": "traer datos del servidor",
+        "titleEs": "traer datos del servidor",
+        "titleEn": "fetch",
+        "aliases": [
+          "fetch API",
+          "window.fetch",
+          "native fetch"
+        ],
+        "tags": [
+          "http",
+          "api",
+          "promises",
+          "abortcontroller"
+        ],
+        "meaningEs": "En programación \"fetch\" se refiere a API nativa del navegador para hacer solicitudes HTTP asincrónicas basadas en promesas..",
+        "meaningEn": "Native browser API for asynchronous HTTP requests that returns promises.",
+        "what": "Consumir APIs REST o GraphQL y enviar/recibir JSON sin dependencias externas.",
+        "whatEs": "Consumir APIs REST o GraphQL y enviar/recibir JSON sin dependencias externas.",
+        "whatEn": "Consume REST/GraphQL APIs and send/receive JSON without extra dependencies.",
+        "how": "Usa fetch(url, { method, headers, body, signal }) con AbortController para timeouts, valida res.ok y maneja cuerpos vacíos o no-JSON.",
+        "howEs": "Usa fetch(url, { method, headers, body, signal }) con AbortController para timeouts, valida res.ok y maneja cuerpos vacíos o no-JSON.",
+        "howEn": "Use fetch(url, { method, headers, body, signal }) with AbortController for timeouts, check res.ok, and handle empty or non-JSON bodies."
+      },
+      "relations": {
+        "variants": 1,
+        "useCases": 3,
+        "faqs": 3,
+        "exercises": 1
+      },
+      "completeness": {
+        "hasDefinition": true,
+        "hasWhat": true,
+        "hasHow": true,
+        "hasVariants": true,
+        "hasUseCases": true,
+        "hasFaqs": true,
+        "hasExercises": true,
+        "completenessPercentage": 100
+      }
+    },
+    {
+      "id": 4,
+      "term": "flex-col",
+      "category": "frontend",
+      "status": "approved",
+      "fields": {
+        "translation": "columna en flex (Tailwind)",
+        "titleEs": "columna en flex (Tailwind)",
+        "titleEn": "flex-col",
+        "aliases": [
+          "flex column",
+          "tailwind flex-col"
+        ],
+        "tags": [
+          "tailwind",
+          "flexbox",
+          "layout"
+        ],
+        "meaningEs": "En programación \"flex-col\" se refiere a Clase de Tailwind CSS que establece la dirección de los hijos en columna dentro de un contenedor flex..",
+        "meaningEn": "Tailwind utility to set flex direction to column inside a flex container.",
+        "what": "Simplifica layouts en columna sin escribir CSS personalizado.",
+        "whatEs": "Simplifica layouts en columna sin escribir CSS personalizado.",
+        "whatEn": "Simplifies column layouts without custom CSS.",
+        "how": "Aplica flex y flex-col en el contenedor; ajusta gap y alineación con justify/align utilities.",
+        "howEs": "Aplica flex y flex-col en el contenedor; ajusta gap y alineación con justify/align utilities.",
+        "howEn": "Apply flex and flex-col on the container; adjust gap and alignment with justify/align utilities."
+      },
+      "relations": {
+        "variants": 1,
+        "useCases": 3,
+        "faqs": 3,
+        "exercises": 1
+      },
+      "completeness": {
+        "hasDefinition": true,
+        "hasWhat": true,
+        "hasHow": true,
+        "hasVariants": true,
+        "hasUseCases": true,
+        "hasFaqs": true,
+        "hasExercises": true,
+        "completenessPercentage": 100
+      }
+    },
+    {
+      "id": 10,
+      "term": "GraphQL",
+      "category": "backend",
+      "status": "approved",
+      "fields": {
+        "translation": "consultas declarativas",
+        "titleEs": "consultas declarativas",
+        "titleEn": "GraphQL",
+        "aliases": [
+          "gql"
+        ],
+        "tags": [
+          "api",
+          "schema"
+        ],
+        "meaningEs": "En programación \"GraphQL\" se refiere a Especificación para exponer APIs donde el cliente define la forma exacta de los datos..",
+        "meaningEn": "Specification that lets clients ask precisely for the data shape they need.",
+        "what": "Resuelve overfetching/subfetching al dejar que el frontend describa los campos.",
+        "whatEs": "Resuelve overfetching/subfetching al dejar que el frontend describa los campos.",
+        "whatEn": "Solves overfetching/underfetching by letting frontend describe fields.",
+        "how": "Define un schema, implementa resolvers y usa herramientas como Apollo o Yoga para exponer el endpoint.",
+        "howEs": "Define un schema, implementa resolvers y usa herramientas como Apollo o Yoga para exponer el endpoint.",
+        "howEn": "Write the schema, map resolvers and expose it using Apollo, Mercurius or Yoga."
+      },
+      "relations": {
+        "variants": 1,
+        "useCases": 3,
+        "faqs": 3,
+        "exercises": 1
+      },
+      "completeness": {
+        "hasDefinition": true,
+        "hasWhat": true,
+        "hasHow": true,
+        "hasVariants": true,
+        "hasUseCases": true,
+        "hasFaqs": true,
+        "hasExercises": true,
+        "completenessPercentage": 100
+      }
+    },
+    {
+      "id": 16,
+      "term": "grid-template-columns",
+      "category": "frontend",
+      "status": "approved",
+      "fields": {
+        "translation": "patrón de columnas para layouts",
+        "titleEs": "patrón de columnas para layouts",
+        "titleEn": "grid-template-columns",
+        "aliases": [
+          "grid template columns"
+        ],
+        "tags": [
+          "css",
+          "grid",
+          "layout"
+        ],
+        "meaningEs": "En programación \"grid-template-columns\" se refiere a Declara cómo se distribuyen las columnas de un grid con fracciones, minmax o repeat..",
+        "meaningEn": "Defines the column track list in CSS Grid using fractions, minmax or repeat helpers.",
+        "what": "Permite describir estructuras complejas con pocas líneas y mantiene el grid estable.",
+        "whatEs": "Permite describir estructuras complejas con pocas líneas y mantiene el grid estable.",
+        "whatEn": "Lets you describe complex grids declaratively while keeping layouts stable.",
+        "how": "Combina repeat y minmax para columnas fluidas o nombra líneas con '[]' si necesitas colocar elementos por nombre.",
+        "howEs": "Combina repeat y minmax para columnas fluidas o nombra líneas con '[]' si necesitas colocar elementos por nombre.",
+        "howEn": "Mix repeat with minmax for fluid columns or name grid lines with brackets to place elements explicitly."
+      },
+      "relations": {
+        "variants": 1,
+        "useCases": 3,
+        "faqs": 3,
+        "exercises": 1
+      },
+      "completeness": {
+        "hasDefinition": true,
+        "hasWhat": true,
+        "hasHow": true,
+        "hasVariants": true,
+        "hasUseCases": true,
+        "hasFaqs": true,
+        "hasExercises": true,
+        "completenessPercentage": 100
+      }
+    },
+    {
+      "id": 22,
+      "term": "head",
+      "category": "frontend",
+      "status": "approved",
+      "fields": {
+        "translation": "sección de metadatos del documento",
+        "titleEs": "Elemento HEAD",
+        "titleEn": "HEAD Element",
+        "aliases": [
+          "document head",
+          "metadata section"
+        ],
+        "tags": [
+          "html",
+          "metadata",
+          "seo",
+          "document"
+        ],
+        "meaningEs": "En programación \"head\" se refiere al elemento HTML que contiene metadatos del documento: título, vinculaciones a hojas de estilo, scripts, y otros datos que describen el documento pero no se muestran directamente en la página.",
+        "meaningEn": "The HTML element that contains document metadata: title, style sheets, scripts, and other data that describes the document but is not directly displayed on the page.",
+        "what": "Se usa para almacenar información del documento como título de página, codificación de caracteres, descripción, palabras clave y referencias a CSS, fuentes y scripts.",
+        "whatEs": "Se usa para almacenar información del documento como título de página, codificación de caracteres, descripción, palabras clave y referencias a CSS, fuentes y scripts.",
+        "whatEn": "It stores document information like page title, character encoding, description, keywords and references to CSS, fonts and scripts.",
+        "how": "Coloca todas las etiquetas meta, link, style y script dentro del elemento <head>, antes del <body>; siempre incluye <meta charset> y <title>.",
+        "howEs": "Coloca todas las etiquetas meta, link, style y script dentro del elemento <head>, antes del <body>; siempre incluye <meta charset> y <title>.",
+        "howEn": "Place all meta, link, style and script tags inside the <head> element, before <body>; always include <meta charset> and <title>."
+      },
+      "relations": {
+        "variants": 1,
+        "useCases": 3,
+        "faqs": 3,
+        "exercises": 1
+      },
+      "completeness": {
+        "hasDefinition": true,
+        "hasWhat": true,
+        "hasHow": true,
+        "hasVariants": true,
+        "hasUseCases": true,
+        "hasFaqs": true,
+        "hasExercises": true,
+        "completenessPercentage": 100
+      }
+    },
+    {
+      "id": 21,
+      "term": "html",
+      "category": "frontend",
+      "status": "approved",
+      "fields": {
+        "translation": "lenguaje de marcado para estructura web",
+        "titleEs": "HyperText Markup Language",
+        "titleEn": "HyperText Markup Language",
+        "aliases": [
+          "HTML5",
+          "markup language",
+          "documento HTML"
+        ],
+        "tags": [
+          "html",
+          "markup",
+          "web",
+          "structure",
+          "semantics"
+        ],
+        "meaningEs": "En programación \"html\" se refiere a HyperText Markup Language: lenguaje de marcado usado para crear la estructura y contenido semántico de páginas web mediante etiquetas que definen elementos como párrafos, encabezados, listas e imágenes.",
+        "meaningEn": "HyperText Markup Language: a markup language used to structure and semantically define web page content using tags that define elements like paragraphs, headings, lists, and images.",
+        "what": "Se usa para definir la estructura semántica de documentos web, organizando contenido en elementos reutilizables que facilitan la accesibilidad, el SEO y la mantenibilidad del código.",
+        "whatEs": "Se usa para definir la estructura semántica de documentos web, organizando contenido en elementos reutilizables que facilitan la accesibilidad, el SEO y la mantenibilidad del código.",
+        "whatEn": "It defines the semantic structure of web documents, organizing content into reusable elements that improve accessibility, SEO, and code maintainability.",
+        "how": "Declara elementos HTML anidando etiquetas de apertura y cierre; usa atributos para añadir propiedades y siempre incluye doctype, html, head y body como estructura base.",
+        "howEs": "Declara elementos HTML anidando etiquetas de apertura y cierre; usa atributos para añadir propiedades y siempre incluye doctype, html, head y body como estructura base.",
+        "howEn": "Declare HTML elements by nesting opening and closing tags; use attributes to add properties and always include doctype, html, head and body as the base structure."
+      },
+      "relations": {
+        "variants": 1,
+        "useCases": 3,
+        "faqs": 3,
+        "exercises": 1
+      },
+      "completeness": {
+        "hasDefinition": true,
+        "hasWhat": true,
+        "hasHow": true,
+        "hasVariants": true,
+        "hasUseCases": true,
+        "hasFaqs": true,
+        "hasExercises": true,
+        "completenessPercentage": 100
+      }
+    },
+    {
+      "id": 8,
+      "term": "JWT",
+      "category": "backend",
+      "status": "approved",
+      "fields": {
+        "translation": "token firmado",
+        "titleEs": "token firmado",
+        "titleEn": "JWT",
+        "aliases": [
+          "json web token"
+        ],
+        "tags": [
+          "auth",
+          "security"
+        ],
+        "meaningEs": "En programación \"JWT\" se refiere a JSON Web Token firmado que transporta claims entre cliente y servidor..",
+        "meaningEn": "Signed JSON Web Token that carries claims between client and server.",
+        "what": "Resuelve autenticación stateless y delega la verificación al backend.",
+        "whatEs": "Resuelve autenticación stateless y delega la verificación al backend.",
+        "whatEn": "Enables stateless authentication where the backend validates signatures.",
+        "how": "Firma con una clave segura, ajusta expiración corta y valida con middleware en cada request.",
+        "howEs": "Firma con una clave segura, ajusta expiración corta y valida con middleware en cada request.",
+        "howEn": "Sign tokens with a strong secret, set short TTLs and validate them in middleware per request."
+      },
+      "relations": {
+        "variants": 1,
+        "useCases": 3,
+        "faqs": 3,
+        "exercises": 1
+      },
+      "completeness": {
+        "hasDefinition": true,
+        "hasWhat": true,
+        "hasHow": true,
+        "hasVariants": true,
+        "hasUseCases": true,
+        "hasFaqs": true,
+        "hasExercises": true,
+        "completenessPercentage": 100
+      }
+    },
+    {
+      "id": 25,
+      "term": "link",
+      "category": "frontend",
+      "status": "approved",
+      "fields": {
+        "translation": "vinculación de recursos externos",
+        "titleEs": "Elemento LINK",
+        "titleEn": "LINK Element",
+        "aliases": [
+          "resource link",
+          "external link",
+          "stylesheet link"
+        ],
+        "tags": [
+          "html",
+          "resources",
+          "css",
+          "metadata"
+        ],
+        "meaningEs": "En programación \"link\" se refiere al elemento HTML que vincula recursos externos como hojas de estilo CSS, fuentes web, iconos y otros archivos que enriquecen la presentación del documento.",
+        "meaningEn": "The HTML element that links external resources such as CSS stylesheets, web fonts, icons and other files that enhance document presentation.",
+        "what": "Se usa para cargar estilos CSS, fuentes tipográficas, favicons e información de preload para optimizar rendimiento sin mostrar contenido en la página.",
+        "whatEs": "Se usa para cargar estilos CSS, fuentes tipográficas, favicons e información de preload para optimizar rendimiento sin mostrar contenido en la página.",
+        "whatEn": "It loads CSS styles, web fonts, favicons and preload information to optimize performance without displaying content on the page.",
+        "how": "Usa <link rel=\"\" href=\"\"> en el <head> con rel indicando el tipo de relación (stylesheet, icon, preconnect) y href apuntando al recurso.",
+        "howEs": "Usa <link rel=\"\" href=\"\"> en el <head> con rel indicando el tipo de relación (stylesheet, icon, preconnect) y href apuntando al recurso.",
+        "howEn": "Use <link rel=\"\" href=\"\"> in <head> with rel indicating relationship type (stylesheet, icon, preconnect) and href pointing to resource."
+      },
+      "relations": {
+        "variants": 1,
+        "useCases": 3,
+        "faqs": 3,
+        "exercises": 1
+      },
+      "completeness": {
+        "hasDefinition": true,
+        "hasWhat": true,
+        "hasHow": true,
+        "hasVariants": true,
+        "hasUseCases": true,
+        "hasFaqs": true,
+        "hasExercises": true,
+        "completenessPercentage": 100
+      }
+    },
+    {
+      "id": 26,
+      "term": "meta",
+      "category": "frontend",
+      "status": "approved",
+      "fields": {
+        "translation": "información descriptiva del documento",
+        "titleEs": "Elemento META",
+        "titleEn": "META Element",
+        "aliases": [
+          "metadata",
+          "meta tag",
+          "meta attribute"
+        ],
+        "tags": [
+          "html",
+          "metadata",
+          "seo",
+          "charset"
+        ],
+        "meaningEs": "En programación \"meta\" se refiere al elemento HTML que proporciona metadatos sobre el documento: codificación, viewport, descripción, palabras clave y datos de compartir en redes sociales.",
+        "meaningEn": "The HTML element that provides metadata about the document: encoding, viewport, description, keywords and social media sharing data.",
+        "what": "Se usa para mejorar SEO, definir comportamiento en dispositivos móviles, especificar codificación de caracteres y proporcionar información para compartir en redes sociales.",
+        "whatEs": "Se usa para mejorar SEO, definir comportamiento en dispositivos móviles, especificar codificación de caracteres y proporcionar información para compartir en redes sociales.",
+        "whatEn": "It improves SEO, defines mobile device behavior, specifies character encoding and provides information for social media sharing.",
+        "how": "Coloca múltiples <meta> tags en el <head> con atributos name/content o property/content; incluye siempre charset y viewport para compatibilidad.",
+        "howEs": "Coloca múltiples <meta> tags en el <head> con atributos name/content o property/content; incluye siempre charset y viewport para compatibilidad.",
+        "howEn": "Place multiple <meta> tags in <head> with name/content or property/content attributes; always include charset and viewport for compatibility."
+      },
+      "relations": {
+        "variants": 1,
+        "useCases": 3,
+        "faqs": 3,
+        "exercises": 1
+      },
+      "completeness": {
+        "hasDefinition": true,
+        "hasWhat": true,
+        "hasHow": true,
+        "hasVariants": true,
+        "hasUseCases": true,
+        "hasFaqs": true,
+        "hasExercises": true,
+        "completenessPercentage": 100
+      }
+    },
+    {
+      "id": 30,
+      "term": "noscript",
+      "category": "frontend",
+      "status": "approved",
+      "fields": {
+        "translation": "contenido alternativo sin JavaScript",
+        "titleEs": "Elemento NOSCRIPT",
+        "titleEn": "NOSCRIPT Element",
+        "aliases": [
+          "no script",
+          "fallback content",
+          "javascript disabled"
+        ],
+        "tags": [
+          "html",
+          "javascript",
+          "accessibility",
+          "fallback"
+        ],
+        "meaningEs": "En programación \"noscript\" se refiere al elemento HTML que contiene contenido alternativo mostrado solo cuando JavaScript está deshabilitado en el navegador, mejorando la accesibilidad.",
+        "meaningEn": "The HTML element that contains alternative content displayed only when JavaScript is disabled in the browser, improving accessibility.",
+        "what": "Se usa para proporcionar contenido de fallback o mensajes cuando JavaScript no está disponible, mejorando la experiencia de usuarios con navegadores antiguos o configuración restrictiva.",
+        "whatEs": "Se usa para proporcionar contenido de fallback o mensajes cuando JavaScript no está disponible, mejorando la experiencia de usuarios con navegadores antiguos o configuración restrictiva.",
+        "whatEn": "It provides fallback content or messages when JavaScript is unavailable, improving experience for users with older browsers or restrictive settings.",
+        "how": "Coloca <noscript> al final del <body> con HTML alternativo; el contenido dentro se muestra solo si JavaScript está completamente deshabilitado.",
+        "howEs": "Coloca <noscript> al final del <body> con HTML alternativo; el contenido dentro se muestra solo si JavaScript está completamente deshabilitado.",
+        "howEn": "Place <noscript> at end of <body> with alternative HTML; content inside displays only if JavaScript is completely disabled."
+      },
+      "relations": {
+        "variants": 1,
+        "useCases": 3,
+        "faqs": 3,
+        "exercises": 1
+      },
+      "completeness": {
+        "hasDefinition": true,
+        "hasWhat": true,
+        "hasHow": true,
+        "hasVariants": true,
+        "hasUseCases": true,
+        "hasFaqs": true,
+        "hasExercises": true,
+        "completenessPercentage": 100
+      }
+    },
+    {
+      "id": 12,
+      "term": "Prisma",
+      "category": "backend",
+      "status": "approved",
+      "fields": {
+        "translation": "ORM tipado",
+        "titleEs": "ORM tipado",
+        "titleEn": "Prisma",
+        "aliases": [
+          "prisma orm"
+        ],
+        "tags": [
+          "orm",
+          "database"
+        ],
+        "meaningEs": "En programación \"Prisma\" se refiere a ORM moderno para TypeScript que genera cliente tipado y migraciones..",
+        "meaningEn": "Type-safe ORM for TypeScript that ships with generated client and migrations.",
+        "what": "Resuelve el puente entre modelos y base de datos con DX amigable.",
+        "whatEs": "Resuelve el puente entre modelos y base de datos con DX amigable.",
+        "whatEn": "Bridges schema and DB with great DX.",
+        "how": "Describe modelos en schema.prisma, ejecuta migrate dev y usa el cliente generado en servicios.",
+        "howEs": "Describe modelos en schema.prisma, ejecuta migrate dev y usa el cliente generado en servicios.",
+        "howEn": "Describe models in schema.prisma, run migrate dev and use the generated client inside services."
+      },
+      "relations": {
+        "variants": 1,
+        "useCases": 3,
+        "faqs": 3,
+        "exercises": 1
+      },
+      "completeness": {
+        "hasDefinition": true,
+        "hasWhat": true,
+        "hasHow": true,
+        "hasVariants": true,
+        "hasUseCases": true,
+        "hasFaqs": true,
+        "hasExercises": true,
+        "completenessPercentage": 100
+      }
+    },
+    {
+      "id": 13,
+      "term": "REST",
+      "category": "backend",
+      "status": "approved",
+      "fields": {
+        "translation": "transferencia de estado representacional",
+        "titleEs": "transferencia de estado representacional",
+        "titleEn": "REST",
+        "aliases": [
+          "restful",
+          "rest api"
+        ],
+        "tags": [
+          "api",
+          "http",
+          "architecture"
+        ],
+        "meaningEs": "En programación \"REST\" se refiere a Estilo de arquitectura para diseñar servicios web basados en recursos y verbos HTTP..",
+        "meaningEn": "Architectural style for designing networked applications based on resources and HTTP verbs.",
+        "what": "Estandariza la comunicación entre cliente y servidor usando la infraestructura existente de la web.",
+        "whatEs": "Estandariza la comunicación entre cliente y servidor usando la infraestructura existente de la web.",
+        "whatEn": "Standardizes client-server communication leveraging existing web infrastructure.",
+        "how": "Diseña recursos (URLs), usa verbos HTTP correctos (GET, POST, PUT, DELETE) y devuelve representaciones (JSON).",
+        "howEs": "Diseña recursos (URLs), usa verbos HTTP correctos (GET, POST, PUT, DELETE) y devuelve representaciones (JSON).",
+        "howEn": "Design resources (URLs), use proper HTTP verbs and return representations (JSON)."
+      },
+      "relations": {
+        "variants": 1,
+        "useCases": 3,
+        "faqs": 3,
+        "exercises": 1
+      },
+      "completeness": {
+        "hasDefinition": true,
+        "hasWhat": true,
+        "hasHow": true,
+        "hasVariants": true,
+        "hasUseCases": true,
+        "hasFaqs": true,
+        "hasExercises": true,
+        "completenessPercentage": 100
+      }
+    },
+    {
+      "id": 29,
+      "term": "script",
+      "category": "frontend",
+      "status": "approved",
+      "fields": {
+        "translation": "código ejecutable en el cliente",
+        "titleEs": "Elemento SCRIPT",
+        "titleEn": "SCRIPT Element",
+        "aliases": [
+          "script tag",
+          "javascript",
+          "client script"
+        ],
+        "tags": [
+          "html",
+          "javascript",
+          "interactivity",
+          "performance"
+        ],
+        "meaningEs": "En programación \"script\" se refiere al elemento HTML que incluye o referencia código JavaScript ejecutable en el navegador, permitiendo interactividad, validación y manipulación del DOM.",
+        "meaningEn": "The HTML element that includes or references executable JavaScript code in the browser, enabling interactivity, validation and DOM manipulation.",
+        "what": "Se usa para añadir comportamiento interactivo a la página: detectar eventos, validar formularios, manipular el DOM y comunicarse con APIs.",
+        "whatEs": "Se usa para añadir comportamiento interactivo a la página: detectar eventos, validar formularios, manipular el DOM y comunicarse con APIs.",
+        "whatEn": "It adds interactive behavior to the page: detect events, validate forms, manipulate DOM and communicate with APIs.",
+        "how": "Usa <script src=\"\"> para código externo o <script> para código incrustado; coloca al final del <body> para no bloquear renderizado; usa async/defer para optimizar carga.",
+        "howEs": "Usa <script src=\"\"> para código externo o <script> para código incrustado; coloca al final del <body> para no bloquear renderizado; usa async/defer para optimizar carga.",
+        "howEn": "Use <script src=\"\"> for external code or <script> for embedded code; place at end of <body> to not block rendering; use async/defer to optimize loading."
+      },
+      "relations": {
+        "variants": 1,
+        "useCases": 3,
+        "faqs": 3,
+        "exercises": 1
+      },
+      "completeness": {
+        "hasDefinition": true,
+        "hasWhat": true,
+        "hasHow": true,
+        "hasVariants": true,
+        "hasUseCases": true,
+        "hasFaqs": true,
+        "hasExercises": true,
+        "completenessPercentage": 100
+      }
+    },
+    {
+      "id": 20,
+      "term": "scroll-snap",
+      "category": "frontend",
+      "status": "approved",
+      "fields": {
+        "translation": "alinear scroll en posiciones definidas",
+        "titleEs": "alinear scroll en posiciones definidas",
+        "titleEn": "scroll-snap",
+        "aliases": [
+          "scroll snapping"
+        ],
+        "tags": [
+          "css",
+          "scroll",
+          "ux"
+        ],
+        "meaningEs": "En programación \"scroll-snap\" se refiere a Familia de propiedades que hace que el scroll se detenga en puntos exactos (galerías, carruseles)..",
+        "meaningEn": "Set of properties that snaps scrolling containers to exact stops (carousels, stories, onboarding).",
+        "what": "Sirve para experiencias táctiles consistentes donde cada card se centra.",
+        "whatEs": "Sirve para experiencias táctiles consistentes donde cada card se centra.",
+        "whatEn": "Ensures every card or slide centers perfectly on touch experiences.",
+        "how": "Añade scroll-snap-type al contenedor y scroll-snap-align a cada ítem.",
+        "howEs": "Añade scroll-snap-type al contenedor y scroll-snap-align a cada ítem.",
+        "howEn": "Set scroll-snap-type on the container plus scroll-snap-align on the children."
+      },
+      "relations": {
+        "variants": 1,
+        "useCases": 3,
+        "faqs": 3,
+        "exercises": 1
+      },
+      "completeness": {
+        "hasDefinition": true,
+        "hasWhat": true,
+        "hasHow": true,
+        "hasVariants": true,
+        "hasUseCases": true,
+        "hasFaqs": true,
+        "hasExercises": true,
+        "completenessPercentage": 100
+      }
+    },
+    {
+      "id": 32,
+      "term": "slot",
+      "category": "frontend",
+      "status": "approved",
+      "fields": {
+        "translation": "punto de inserción en componentes web",
+        "titleEs": "Elemento SLOT",
+        "titleEn": "SLOT Element",
+        "aliases": [
+          "shadow dom slot",
+          "slot placeholder",
+          "web components"
+        ],
+        "tags": [
+          "html",
+          "web components",
+          "shadow dom",
+          "components"
+        ],
+        "meaningEs": "En programación \"slot\" se refiere al elemento HTML que define un punto de inserción nombrado o anónimo dentro de componentes web (Web Components), permitiendo que el contenido del usuario se proyecte en la plantilla.",
+        "meaningEn": "The HTML element that defines a named or unnamed insertion point within web components, allowing user content to be projected into the template.",
+        "what": "Se usa en Web Components para permitir que usuarios del componente inserten su propio contenido en ubicaciones específicas, facilitando composición flexible y reutilización.",
+        "whatEs": "Se usa en Web Components para permitir que usuarios del componente inserten su propio contenido en ubicaciones específicas, facilitando composición flexible y reutilización.",
+        "whatEn": "It's used in Web Components to allow component users to insert their own content in specific locations, facilitating flexible composition and reuse.",
+        "how": "Define <slot> dentro de una plantilla de Web Component; usa name=\"\" para slots nombrados o deja vacío para slot anónimo; el contenido se proyecta automáticamente.",
+        "howEs": "Define <slot> dentro de una plantilla de Web Component; usa name=\"\" para slots nombrados o deja vacío para slot anónimo; el contenido se proyecta automáticamente.",
+        "howEn": "Define <slot> inside a Web Component template; use name=\"\" for named slots or leave empty for anonymous slot; content projects automatically."
+      },
+      "relations": {
+        "variants": 1,
+        "useCases": 3,
+        "faqs": 3,
+        "exercises": 1
+      },
+      "completeness": {
+        "hasDefinition": true,
+        "hasWhat": true,
+        "hasHow": true,
+        "hasVariants": true,
+        "hasUseCases": true,
+        "hasFaqs": true,
+        "hasExercises": true,
+        "completenessPercentage": 100
+      }
+    },
+    {
+      "id": 27,
+      "term": "style-element",
+      "category": "frontend",
+      "status": "approved",
+      "fields": {
+        "translation": "estilos CSS internos en el documento",
+        "titleEs": "Elemento STYLE",
+        "titleEn": "STYLE Element",
+        "aliases": [
+          "style tag",
+          "internal CSS",
+          "inline styles"
+        ],
+        "tags": [
+          "html",
+          "css",
+          "styling",
+          "document"
+        ],
+        "meaningEs": "En programación \"style\" se refiere al elemento HTML que contiene reglas CSS incrustadas directamente en el documento, permitiendo estilos específicos sin necesidad de archivos externos.",
+        "meaningEn": "The HTML element that contains CSS rules embedded directly in the document, allowing specific styles without needing external files.",
+        "what": "Se usa para aplicar estilos locales a la página, útil para estilos críticos, personalizaciones dinámicas o cuando prefieres CSS incrustado sobre archivos externos.",
+        "whatEs": "Se usa para aplicar estilos locales a la página, útil para estilos críticos, personalizaciones dinámicas o cuando prefieres CSS incrustado sobre archivos externos.",
+        "whatEn": "It applies local styles to the page, useful for critical styles, dynamic customizations or when you prefer embedded CSS over external files.",
+        "how": "Coloca <style> en el <head> o <body> con reglas CSS; puede contener media queries y selectores complejos como en archivos CSS externos.",
+        "howEs": "Coloca <style> en el <head> o <body> con reglas CSS; puede contener media queries y selectores complejos como en archivos CSS externos.",
+        "howEn": "Place <style> in <head> or <body> with CSS rules; can contain media queries and complex selectors like in external CSS files."
+      },
+      "relations": {
+        "variants": 1,
+        "useCases": 3,
+        "faqs": 3,
+        "exercises": 1
+      },
+      "completeness": {
+        "hasDefinition": true,
+        "hasWhat": true,
+        "hasHow": true,
+        "hasVariants": true,
+        "hasUseCases": true,
+        "hasFaqs": true,
+        "hasExercises": true,
+        "completenessPercentage": 100
+      }
+    },
+    {
+      "id": 31,
+      "term": "template",
+      "category": "frontend",
+      "status": "approved",
+      "fields": {
+        "translation": "plantilla de contenido reutilizable",
+        "titleEs": "Elemento TEMPLATE",
+        "titleEn": "TEMPLATE Element",
+        "aliases": [
+          "html template",
+          "template tag",
+          "reusable template"
+        ],
+        "tags": [
+          "html",
+          "template",
+          "javascript",
+          "components"
+        ],
+        "meaningEs": "En programación \"template\" se refiere al elemento HTML que contiene HTML que no se renderiza inicialmente pero puede clonarse y usarse dinámicamente con JavaScript, facilitando componentes reutilizables.",
+        "meaningEn": "The HTML element that contains HTML that is not initially rendered but can be cloned and used dynamically with JavaScript, facilitating reusable components.",
+        "what": "Se usa para definir fragmentos de HTML que se duplican dinámicamente, útil para listas generadas, componentes repetitvos y arquetipos que se instancian múltiples veces.",
+        "whatEs": "Se usa para definir fragmentos de HTML que se duplican dinámicamente, útil para listas generadas, componentes repetitvos y arquetipos que se instancian múltiples veces.",
+        "whatEn": "It defines HTML fragments that are duplicated dynamically, useful for generated lists, repeated components and prototypes instantiated multiple times.",
+        "how": "Coloca HTML dentro de <template>; accede con document.querySelector('template').content; clona con .cloneNode(true) y añade al DOM donde necesites.",
+        "howEs": "Coloca HTML dentro de <template>; accede con document.querySelector('template').content; clona con .cloneNode(true) y añade al DOM donde necesites.",
+        "howEn": "Place HTML inside <template>; access with document.querySelector('template').content; clone with .cloneNode(true) and append to DOM where needed."
+      },
+      "relations": {
+        "variants": 1,
+        "useCases": 3,
+        "faqs": 3,
+        "exercises": 1
+      },
+      "completeness": {
+        "hasDefinition": true,
+        "hasWhat": true,
+        "hasHow": true,
+        "hasVariants": true,
+        "hasUseCases": true,
+        "hasFaqs": true,
+        "hasExercises": true,
+        "completenessPercentage": 100
+      }
+    },
+    {
+      "id": 28,
+      "term": "title",
+      "category": "frontend",
+      "status": "approved",
+      "fields": {
+        "translation": "título de la página en navegador",
+        "titleEs": "Elemento TITLE",
+        "titleEn": "TITLE Element",
+        "aliases": [
+          "page title",
+          "browser title",
+          "document title"
+        ],
+        "tags": [
+          "html",
+          "seo",
+          "metadata",
+          "accessibility"
+        ],
+        "meaningEs": "En programación \"title\" se refiere al elemento HTML que define el título de la página, mostrado en la pestaña del navegador, en la historia de búsqueda y en los resultados de buscadores.",
+        "meaningEn": "The HTML element that defines the page title, displayed in the browser tab, search history and search engine results.",
+        "what": "Se usa para identificar el contenido de la página en la pestaña del navegador y mejorar el SEO al indicar a los motores de búsqueda el tema principal.",
+        "whatEs": "Se usa para identificar el contenido de la página en la pestaña del navegador y mejorar el SEO al indicar a los motores de búsqueda el tema principal.",
+        "whatEn": "It identifies page content in the browser tab and improves SEO by telling search engines the main topic.",
+        "how": "Incluye un único <title> en el <head> con texto descriptivo y conciso (30-60 caracteres); debe ser única para cada página y contener palabras clave relevantes.",
+        "howEs": "Incluye un único <title> en el <head> con texto descriptivo y conciso (30-60 caracteres); debe ser única para cada página y contener palabras clave relevantes.",
+        "howEn": "Include a single <title> in <head> with descriptive and concise text (30-60 characters); should be unique per page and contain relevant keywords."
+      },
+      "relations": {
+        "variants": 1,
+        "useCases": 3,
+        "faqs": 3,
+        "exercises": 1
+      },
+      "completeness": {
+        "hasDefinition": true,
+        "hasWhat": true,
+        "hasHow": true,
+        "hasVariants": true,
+        "hasUseCases": true,
+        "hasFaqs": true,
+        "hasExercises": true,
+        "completenessPercentage": 100
+      }
+    },
+    {
+      "id": 2,
+      "term": "useEffect",
+      "category": "frontend",
+      "status": "approved",
+      "fields": {
+        "translation": "efectos en React",
+        "titleEs": "efectos en React",
+        "titleEn": "useEffect",
+        "aliases": [
+          "react effect",
+          "effect hook"
+        ],
+        "tags": [
+          "react",
+          "hooks",
+          "lifecycle"
+        ],
+        "meaningEs": "En programación \"useEffect\" se refiere a Hook de React para ejecutar efectos secundarios (fetch, suscripciones, timers) sincronizados con el ciclo de vida del componente..",
+        "meaningEn": "React hook to run side effects (fetching, subscriptions, timers) tied to the component lifecycle.",
+        "what": "Sincroniza lógica externa (fetch, eventos, timers) con el render y las dependencias declaradas.",
+        "whatEs": "Sincroniza lógica externa (fetch, eventos, timers) con el render y las dependencias declaradas.",
+        "whatEn": "Sync external logic (fetch, events, timers) with render and declared dependencies.",
+        "how": "Declara dependencias en el array final; limpia recursos retornando una función.",
+        "howEs": "Declara dependencias en el array final; limpia recursos retornando una función.",
+        "howEn": "List dependencies in the array; return a cleanup to release resources."
+      },
+      "relations": {
+        "variants": 1,
+        "useCases": 3,
+        "faqs": 3,
+        "exercises": 1
+      },
+      "completeness": {
+        "hasDefinition": true,
+        "hasWhat": true,
+        "hasHow": true,
+        "hasVariants": true,
+        "hasUseCases": true,
+        "hasFaqs": true,
+        "hasExercises": true,
+        "completenessPercentage": 100
+      }
+    },
+    {
+      "id": 6,
+      "term": "useState",
+      "category": "frontend",
+      "status": "approved",
+      "fields": {
+        "translation": "estado local en React",
+        "titleEs": "estado local en React",
+        "titleEn": "useState",
+        "aliases": [
+          "hook state"
+        ],
+        "tags": [
+          "react",
+          "hooks",
+          "state"
+        ],
+        "meaningEs": "En programación \"useState\" se refiere a Hook que crea y actualiza valores reactivos dentro de componentes..",
+        "meaningEn": "React Hook that creates a reactive value inside function components.",
+        "what": "Resuelve la necesidad de guardar input del usuario, flags de UI o datos cacheados.",
+        "whatEs": "Resuelve la necesidad de guardar input del usuario, flags de UI o datos cacheados.",
+        "whatEn": "Solves local UI data like user input, flags or cached responses.",
+        "how": "Importa useState desde react, inicializa con un valor y usa el setter para actualizar de forma inmutable.",
+        "howEs": "Importa useState desde react, inicializa con un valor y usa el setter para actualizar de forma inmutable.",
+        "howEn": "Import useState from react, provide an initial value and call the setter to update immutably."
+      },
+      "relations": {
+        "variants": 1,
+        "useCases": 3,
+        "faqs": 3,
+        "exercises": 1
+      },
+      "completeness": {
+        "hasDefinition": true,
+        "hasWhat": true,
+        "hasHow": true,
+        "hasVariants": true,
+        "hasUseCases": true,
+        "hasFaqs": true,
+        "hasExercises": true,
+        "completenessPercentage": 100
+      }
+    }
+  ]
+}
