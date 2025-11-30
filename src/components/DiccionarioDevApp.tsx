@@ -168,8 +168,13 @@ function isHtmlTerm(term: TermDTO, language: string): boolean {
     const termName = term.term.toLowerCase();
     const tags = (term.tags || []).map(t => t.toLowerCase());
 
-    // HTML elements
-    const htmlElements = ["html", "head", "body", "base", "link", "meta", "style-element", "title", "script", "noscript", "template", "slot", "div", "span", "p", "a", "button"];
+    // HTML elements (including semantic HTML)
+    const htmlElements = [
+        "html", "head", "body", "base", "link", "meta", "style-element", "title", "script", "noscript", "template", "slot",
+        "main", "section", "article", "aside", "nav", "header", "footer", "address",
+        "h1", "h2", "h3", "h4", "h5", "h6", "div", "span", "p", "a", "button",
+        "hr", "br", "pre", "blockquote", "figure", "figcaption"
+    ];
     if (htmlElements.includes(termName)) return true;
 
     // Check tags for HTML indicators
