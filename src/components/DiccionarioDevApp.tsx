@@ -62,20 +62,6 @@ function getDisplayLanguage(term: TermDTO | null, variant?: { language?: string 
     return "javascript";
 }
 
-function buildDefaultSnippet(term: TermDTO | null, language: string, label: string) {
-    const name = term?.term || label || "demo";
-    if (language === "css") {
-        return `.demo { ${name}: center; }`;
-    }
-    if (language === "html") {
-        return `<div ${name}="value">Contenido de ${name}</div>`;
-    }
-    if (language === "typescript" || language === "javascript") {
-        return `// Ejemplo de ${name}\nconsole.log("${name} listo");`;
-    }
-    return `// Ejemplo de ${name}`;
-}
-
 function CodeBlock({ code, language = "javascript", showLineNumbers = true }: { code: string; language?: string; showLineNumbers?: boolean }) {
     return (
         <div className="rounded-xl border border-slate-800 bg-[#1e1e1e] overflow-hidden shadow-lg">
@@ -763,10 +749,8 @@ export default function DiccionarioDevApp() {
         );
     };
 
-    const primaryExample = activeTerm?.examples?.[0];
     const activeVariant = activeTerm?.variants?.[0];
     const displayLanguage = getDisplayLanguage(activeTerm, activeVariant);
-    const isCssActive = activeTerm ? isCssTerm(activeTerm, displayLanguage) : false;
     const isHtmlActive = activeTerm ? isHtmlTerm(activeTerm, displayLanguage) : false;
     if (!mounted) {
         return null;
@@ -1157,25 +1141,7 @@ export default function DiccionarioDevApp() {
                             </p>
                         </div>
 
-                        {/* SECCIÓN 3: PREVIEW EN VIVO (Solo para CSS) */}
-                        {isCssActive && (
-                            <div className="space-y-4">
-                                <h3 className="text-lg font-bold text-slate-100 flex items-center gap-2">
-                                    <Eye className="h-5 w-5 text-teal-400" />
-                                    3. Preview en vivo
-                                </h3>
-                                
-                                <div className="rounded-2xl border border-slate-800 bg-slate-950 p-6 overflow-hidden">
-                                    <StyleAwareCode
-                                        term={activeTerm}
-                                        snippet={primaryExample?.code || activeVariant?.snippet || buildDefaultSnippet(activeTerm, displayLanguage, "definición")}
-                                        language={displayLanguage}
-                                    />
-                                </div>
-                            </div>
-                        )}
-
-                        {/* SECCIÓN 4: CÓMO FUNCIONA */}
+                        {/* SECCIÓN 3: CÓMO FUNCIONA */}
                         <div className="space-y-4">
                             <div className="rounded-2xl border border-amber-500/20 bg-linear-to-br from-amber-500/5 to-transparent p-6 space-y-4">
                                 <div className="flex items-center gap-2 text-amber-400">
