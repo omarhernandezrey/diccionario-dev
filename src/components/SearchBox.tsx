@@ -365,7 +365,7 @@ export default function SearchBox({ variant = "dark" }: SearchBoxProps) {
             <header className="flex items-center justify-between gap-2">
               <h3 className={`text-lg font-semibold ${tone("text-neo-text-primary", "text-neo-text-primary")}`}>{t("search.results")}</h3>
               <span
-                className={`rounded-full px-3 py-1 text-xs ${tone("border border-neo-border text-neo-text-secondary", "border border-neo-border text-neo-text-secondary")}`}
+                className={`rounded-full px-3 py-1 text-xs ${tone("border border-neo-border text-neo-text-secondary", "border border-white/10 text-white/70")}`}
                 aria-live="polite"
               >
                 {statusMessage}
@@ -1274,7 +1274,46 @@ function CopyButton({ code }: { code: string }) {
   );
 }
 
+function StyleAwareCode({ term, snippet, language }: { term: TermDTO; snippet: string; language: string }) {
+  const isHtml = language === "html";
+  // Basic heuristic to detect if it's a Tailwind class being demonstrated
+  const isTailwind = term.tags?.includes("tailwind") || term.category === "frontend";
 
+  if (isHtml) {
+    return (
+      <div className="rounded-xl border border-neo-border bg-white overflow-hidden shadow-sm">
+        <div className="bg-gray-50 px-4 py-2 border-b border-neo-border text-xs font-medium text-gray-500 uppercase tracking-wider">
+          Resultado Renderizado
+        </div>
+        <div className="p-8 flex justify-center items-center bg-white min-h-[120px]">
+          <div dangerouslySetInnerHTML={{ __html: snippet }} />
+        </div>
+      </div>
+    );
+  }
+
+  if (isTailwind && !snippet.includes("\n") && !snippet.includes(";")) {
+     // If it's a single line and looks like a class, try to render a box with that class
+     return (
+      <div className="rounded-xl border border-neo-border bg-white overflow-hidden shadow-sm">
+        <div className="bg-gray-50 px-4 py-2 border-b border-neo-border text-xs font-medium text-gray-500 uppercase tracking-wider">
+          Visualización de Clase
+        </div>
+        <div className="p-8 flex justify-center items-center bg-white min-h-[120px]">
+           <div className={`p-4 bg-gray-100 rounded ${snippet}`}>
+              Ejemplo: {term.term}
+           </div>
+        </div>
+      </div>
+     );
+  }
+
+  return (
+    <div className="rounded-xl border border-dashed border-neo-border p-6 text-center">
+      <p className="text-sm text-neo-text-secondary">Vista previa no disponible para este formato.</p>
+    </div>
+  );
+}
 
 function detectInputMode(value: string): string {
   const trimmed = value.trim();

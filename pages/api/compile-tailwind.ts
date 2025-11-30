@@ -11,12 +11,13 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
   try {
     // Carga perezosa para no fallar si no existe @tailwindcss/postcss
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     let tailwindPlugin: any = null;
     try {
-      // eslint-disable-next-line @typescript-eslint/no-var-requires
+      // eslint-disable-next-line @typescript-eslint/no-require-imports, @typescript-eslint/no-var-requires
       tailwindPlugin = require("@tailwindcss/postcss");
-    } catch (e) {
-      // eslint-disable-next-line @typescript-eslint/no-var-requires
+    } catch {
+      // eslint-disable-next-line @typescript-eslint/no-require-imports, @typescript-eslint/no-var-requires
       tailwindPlugin = require("tailwindcss");
     }
 

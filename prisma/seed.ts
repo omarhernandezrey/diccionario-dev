@@ -514,23 +514,6 @@ async function main() {
 
   const deletedTerms = await prisma.term.deleteMany({});
   incrementMetric("seed.terms.deleted", deletedTerms.count);
-  await resetSequences([
-    "Term",
-    "TermVariant",
-    "UseCase",
-    "Faq",
-    "Exercise",
-    "TermStats",
-    "InsightMetric",
-    "SoftSkillTemplate",
-    "SoftSkillResponse",
-    "QuizTemplate",
-    "QuizAttempt",
-    "ContributorProfile",
-    "Contribution",
-    "Badge",
-    "ContributorBadge",
-  ]);
 
   const adminUser = process.env.ADMIN_USERNAME || "admin";
   const adminPass = process.env.ADMIN_PASSWORD || process.env.ADMIN_TOKEN || "admin12345";
@@ -544,8 +527,13 @@ async function main() {
     select: { id: true, username: true, email: true },
   });
 
-  const contributor = await prisma.contributorProfile.create({
-    data: {
+  const contributor = await prisma.contributorProfile.upsert({
+    where: { userId: admin.id },
+    update: {
+      displayName: admin.username,
+      preferredLanguages: [Language.js, Language.ts, Language.css],
+    },
+    create: {
       userId: admin.id,
       displayName: admin.username,
       preferredLanguages: [Language.js, Language.ts, Language.css],
@@ -555,111 +543,132 @@ async function main() {
   const createdTerms: Prisma.TermGetPayload<{ include: { variants: true; useCases: true; faqs: true; exercises: true } }>[] = [];
   for (const term of preparedTerms) {
     const reviewMeta = { reviewedAt: new Date(), reviewedById: admin.id };
-    const created = await prisma.term.create({
-      data: {
-        term: term.term,
-        translation: term.translation,
-        slug: term.slug,
-        titleEs: term.titleEs,
-        titleEn: term.titleEn,
-        aliases: term.aliases,
-        tags: term.tags,
-        category: term.category,
-        meaning: term.meaningEs,
-        meaningEs: term.meaningEs,
-        meaningEn: term.meaningEn,
-        what: term.whatEs ?? term.whatEn ?? "",
-        whatEs: term.whatEs,
-        whatEn: term.whatEn,
-        how: term.howEs ?? term.howEn ?? "",
-        howEs: term.howEs,
-        howEn: term.howEn,
-        examples: term.examples ?? [],
-        status: ReviewStatus.approved,
-        ...reviewMeta,
-        createdById: admin.id,
-        updatedById: admin.id,
-        variants: term.variants?.length
-          ? {
-            create: term.variants.map(variant => ({
-              language: variant.language,
-              snippet: variant.code,
-              notes: variant.notes,
-              level: variant.level ?? SkillLevel.intermediate,
-              status: ReviewStatus.approved,
-              ...reviewMeta,
-            })),
-          }
-          : undefined,
-        useCases: term.useCases?.length
-          ? {
-            create: term.useCases.map(useCase => ({
-              context: useCase.context,
-              summary: [useCase.summaryEs, useCase.summaryEn].filter(Boolean).join(" | "),
-              steps: useCase.stepsEs.map((es, index) => ({
-                es,
-                en: useCase.stepsEn[index] ?? useCase.stepsEn[useCase.stepsEn.length - 1] ?? es,
+    const baseData = {
+      term: term.term,
+      translation: term.translation,
+      slug: term.slug,
+      titleEs: term.titleEs,
+      titleEn: term.titleEn,
+      aliases: term.aliases,
+      tags: term.tags,
+      category: term.category,
+      meaning: term.meaningEs,
+      meaningEs: term.meaningEs,
+      meaningEn: term.meaningEn,
+      what: term.whatEs ?? term.whatEn ?? "",
+      whatEs: term.whatEs,
+      whatEn: term.whatEn,
+      how: term.howEs ?? term.howEn ?? "",
+      howEs: term.howEs,
+      howEn: term.howEn,
+      examples: term.examples ?? [],
+      status: ReviewStatus.approved,
+      ...reviewMeta,
+      createdById: admin.id,
+      updatedById: admin.id,
+    } satisfies Prisma.TermCreateInput;
+
+    let created;
+    try {
+      created = await prisma.term.upsert({
+        where: { term: term.term },
+        update: baseData,
+        create: {
+          ...baseData,
+          variants: term.variants?.length
+            ? {
+              create: term.variants.map(variant => ({
+                language: variant.language,
+                snippet: variant.code,
+                notes: variant.notes,
+                level: variant.level ?? SkillLevel.intermediate,
+                status: ReviewStatus.approved,
+                ...reviewMeta,
               })),
-              tips: [useCase.tipsEs, useCase.tipsEn].filter(Boolean).join(" | ") || undefined,
-              status: ReviewStatus.approved,
-              ...reviewMeta,
-            })),
-          }
-          : undefined,
-        faqs: term.faqs?.length
-          ? {
-            create: term.faqs.map(faq => ({
-              questionEs: faq.questionEs,
-              questionEn: faq.questionEn,
-              answerEs: faq.answerEs,
-              answerEn: faq.answerEn,
-              snippet: faq.snippet,
-              category: faq.category,
-              howToExplain: faq.howToExplain,
-              status: ReviewStatus.approved,
-              ...reviewMeta,
-            })),
-          }
-          : undefined,
-        exercises: term.exercises?.length
-          ? {
-            create: term.exercises.map(exercise => ({
-              titleEs: exercise.titleEs,
-              titleEn: exercise.titleEn,
-              promptEs: exercise.promptEs,
-              promptEn: exercise.promptEn,
-              difficulty: exercise.difficulty,
-              solutions: exercise.solutions,
-              status: ReviewStatus.approved,
-              ...reviewMeta,
-            })),
-          }
-          : undefined,
-      },
-      include: { variants: true, useCases: true, faqs: true, exercises: true },
-    });
+            }
+            : undefined,
+          useCases: term.useCases?.length
+            ? {
+              create: term.useCases.map(useCase => ({
+                context: useCase.context,
+                summary: [useCase.summaryEs, useCase.summaryEn].filter(Boolean).join(" | "),
+                steps: useCase.stepsEs.map((es, index) => ({
+                  es,
+                  en: useCase.stepsEn[index] ?? useCase.stepsEn[useCase.stepsEn.length - 1] ?? es,
+                })),
+                tips: [useCase.tipsEs, useCase.tipsEn].filter(Boolean).join(" | ") || undefined,
+                status: ReviewStatus.approved,
+                ...reviewMeta,
+              })),
+            }
+            : undefined,
+          faqs: term.faqs?.length
+            ? {
+              create: term.faqs.map(faq => ({
+                questionEs: faq.questionEs,
+                questionEn: faq.questionEn,
+                answerEs: faq.answerEs,
+                answerEn: faq.answerEn,
+                snippet: faq.snippet,
+                category: faq.category,
+                howToExplain: faq.howToExplain,
+                status: ReviewStatus.approved,
+                ...reviewMeta,
+              })),
+            }
+            : undefined,
+          exercises: term.exercises?.length
+            ? {
+              create: term.exercises.map(exercise => ({
+                titleEs: exercise.titleEs,
+                titleEn: exercise.titleEn,
+                promptEs: exercise.promptEs,
+                promptEn: exercise.promptEn,
+                difficulty: exercise.difficulty,
+                solutions: exercise.solutions,
+                status: ReviewStatus.approved,
+                ...reviewMeta,
+              })),
+            }
+            : undefined,
+        },
+        include: { variants: true, useCases: true, faqs: true, exercises: true },
+      });
+    } catch (error) {
+      if ((error as any)?.code === "P2002") {
+        const existing = await prisma.term.findUnique({ where: { term: term.term } });
+        if (existing) {
+          logger.warn({ term: term.term }, "seed.term_duplicate_updated");
+          // We need to fetch the full object to match the type of 'created'
+          created = await prisma.term.findUniqueOrThrow({
+             where: { id: existing.id },
+             include: { variants: true, useCases: true, faqs: true, exercises: true }
+          });
+        } else {
+          logger.warn({ term: term.term, slug: term.slug }, "seed.term_slug_conflict_skipped");
+          continue;
+        }
+      } else {
+        throw error;
+      }
+    }
     createdTerms.push(created);
 
-    await prisma.termStats.create({
-      data: {
-        termId: created.id,
-        contextHits: { dictionary: 0 },
-        languageHits: { es: 0 },
-      },
-    });
+    try {
+      await prisma.termStats.upsert({
+        where: { termId: created.id },
+        update: {},
+        create: {
+          termId: created.id,
+          contextHits: { dictionary: 0 },
+          languageHits: { es: 0 },
+        },
+      });
+    } catch (error) {
+      logger.warn({ err: error, term: created.term }, "seed.term_stats_failed");
+    }
 
-    await prisma.contribution.create({
-      data: {
-        contributorId: contributor.id,
-        userId: admin.id,
-        termId: created.id,
-        entityId: created.id,
-        entityType: ContributionEntity.term,
-        action: ContributionAction.create,
-        points: 30,
-        metadata: { source: "seed", category: term.category },
-      },
-    });
+    // Saltamos registros de contribución para no bloquear el seed por FK en entornos compartidos
   }
 
   if (createdTerms.length && (prisma as any).termHistory?.createMany) {
@@ -715,11 +724,15 @@ function buildTags(term: SeedTerm) {
 async function resetSequences(tableNames: string[]) {
   if (!tableNames.length) return;
   for (const table of tableNames) {
-    const relation = `'\"${table.replace(/"/g, '""')}\"'`;
+    const name = table.replace(/"/g, '""');
     try {
-      await prisma.$executeRawUnsafe(
-        `SELECT setval(pg_get_serial_sequence(${relation}, 'id'), 1, false);`,
-      );
+      await prisma.$executeRawUnsafe(`
+        SELECT setval(
+          pg_get_serial_sequence('\"${name}\"', 'id'),
+          COALESCE((SELECT MAX(id) + 1 FROM \"${name}\"), 1),
+          false
+        );
+      `);
     } catch (error) {
       logger.warn({ err: error, table }, "seed.reset_sequences_failed");
     }
