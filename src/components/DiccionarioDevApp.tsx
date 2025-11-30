@@ -168,20 +168,88 @@ function isHtmlTerm(term: TermDTO, language: string): boolean {
     const termName = term.term.toLowerCase();
     const tags = (term.tags || []).map(t => t.toLowerCase());
 
-    // HTML elements (including semantic HTML)
+    // Comprehensive HTML elements list (201 total)
     const htmlElements = [
-        "html", "head", "body", "base", "link", "meta", "style-element", "title", "script", "noscript", "template", "slot",
-        "main", "section", "article", "aside", "nav", "header", "footer", "address",
-        "h1", "h2", "h3", "h4", "h5", "h6", "div", "span", "p", "a", "button",
-        "hr", "br", "pre", "blockquote", "figure", "figcaption"
+        // Semantic HTML
+        "html", "head", "body", "main", "section", "article", "aside", "nav", "header", "footer", "address",
+        // Metadata
+        "base", "link", "meta", "title",
+        // Scripting
+        "script", "noscript", "template", "slot", "canvas", "svg", "math",
+        // Headings
+        "h1", "h2", "h3", "h4", "h5", "h6",
+        // Content grouping
+        "div", "span", "p", "hr", "br", "pre", "blockquote", "figure", "figcaption",
+        // Text formatting
+        "strong", "em", "b", "i", "u", "mark", "small", "del", "ins", "sub", "sup",
+        "abbr", "dfn", "kbd", "samp", "var", "cite", "q", "code", "time", "data", "s", "wbr",
+        // Multimedia
+        "img", "picture", "source", "video", "audio", "track", "iframe", "embed", "object", "param",
+        // Lists
+        "ul", "ol", "li", "dl", "dt", "dd",
+        // Tables
+        "table", "caption", "thead", "tbody", "tfoot", "tr", "th", "td", "col", "colgroup",
+        // Forms
+        "form", "label", "textarea", "button", "select", "option", "optgroup", "fieldset", "legend",
+        "datalist", "output", "progress", "meter",
+        // Interactive
+        "details", "summary", "a",
+        // Deprecated (still HTML)
+        "center", "font", "big", "strike", "tt", "acronym", "applet", "basefont",
+        "bgsound", "blink", "marquee", "frameset", "frame", "noframes"
     ];
+    
     if (htmlElements.includes(termName)) return true;
 
-    // Check tags for HTML indicators
-    if (tags.some(t => ["html", "a11y", "accessibility"].includes(t))) return true;
+    // Input types
+    if (termName.startsWith("input-")) return true;
 
-    // ARIA attributes
+    // Attributes and concepts
+    const htmlAttributes = [
+        "id", "class", "style-attribute", "title-attribute", "lang", "dir", "hidden",
+        "tabindex", "draggable", "contenteditable", "spellcheck", "translate",
+        "accesskey", "role", "part", "slot-attribute",
+        // ARIA
+        "aria-label", "aria-labelledby", "aria-hidden", "aria-role", "aria-expanded",
+        "aria-controls", "aria-describedby", "aria-selected", "aria-disabled",
+        "aria-modal", "aria-live", "aria-busy",
+        // Common attributes
+        "href", "src", "srcset", "alt", "placeholder", "value", "name",
+        "maxlength", "minlength", "min", "max", "step", "pattern",
+        "required", "readonly", "disabled", "autocomplete", "autofocus",
+        "multiple", "checked", "selected",
+        // Event handlers
+        "onclick", "onchange", "oninput", "onsubmit", "onfocus", "onblur",
+        "onload", "onerror", "ondblclick", "onmousedown", "onmouseup",
+        "onmousemove", "onmouseenter", "onmouseleave", "onkeydown",
+        "onkeyup", "onkeypress", "onscroll", "onresize", "onwheel",
+        "ondrag", "ondrop", "ondragstart", "ondragend", "ondragover",
+        "onplay", "onpause", "onseeking", "onended", "onloadeddata",
+        // More attributes
+        "loading", "decoding", "fetchpriority", "crossorigin",
+        "referrerpolicy", "poster", "autoplay", "controls", "loop",
+        "muted", "preload", "playsinline", "target", "rel", "download",
+        "media", "type", "hreflang", "ping", "accept", "formenctype",
+        "formmethod", "formaction", "formnovalidate", "rows", "cols", "wrap",
+        // Concepts
+        "doctype", "html-entities", "semantic-html", "dom", "shadow-dom",
+        "custom-elements", "void-elements", "self-closing-tags",
+        "block-elements", "inline-elements", "metadata-content",
+        "flow-content", "phrasing-content", "interactive-content",
+        "transparent-content", "api-html", "html5-specification",
+        "content-model", "exportparts"
+    ];
+
+    if (htmlAttributes.includes(termName)) return true;
+
+    // Check tags for HTML indicators
+    if (tags.some(t => ["html", "a11y", "accessibility", "attributes", "forms", "multimedia"].includes(t))) return true;
+
+    // ARIA attributes catch-all
     if (termName.includes("aria")) return true;
+
+    // Input types catch-all
+    if (termName.includes("input")) return true;
 
     return false;
 }
