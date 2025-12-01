@@ -13,6 +13,20 @@ export function LivePreview({ code, language = 'html', title, height = '400px' }
   const iframeRef = useRef<HTMLIFrameElement>(null);
   const [error, setError] = useState<string | null>(null);
 
+  const wrapDocument = (bodyContent: string, headContent = '') => `
+    <!DOCTYPE html>
+    <html lang="es">
+    <head>
+      <meta charset="UTF-8" />
+      <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+      ${headContent}
+    </head>
+    <body>
+      ${bodyContent}
+    </body>
+    </html>
+  `;
+
   useEffect(() => {
     if (!iframeRef.current) return;
 
@@ -20,76 +34,40 @@ export function LivePreview({ code, language = 'html', title, height = '400px' }
       setError(null);
 
       // Determinar el contenido según el lenguaje
+      const hasFullHtml = /<html[\s>]/i.test(code) || /<body[\s>]/i.test(code);
       let htmlContent = '';
 
       if (language === 'html') {
-        // Código HTML puro
-        htmlContent = code;
+        // Respetar el HTML tal cual venga en el snippet
+        htmlContent = hasFullHtml ? code : wrapDocument(code);
       } else if (language === 'javascript' || language === 'jsx') {
-        // Envolver JavaScript en HTML
-        htmlContent = `
-          <!DOCTYPE html>
-          <html lang="es">
-          <head>
-            <meta charset="UTF-8">
-            <meta name="viewport" content="width=device-width, initial-scale=1.0">
-            <style>
-              body {
-                font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-                margin: 0;
-                padding: 20px;
-                background: #f5f5f5;
-              }
-              .output { color: #333; }
-              .error { color: #d32f2f; font-weight: bold; }
-              button {
-                background: #667eea;
-                color: white;
-                border: none;
-                padding: 10px 20px;
-                border-radius: 4px;
-                cursor: pointer;
-                font-size: 14px;
-              }
-              button:hover { background: #5568d3; }
-              input, textarea {
-                padding: 8px;
-                border: 1px solid #ddd;
-                border-radius: 4px;
-                font-family: monospace;
-              }
-            </style>
-          </head>
-          <body>
-            <div id="root"></div>
-            <script>
+        const script = `
+          <script>
+            try {
               ${code}
-            </script>
-          </body>
-          </html>
+            } catch (err) {
+              const pre = document.createElement('pre');
+              pre.style.color = '#dc2626';
+              pre.textContent = err?.message || String(err);
+              document.body.appendChild(pre);
+            }
+          </script>
         `;
+
+        const baseStyles = `
+          <style>
+            body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; margin: 0; padding: 20px; background: #f8fafc; }
+            button { background: #0f172a; color: white; border: none; padding: 10px 16px; border-radius: 8px; cursor: pointer; }
+            input, textarea { padding: 8px 10px; border: 1px solid #e2e8f0; border-radius: 6px; font-family: inherit; }
+          </style>
+        `;
+
+        htmlContent = hasFullHtml
+          ? code
+          : wrapDocument('<div id="root"></div>', `${baseStyles}${script}`);
       } else if (language === 'css') {
-        // Envolver CSS en HTML
-        htmlContent = `
-          <!DOCTYPE html>
-          <html lang="es">
-          <head>
-            <meta charset="UTF-8">
-            <meta name="viewport" content="width=device-width, initial-scale=1.0">
-            <style>
-              ${code}
-            </style>
-          </head>
-          <body>
-            <div class="demo">
-              <h1>Demo CSS</h1>
-              <p>Este es un elemento de demostración.</p>
-              <button>Ejemplo de Botón</button>
-              <input type="text" placeholder="Ejemplo de input">
-            </div>
-          </body>
-          </html>
-        `;
+        const styleTag = `<style>${code}</style>`;
+        htmlContent = hasFullHtml ? code : wrapDocument('<div class="preview"></div>', styleTag);
       }
 
       // Escribir contenido en el iframe

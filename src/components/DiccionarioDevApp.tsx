@@ -825,6 +825,7 @@ export default function DiccionarioDevApp() {
     const activeVariant = activeTerm?.variants?.[0];
     const displayLanguage = getDisplayLanguage(activeTerm, activeVariant);
     const isHtmlActive = activeTerm ? isHtmlTerm(activeTerm, displayLanguage) : false;
+    const isCssActive = activeTerm ? isCssTerm(activeTerm, displayLanguage) : false;
     if (!mounted) {
         return null;
     }
@@ -1228,8 +1229,8 @@ export default function DiccionarioDevApp() {
                             
                             {activeVariant?.snippet && (
                                 <>
-                                    {/* LIVE PREVIEW - Para HTML, CSS y JavaScript */}
-                                    {(displayLanguage === 'html' || isHtmlActive || displayLanguage === 'css' || displayLanguage === 'javascript' || displayLanguage === 'jsx') && (
+                                    {/* HTML / JS Preview: solo un iframe correspondiente */}
+                                    {((displayLanguage === 'html' || isHtmlActive) || displayLanguage === 'javascript' || displayLanguage === 'jsx') && !isCssActive && (
                                         <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
                                             {/* Código */}
                                             <div className="rounded-2xl border border-slate-800 bg-slate-950 p-6 overflow-hidden">
@@ -1244,7 +1245,7 @@ export default function DiccionarioDevApp() {
                                                 />
                                             </div>
 
-                                            {/* Preview */}
+                                            {/* Preview específico del lenguaje */}
                                             <div className="rounded-2xl border border-slate-800 bg-slate-950 p-6 overflow-hidden flex flex-col">
                                                 <div className="mb-3 flex items-center gap-2 text-blue-400">
                                                     <Eye className="h-5 w-5" />
@@ -1253,7 +1254,7 @@ export default function DiccionarioDevApp() {
                                                 <div className="flex-1">
                                                     <LivePreview
                                                         code={activeVariant.snippet}
-                                                        language={displayLanguage as 'html' | 'javascript' | 'jsx' | 'css'}
+                                                        language={displayLanguage as 'html' | 'javascript' | 'jsx'}
                                                         title={`Demo de ${activeTerm.term}`}
                                                         height="450px"
                                                     />
@@ -1262,8 +1263,8 @@ export default function DiccionarioDevApp() {
                                         </div>
                                     )}
 
-                                    {/* Si NO es HTML/CSS/JS - mostrar solo código */}
-                                    {!(displayLanguage === 'html' || isHtmlActive || displayLanguage === 'css' || displayLanguage === 'javascript' || displayLanguage === 'jsx') && (
+                                    {/* CSS / Tailwind o lenguajes sin preview: confiar en el bloque inteligente */}
+                                    {(!(displayLanguage === 'html' || isHtmlActive || displayLanguage === 'javascript' || displayLanguage === 'jsx') || isCssActive) && (
                                         <div className="rounded-2xl border border-slate-800 bg-slate-950 p-6 overflow-hidden">
                                             <div className="mb-4 flex items-center gap-2 text-emerald-400">
                                                 <Code2 className="h-5 w-5" />
