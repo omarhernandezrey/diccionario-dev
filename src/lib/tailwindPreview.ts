@@ -51,7 +51,7 @@ function isTailwindClassList(snippet: string) {
 
 function buildHtmlFromClassList(classes: string) {
   return `
-    <div class="${classes} min-h-[160px] flex items-center justify-center text-white font-semibold">
+    <div class="${classes} min-h-40 flex items-center justify-center text-white font-semibold">
       Preview Tailwind
     </div>
   `;

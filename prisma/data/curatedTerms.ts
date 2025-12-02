@@ -191,7 +191,7 @@ function OnlineStatus() {
     secondExample: {
       titleEs: "Texto con degradado",
       titleEn: "Gradient text",
-      code: `<h1 class="bg-gradient-to-r from-blue-600 to-violet-600 bg-clip-text text-transparent text-5xl font-bold">
+      code: `<h1 class="bg-linear-to-r from-blue-600 to-violet-600 bg-clip-text text-transparent text-5xl font-bold">
   Hello World
 </h1>`,
       noteEs: "Usa bg-clip-text y text-transparent para aplicar el degradado al texto.",
@@ -200,7 +200,7 @@ function OnlineStatus() {
     exerciseExample: {
       titleEs: "Tarjeta con borde degradado",
       titleEn: "Gradient border card",
-      code: `<div class="p-1 bg-gradient-to-r from-pink-500 via-red-500 to-yellow-500 rounded-xl">
+      code: `<div class="p-1 bg-linear-to-r from-pink-500 via-red-500 to-yellow-500 rounded-xl">
   <div class="bg-white p-6 rounded-lg">
     <h2 class="font-bold text-xl">Card Title</h2>
     <p>Content goes here...</p>
@@ -4066,12 +4066,42 @@ function webApiSnippet(term: string) {
       return { example: `const url = new URL("https://dev.com/path?debug=1");`, variant: `url.searchParams.get("debug");`, exercise: `function withParam(url, key, value) { const u = new URL(url); u.searchParams.set(key, value); return u.toString(); }` };
     case "URLSearchParams":
       return { example: `const params = new URLSearchParams("a=1&b=2");`, variant: `params.set("c", "3");`, exercise: `function toQuery(obj) { const p = new URLSearchParams(); Object.entries(obj).forEach(([k, v]) => p.set(k, String(v))); return p.toString(); }` };
-    case "WebSocket":
-      return { example: `const socket = new WebSocket("wss://echo.websocket.org");\nsocket.addEventListener("message", (e) => console.log(e.data));`, variant: `socket.send("ping");`, exercise: `function connect(url) { const ws = new WebSocket(url); return ws; }` };
-    case "BroadcastChannel":
-      return { example: `const channel = new BroadcastChannel("updates");\nchannel.postMessage({ hello: true });`, variant: `channel.onmessage = (e) => console.log(e.data);`, exercise: `function broadcast(name, data) { const c = new BroadcastChannel(name); c.postMessage(data); }` };
-    case "Worker":
-      return { example: `const worker = new Worker("worker.js");\nworker.postMessage("hola");`, variant: `worker.onmessage = (e) => console.log(e.data);`, exercise: `function stop(worker) { worker.terminate(); }` };
+        case "WebSocket":
+          return { example: `const socket = new WebSocket("wss://echo.websocket.org");\nsocket.addEventListener("message", (e) => console.log(e.data));`, variant: `socket.send("ping");`, exercise: `function connect(url) { const ws = new WebSocket(url); return ws; }` };
+        case "BroadcastChannel":
+          return {
+            example: `// Feature-detect BroadcastChannel and fall back to localStorage events for older browsers (IE)
+    if ("BroadcastChannel" in self) {
+      const channel = new BroadcastChannel("updates");
+      channel.postMessage({ hello: true });
+    } else {
+      // Fallback: write to localStorage (other tabs can listen to 'storage' events)
+      localStorage.setItem("bc-updates", JSON.stringify({ hello: true, ts: Date.now() }));
+    }`,
+            variant: `// Receiver that works with BroadcastChannel or localStorage fallback
+    const handle = (msg) => console.log(msg);
+    if ("BroadcastChannel" in self) {
+      const channel = new BroadcastChannel("updates");
+      channel.onmessage = (e) => handle(e.data);
+    } else {
+      window.addEventListener("storage", (e) => {
+        if (e.key === "bc-updates" && e.newValue) handle(JSON.parse(e.newValue));
+      });
+    }`,
+            exercise: `// Broadcast helper with graceful fallback
+    function broadcast(name, data) {
+      if ("BroadcastChannel" in self) {
+        const c = new BroadcastChannel(name);
+        c.postMessage(data);
+        c.close();
+      } else {
+        // localStorage key includes timestamp to trigger storage events
+        localStorage.setItem("bc-" + name, JSON.stringify(Object.assign({}, data, { ts: Date.now() })));
+      }
+    }`,
+          };
+        case "Worker":
+          return { example: `const worker = new Worker("worker.js");\nworker.postMessage("hola");`, variant: `worker.onmessage = (e) => console.log(e.data);`, exercise: `function stop(worker) { worker.terminate(); }` };
     case "ServiceWorker":
       return { example: `navigator.serviceWorker.register("/sw.js");`, variant: `navigator.serviceWorker.ready.then((reg) => console.log(reg.scope));`, exercise: `async function unregister() { const reg = await navigator.serviceWorker.ready; await reg.unregister(); }` };
     case "Notification":
