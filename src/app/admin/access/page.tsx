@@ -14,7 +14,7 @@ type SessionUser = {
 
 export default function AdminAccessPage() {
   const searchParams = useSearchParams();
-  const returnUrl = searchParams.get("returnUrl") || "/admin";
+  const returnUrl = searchParams?.get("returnUrl") || "/admin";
 
   const [session, setSession] = useState<SessionUser | null>(null);
   const [authLoading, setAuthLoading] = useState(true);

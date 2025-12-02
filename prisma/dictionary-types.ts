@@ -76,6 +76,7 @@ export type SeedTerm = {
 export type SeedTermInput = {
   term: string;
   translation: string;
+  slug?: string;
   category: Category;
   descriptionEs: string;
   descriptionEn?: string;

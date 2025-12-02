@@ -32,7 +32,6 @@ describe('GET /api/terms', () => {
                     how: 'Se usa en componentes',
                 },
             ],
-            skipDuplicates: true,
         });
     });
 
@@ -50,7 +49,7 @@ describe('GET /api/terms', () => {
 
     it('should return paginated results with default pageSize=10', async () => {
         await testApiHandler({
-            appHandler: termsRoute,
+            appHandler: termsRoute as any,
             test: async ({ fetch }) => {
                 const response = await fetch({ method: 'GET' });
                 const data = await response.json();
@@ -68,7 +67,7 @@ describe('GET /api/terms', () => {
 
     it('should filter by category', async () => {
         await testApiHandler({
-            appHandler: termsRoute,
+            appHandler: termsRoute as any,
             test: async ({ fetch }) => {
                 const response = await (fetch as (options: unknown) => Promise<Response>)({
                     method: 'GET',
@@ -87,7 +86,7 @@ describe('GET /api/terms', () => {
 
     it('should search by query', async () => {
         await testApiHandler({
-            appHandler: termsRoute,
+            appHandler: termsRoute as any,
             test: async ({ fetch }) => {
                 const response = await (fetch as (options: unknown) => Promise<Response>)({
                     method: 'GET',
@@ -104,7 +103,7 @@ describe('GET /api/terms', () => {
 
     it('should return partial selection (only exercise IDs)', async () => {
         await testApiHandler({
-            appHandler: termsRoute,
+            appHandler: termsRoute as any,
             test: async ({ fetch }) => {
                 const response = await fetch({ method: 'GET' });
                 const data = await response.json();
@@ -126,7 +125,7 @@ describe('GET /api/terms', () => {
 
     it('should respect custom pageSize parameter', async () => {
         await testApiHandler({
-            appHandler: termsRoute,
+            appHandler: termsRoute as any,
             test: async ({ fetch }) => {
                 const response = await (fetch as (options: unknown) => Promise<Response>)({
                     method: 'GET',
@@ -146,7 +145,7 @@ describe('GET /api/terms', () => {
 describe('POST /api/terms', () => {
     it('should require authentication', async () => {
         await testApiHandler({
-            appHandler: termsRoute,
+            appHandler: termsRoute as any,
             test: async ({ fetch }) => {
                 const response = await (fetch as (options: unknown) => Promise<Response>)({
                     method: 'POST',

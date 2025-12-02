@@ -32,7 +32,6 @@ import {
 import { Prism as SyntaxHighlighter } from "react-syntax-highlighter";
 import { dracula } from "react-syntax-highlighter/dist/cjs/styles/prism";
 import type { TermDTO, TermExampleDTO } from "@/types/term";
-import TailwindStylePreview from "./TailwindStylePreview";
 import { LivePreview } from "./LivePreview";
 import { getHtmlForPreview, extractRawCss } from "@/lib/tailwindPreview";
 
@@ -62,6 +61,39 @@ function getDisplayLanguage(term: TermDTO | null, variant?: { language?: string 
     return "javascript";
 }
 
+function pickActiveVariant(term: TermDTO | null) {
+    if (!term?.variants?.length) return undefined;
+    const variants = term.variants;
+    const cssVariant = variants.find(v => v.language === "css");
+    const htmlVariant = variants.find(v => v.language === "html");
+    const tailwindVariant = variants.find(v => v.language === "ts" && (term.tags || []).some(t => t.toLowerCase().includes("tailwind")));
+    return cssVariant ?? htmlVariant ?? tailwindVariant ?? variants[0];
+}
+
+function pickCssPreviewSnippet(term: TermDTO | null): { code: string; language: string } | undefined {
+    if (!term) return undefined;
+    if (!isCssTerm(term, "css")) return undefined;
+
+    // 1) Usar ejemplo que ya traiga HTML para que se vea como en MDN/Tailwind
+    const htmlExample = (term.examples || []).find(ex => (ex?.code || "").includes("<"));
+    if (htmlExample?.code) {
+        return { code: htmlExample.code, language: "html" };
+    }
+
+    // 2) Si no hay HTML, usar variante CSS si existe
+    const cssVariant = term.variants?.find(v => v.language === "css");
+    if (cssVariant?.snippet) {
+        return { code: cssVariant.snippet, language: "css" };
+    }
+
+    // 3) Último recurso: cualquier variante
+    if (term.variants?.[0]?.snippet) {
+        return { code: term.variants[0].snippet, language: term.variants[0].language || "css" };
+    }
+
+    return undefined;
+}
+
 function CodeBlock({ code, language = "javascript", showLineNumbers = true }: { code: string; language?: string; showLineNumbers?: boolean }) {
     return (
         <div className="rounded-xl border border-slate-800 bg-[#1e1e1e] overflow-hidden shadow-lg">
@@ -89,13 +121,66 @@ function CodeBlock({ code, language = "javascript", showLineNumbers = true }: { 
 }
 
 function CssLiveBlock({ snippet, language }: { snippet: string; language: string }) {
-    const html = useMemo(() => getHtmlForPreview(snippet), [snippet]);
-    const rawCss = useMemo(() => extractRawCss(snippet), [snippet]);
+    const doc = useMemo(() => buildCssDocument(snippet), [snippet]);
 
     return (
         <div className="grid gap-4 lg:grid-cols-2">
-            <CodeBlock code={snippet} language={language} showLineNumbers />
-            <TailwindStylePreview html={html} css={rawCss} />
+            <CodeBlock code={snippet} language={language === "css" ? "css" : language} showLineNumbers />
+            <CssDocPreview documentHtml={doc} />
+        </div>
+    );
+}
+
+function buildCssDocument(snippet: string) {
+    const html = getHtmlForPreview(snippet);
+    const css = extractRawCss(snippet);
+
+    const baseStyles = `
+      body { font-family: 'Inter', system-ui, -apple-system, sans-serif; margin: 0; padding: 24px; background: #f8fafc; color: #0f172a; }
+      .demo-box { padding: 12px 16px; border-radius: 12px; background: #e2e8f0; color: #0f172a; }
+      .css-demo { padding: 8px; }
+      section.cards { display: flex; gap: 12px; }
+      section.cards > article { flex: 1; min-height: 120px; background: #e0e7ff; border-radius: 12px; display: flex; align-items: center; justify-content: center; }
+    `;
+
+    return `
+      <!DOCTYPE html>
+      <html lang="es">
+        <head>
+          <meta charset="UTF-8" />
+          <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+          <script src="https://cdn.tailwindcss.com"></script>
+          <style>
+            ${baseStyles}
+            ${css}
+          </style>
+        </head>
+        <body>
+          ${html}
+        </body>
+      </html>
+    `;
+}
+
+function CssDocPreview({ documentHtml }: { documentHtml: string }) {
+    const iframeRef = useRef<HTMLIFrameElement>(null);
+
+    useEffect(() => {
+        const doc = iframeRef.current?.contentDocument;
+        if (!doc) return;
+        doc.open();
+        doc.write(documentHtml);
+        doc.close();
+    }, [documentHtml]);
+
+    return (
+        <div className="border rounded-xl shadow-sm bg-white overflow-hidden w-full min-h-[520px]">
+            <iframe
+                ref={iframeRef}
+                className="w-full h-[520px] border-0"
+                sandbox="allow-scripts allow-same-origin"
+                title="CSS live preview"
+            />
         </div>
     );
 }
@@ -822,10 +907,13 @@ export default function DiccionarioDevApp() {
         );
     };
 
-    const activeVariant = activeTerm?.variants?.[0];
+    const activeVariant = pickActiveVariant(activeTerm);
     const displayLanguage = getDisplayLanguage(activeTerm, activeVariant);
     const isHtmlActive = activeTerm ? isHtmlTerm(activeTerm, displayLanguage) : false;
     const isCssActive = activeTerm ? isCssTerm(activeTerm, displayLanguage) : false;
+    const cssPreview = pickCssPreviewSnippet(activeTerm);
+    const previewSnippet = cssPreview?.code ?? activeVariant?.snippet ?? "";
+    const previewLanguage = cssPreview?.language ?? displayLanguage;
     if (!mounted) {
         return null;
     }
@@ -854,7 +942,7 @@ export default function DiccionarioDevApp() {
                                     <Code2 className="h-4 w-4" /> Sintaxis Rápida
                                 </h3>
                                 <div className="bg-[#282a36] rounded-lg p-3 border border-slate-800 text-xs font-mono overflow-x-auto">
-                                    {activeTerm.variants?.[0] ? activeTerm.variants[0].snippet.split('\n')[0] : 'Sintaxis no disponible'}
+                                    {activeVariant ? activeVariant.snippet.split('\n')[0] : 'Sintaxis no disponible'}
                                 </div>
                             </div>
 
@@ -1230,7 +1318,7 @@ export default function DiccionarioDevApp() {
                             {activeVariant?.snippet && (
                                 <>
                                     {/* HTML / JS Preview: solo un iframe correspondiente */}
-                                    {((displayLanguage === 'html' || isHtmlActive) || displayLanguage === 'javascript' || displayLanguage === 'jsx') && !isCssActive && (
+                                    {((previewLanguage === 'html' || isHtmlActive) || previewLanguage === 'javascript' || previewLanguage === 'jsx') && !isCssActive && !cssPreview && (
                                         <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
                                             {/* Código */}
                                             <div className="rounded-2xl border border-slate-800 bg-slate-950 p-6 overflow-hidden">
@@ -1240,8 +1328,8 @@ export default function DiccionarioDevApp() {
                                                 </div>
                                                 <StyleAwareCode
                                                     term={activeTerm}
-                                                    snippet={activeVariant.snippet}
-                                                    language={displayLanguage}
+                                                    snippet={previewSnippet}
+                                                    language={previewLanguage}
                                                 />
                                             </div>
 
@@ -1253,8 +1341,8 @@ export default function DiccionarioDevApp() {
                                                 </div>
                                                 <div className="flex-1">
                                                     <LivePreview
-                                                        code={activeVariant.snippet}
-                                                        language={displayLanguage as 'html' | 'javascript' | 'jsx'}
+                                                        code={previewSnippet}
+                                                        language={previewLanguage as 'html' | 'javascript' | 'jsx'}
                                                         title={`Demo de ${activeTerm.term}`}
                                                         height="450px"
                                                     />
@@ -1263,8 +1351,19 @@ export default function DiccionarioDevApp() {
                                         </div>
                                     )}
 
-                                    {/* CSS / Tailwind o lenguajes sin preview: confiar en el bloque inteligente */}
-                                    {(!(displayLanguage === 'html' || isHtmlActive || displayLanguage === 'javascript' || displayLanguage === 'jsx') || isCssActive) && (
+                                    {/* CSS / Tailwind: un solo bloque con código + preview integrado */}
+                                    {(isCssActive || cssPreview) && (
+                                        <div className="rounded-2xl border border-slate-800 bg-slate-950 p-6 overflow-hidden">
+                                            <div className="mb-4 flex items-center gap-2 text-emerald-400">
+                                                <Code2 className="h-5 w-5" />
+                                                <h4 className="font-bold uppercase tracking-wide text-sm">Ejemplo de Código + Preview</h4>
+                                            </div>
+                                            <CssLiveBlock snippet={previewSnippet} language={previewLanguage} />
+                                        </div>
+                                    )}
+
+                                    {/* Otros lenguajes sin preview dedicado */}
+                                    {(!(previewLanguage === 'html' || isHtmlActive || previewLanguage === 'javascript' || previewLanguage === 'jsx') && !isCssActive && !cssPreview) && (
                                         <div className="rounded-2xl border border-slate-800 bg-slate-950 p-6 overflow-hidden">
                                             <div className="mb-4 flex items-center gap-2 text-emerald-400">
                                                 <Code2 className="h-5 w-5" />
@@ -1272,8 +1371,8 @@ export default function DiccionarioDevApp() {
                                             </div>
                                             <StyleAwareCode
                                                 term={activeTerm}
-                                                snippet={activeVariant.snippet}
-                                                language={displayLanguage}
+                                                snippet={previewSnippet}
+                                                language={previewLanguage}
                                             />
                                         </div>
                                     )}

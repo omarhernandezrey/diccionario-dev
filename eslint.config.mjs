@@ -16,6 +16,7 @@ const eslintConfig = [
       "scripts/**",
       "prisma/**",
       "integrations/**",
+      "coverage/**",
     ],
   },
   ...compat.extends("next/core-web-vitals"),

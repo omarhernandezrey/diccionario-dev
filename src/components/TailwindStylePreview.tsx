@@ -1,11 +1,13 @@
 import { useEffect, useRef } from "react";
 
-type Props = {
+type TailwindStylePreviewProps = {
   html: string;
-  css: string;
+  css?: string;
+  rawCss?: string;
+  compiledCss?: string;
 };
 
-export default function TailwindStylePreview({ html, rawCss, compiledCss }: Props & { rawCss?: string; compiledCss?: string }) {
+export default function TailwindStylePreview({ html, css, rawCss, compiledCss }: TailwindStylePreviewProps) {
   const iframeRef = useRef<HTMLIFrameElement>(null);
 
   useEffect(() => {
@@ -14,13 +16,15 @@ export default function TailwindStylePreview({ html, rawCss, compiledCss }: Prop
     const doc = iframeRef.current.contentDocument;
     if (!doc) return;
 
+    const cssToInject = css ?? rawCss ?? "";
+
     doc.open();
     doc.write(`
       <html>
         <head>
           <script src="https://cdn.tailwindcss.com"></script>
           <style>
-            ${rawCss || ""}
+            ${cssToInject}
             ${compiledCss || ""}
           </style>
         </head>
@@ -30,7 +34,7 @@ export default function TailwindStylePreview({ html, rawCss, compiledCss }: Prop
       </html>
     `);
     doc.close();
-  }, [html, rawCss, compiledCss]);
+  }, [html, css, rawCss, compiledCss]);
 
   return (
     <div className="border rounded-xl shadow-sm bg-white overflow-hidden w-full min-h-[350px]">

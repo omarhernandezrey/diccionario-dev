@@ -1,5 +1,5 @@
 import { Category, Language } from "@prisma/client";
-import type { SeedTermInput } from "../dictionary-types";
+import type { ExampleSnippet, SeedTermInput } from "../dictionary-types";
 
 const slugify = (value: string) =>
   value

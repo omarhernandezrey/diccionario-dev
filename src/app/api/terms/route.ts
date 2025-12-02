@@ -379,6 +379,10 @@ function normalizeQuery(data: TermsQueryInput): TermsQueryInput {
   };
 }
 
+function searchExpression(alias: string) {
+  return `lower(coalesce(${alias}."term",'') || ' ' || coalesce(${alias}."translation",'') || ' ' || coalesce(${alias}."meaning",'') || ' ' || coalesce(${alias}."what",'') || ' ' || coalesce(${alias}."how",'') || ' ' || coalesce(CAST(${alias}."aliases" AS TEXT),'') || ' ' || coalesce(CAST(${alias}."tags" AS TEXT),''))`;
+}
+
 
 
 /**
@@ -387,6 +391,7 @@ function normalizeQuery(data: TermsQueryInput): TermsQueryInput {
 async function fetchTermsWithFilters(query: TermsQueryInput) {
   const { category, tag, q, page, pageSize, sort } = query;
   const termAlias = "t";
+  const searchable = searchExpression(termAlias);
   const filters: string[] = [];
   const params: Array<string | number> = [];
   let paramIndex = 1;
@@ -401,18 +406,8 @@ async function fetchTermsWithFilters(query: TermsQueryInput) {
   }
   if (q) {
     const like = `%${q.toLowerCase()}%`;
-    filters.push(`(
-      lower(${termAlias}."term") ILIKE $${paramIndex} OR
-      lower(${termAlias}."translation") ILIKE $${paramIndex + 1} OR
-      lower(${termAlias}."meaning") ILIKE $${paramIndex + 2} OR
-      lower(${termAlias}."what") ILIKE $${paramIndex + 3} OR
-      lower(${termAlias}."how") ILIKE $${paramIndex + 4} OR
-      lower(CAST(${termAlias}."aliases" AS TEXT)) ILIKE $${paramIndex + 5} OR
-      lower(CAST(${termAlias}."tags" AS TEXT)) ILIKE $${paramIndex + 6} OR
-      lower(CAST(${termAlias}."examples" AS TEXT)) ILIKE $${paramIndex + 7}
-    )`);
-    params.push(like, like, like, like, like, like, like, like);
-    paramIndex += 8;
+    filters.push(`${searchable} ILIKE $${paramIndex++}`);
+    params.push(like);
   }
 
   const whereClause = filters.length ? `WHERE ${filters.join(" AND ")}` : "";

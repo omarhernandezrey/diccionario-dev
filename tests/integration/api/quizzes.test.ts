@@ -44,7 +44,6 @@ describe('GET /api/quizzes', () => {
                     ],
                 },
             ],
-            skipDuplicates: true,
         });
     });
 

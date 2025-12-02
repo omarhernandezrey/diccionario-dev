@@ -27,14 +27,15 @@ const sections: NavSection[] = [
 
 export default function Sidebar() {
   const pathname = usePathname();
+  const currentPath = pathname || "";
   const [collapsed, setCollapsed] = useState(false);
   const { session, loading: sessionLoading } = useSession();
 
   const isActive = (href: string) => {
     if (href === "/admin") {
-      return pathname === "/admin";
+      return currentPath === "/admin";
     }
-    return pathname.startsWith(href);
+    return currentPath.startsWith(href);
   };
 
   // Filtrar secciones según permisos
