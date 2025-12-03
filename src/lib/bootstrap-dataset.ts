@@ -187,6 +187,8 @@ function createSeedTerm(input: SeedTermInput): SeedTerm {
   const resolvedHowEs = howEs ?? howByCategoryEs[category](term);
   const resolvedHowEn = howEn ?? howByCategoryEn[category](term);
   const variantLanguage = languageOverride ?? variantLanguageByCategory[category];
+  const hasTailwindTag = (tags || []).map((tag) => tag.toLowerCase()).includes("tailwind");
+  const examples = hasTailwindTag ? [example, exerciseExample] : [example, input.secondExample]; // Tailwind: solo 2 (ejemplo + práctica)
 
   // Usamos exerciseExample (ahora obligatorio)
   const exerciseCode = exerciseExample.code;
@@ -206,7 +208,7 @@ function createSeedTerm(input: SeedTermInput): SeedTerm {
     whatEn: resolvedWhatEn,
     howEs: resolvedHowEs,
     howEn: resolvedHowEn,
-    examples: [example, input.secondExample], // Incluimos ambos ejemplos
+    examples,
     variants: buildVariants(variantLanguage, example.code, example.noteEs ?? example.noteEn),
     useCases: buildUseCases(term, category, resolvedWhatEs, resolvedWhatEn),
     faqs: buildFaqs(term, translation, meaningEs, meaningEn, example, resolvedHowEs, resolvedHowEn),

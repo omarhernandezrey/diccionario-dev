@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useEffect, useRef, KeyboardEvent, useMemo } from "react";
+import { useSearchParams } from "next/navigation";
 import {
     Lightbulb,
     Search,
@@ -34,6 +35,10 @@ import { dracula } from "react-syntax-highlighter/dist/cjs/styles/prism";
 import type { TermDTO, TermExampleDTO } from "@/types/term";
 import { LivePreview } from "./LivePreview";
 import { getHtmlForPreview, extractRawCss } from "@/lib/tailwindPreview";
+import TechStrip from "./TechStrip";
+import ExtensionsShowcase from "./ExtensionsShowcase";
+import { AuthActions } from "./AuthActions";
+import { useSession } from "@/components/admin/SessionProvider";
 
 function getDisplayLanguage(term: TermDTO | null, variant?: { language?: string | null }) {
     const tags = (term?.tags || []).map(tag => tag.toLowerCase());
@@ -120,8 +125,9 @@ function CodeBlock({ code, language = "javascript", showLineNumbers = true }: { 
     );
 }
 
-function CssLiveBlock({ snippet, language }: { snippet: string; language: string }) {
-    const doc = useMemo(() => buildCssDocument(snippet), [snippet]);
+function CssLiveBlock({ term, snippet, language }: { term: TermDTO; snippet: string; language: string }) {
+    const isTailwindTerm = (term.tags || []).some(tag => tag.toLowerCase().includes("tailwind"));
+    const doc = useMemo(() => buildCssDocument(snippet, isTailwindTerm), [snippet, isTailwindTerm]);
 
     return (
         <div className="grid gap-4 lg:grid-cols-2">
@@ -131,9 +137,51 @@ function CssLiveBlock({ snippet, language }: { snippet: string; language: string
     );
 }
 
-function buildCssDocument(snippet: string) {
+function buildTailwindShell(html: string) {
+    return `
+      <div class="min-h-[360px] bg-slate-950 text-slate-100 tw-grid-bg">
+        <div class="max-w-5xl mx-auto p-6">
+          <div class="rounded-2xl border border-slate-800 bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950 shadow-[0_25px_70px_rgba(0,0,0,0.55)]">
+            <div class="rounded-[18px] border border-white/10 bg-slate-900/60 p-6 ring-1 ring-white/5 space-y-6">
+              ${html}
+            </div>
+          </div>
+        </div>
+      </div>
+    `;
+}
+
+function buildCssDocument(snippet: string, isTailwindTerm: boolean) {
     const html = getHtmlForPreview(snippet);
     const css = extractRawCss(snippet);
+
+    if (isTailwindTerm) {
+        const tailwindBackdrop = `
+      body { font-family: 'Inter', system-ui, -apple-system, sans-serif; margin: 0; }
+      .tw-grid-bg {
+        background-image: radial-gradient(circle at 1px 1px, rgba(255,255,255,0.05) 1px, transparent 0);
+        background-size: 22px 22px;
+      }
+    `;
+
+        return `
+      <!DOCTYPE html>
+      <html lang="es">
+        <head>
+          <meta charset="UTF-8" />
+          <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+          <script src="https://cdn.tailwindcss.com"></script>
+          <style>
+            ${tailwindBackdrop}
+            ${css}
+          </style>
+        </head>
+        <body class="bg-slate-950 text-slate-100">
+          ${buildTailwindShell(html)}
+        </body>
+      </html>
+    `;
+    }
 
     const baseStyles = `
       body { font-family: 'Inter', system-ui, -apple-system, sans-serif; margin: 0; padding: 24px; background: #f8fafc; color: #0f172a; }
@@ -187,7 +235,7 @@ function CssDocPreview({ documentHtml }: { documentHtml: string }) {
 
 function StyleAwareCode({ term, snippet, language, showLineNumbers = true }: { term: TermDTO; snippet: string; language: string; showLineNumbers?: boolean }) {
     if (isCssTerm(term, language)) {
-        return <CssLiveBlock snippet={snippet} language={language} />;
+        return <CssLiveBlock term={term} snippet={snippet} language={language} />;
     }
     return <CodeBlock code={snippet} language={language} showLineNumbers={showLineNumbers} />;
 }
@@ -341,6 +389,7 @@ function isHtmlTerm(term: TermDTO, language: string): boolean {
 
 // Centralized CSS detection (matches backend logic in seed.ts)
 function isCssTerm(term: TermDTO, language: string): boolean {
+    if (term.category !== "frontend") return false;
     if (language === "css") return true;
 
     const termName = term.term.toLowerCase();
@@ -350,8 +399,9 @@ function isCssTerm(term: TermDTO, language: string): boolean {
     if (tags.some(t => ["html", "a11y", "accessibility"].includes(t))) return false;
     if (termName.includes("aria")) return false;
 
-    // CSS properties (lowercase with hyphens, no "use" prefix)
-    if (/^[a-z-]+$/.test(termName) && !termName.startsWith("use")) return true;
+    // Require señales claras de CSS/Tailwind: guiones, tags o lista explícita
+    if (termName.includes("-")) return true;
+    if (tags.some(t => ["css", "tailwind", "flexbox", "grid"].includes(t))) return true;
 
     // Tailwind utilities
     if (/^(bg|text|flex|grid|w-|h-|p-|m-|border|rounded|shadow|gap|space|justify|items|content|overflow|position|top|bottom|left|right|inset|z-|opacity|transform|transition|animate|cursor|select|pointer|resize|outline|ring|divide|sr-|not-sr|focus|hover|active|disabled|group|peer|dark|sm:|md:|lg:|xl:|2xl:)/.test(termName)) return true;
@@ -361,9 +411,6 @@ function isCssTerm(term: TermDTO, language: string): boolean {
 
     // Specific CSS terms
     if (["aspect-ratio", "backdrop-filter", "scroll-snap"].includes(termName)) return true;
-
-    // Check tags for CSS indicators
-    if (tags.some(t => ["css", "tailwind", "flexbox", "grid"].includes(t))) return true;
 
     return false;
 }
@@ -602,6 +649,8 @@ function GeminiLoader({ term }: { term: string }) {
 // --- Componente Principal ---
 
 export default function DiccionarioDevApp() {
+    const searchParams = useSearchParams();
+    const { session } = useSession();
     const [searchTerm, setSearchTerm] = useState("");
     const debouncedSearch = useDebounce(searchTerm, 300);
 
@@ -631,6 +680,14 @@ export default function DiccionarioDevApp() {
     const [isListening, setIsListening] = useState(false);
     const [isStartingMic, setIsStartingMic] = useState(false);
     const [micError, setMicError] = useState<string | null>(null);
+    const navLinks = [
+        { label: "Inicio", href: "#inicio" },
+        { label: "Buscar", href: "#buscar" },
+        { label: "Extensiones", href: "#extensions" },
+    ];
+    if (session?.role === "admin") {
+        navLinks.push({ label: "Panel", href: "/admin" });
+    }
 
     type SpeechRecognitionLike = {
         abort?: () => void;
@@ -659,6 +716,15 @@ export default function DiccionarioDevApp() {
         setMounted(true);
     }, []);
 
+    // Prellenar desde query params (extensiones, deep-links)
+    useEffect(() => {
+        const q = searchParams.get("q");
+        if (q) {
+            setSearchTerm(q);
+            setShowHistory(false);
+        }
+    }, [searchParams]);
+
     // Auto-scroll effect for keyboard navigation
     useEffect(() => {
         if (selectedIndex >= 0) {
@@ -684,9 +750,25 @@ export default function DiccionarioDevApp() {
         setIsCodeMode(isCode && searchTerm.length > 10);
     }, [searchTerm]);
 
+    // Atajo CMD/CTRL + K para enfocar el buscador y mostrar historial
+    useEffect(() => {
+        const handler = (e: globalThis.KeyboardEvent) => {
+            if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "k") {
+                e.preventDefault();
+                searchInputRef.current?.focus();
+                setShowHistory(true);
+            }
+        };
+        window.addEventListener("keydown", handler);
+        return () => window.removeEventListener("keydown", handler);
+    }, []);
+
     // Fetching de datos principal
     useEffect(() => {
-        if (!debouncedSearch.trim() || isCodeMode) {
+        const codeGuess = isCodeMode ? extractTermFromCode(debouncedSearch) : null;
+        const query = isCodeMode ? (codeGuess || "") : debouncedSearch.trim();
+
+        if (!query) {
             setResults([]);
             setHasSearched(false);
             if (!debouncedSearch.trim()) setActiveTerm(null);
@@ -698,7 +780,7 @@ export default function DiccionarioDevApp() {
             setHasSearched(true);
             try {
                 const params = new URLSearchParams({
-                    q: debouncedSearch,
+                    q: query,
                     pageSize: "10",
                 });
                 const res = await fetch(`/api/terms?${params.toString()}`);
@@ -907,19 +989,49 @@ export default function DiccionarioDevApp() {
         );
     };
 
+    // Intenta extraer el término relevante de un snippet de código para buscarlo
+    const extractTermFromCode = (code: string) => {
+        const hook = code.match(/use[A-Z][A-Za-z0-9]+/);
+        if (hook) return hook[0];
+
+        const classMatch = code.match(/class(?:Name)?=["'`](.*?)["'`]/);
+        if (classMatch && classMatch[1]) {
+            const firstClass = classMatch[1].split(/\s+/).filter(Boolean)[0];
+            if (firstClass) return firstClass;
+        }
+
+        const cssProp = code.match(/([a-z-]+)\s*:/i);
+        if (cssProp) return cssProp[1];
+
+        const tag = code.match(/<([a-z][a-z0-9-]*)\b/i);
+        if (tag) return tag[1];
+
+        const importMatch = code.match(/from\s+['"][^'"]*\/?([A-Za-z0-9_-]+)['"]/);
+        if (importMatch) return importMatch[1];
+
+        const identifier = code.match(/([A-Za-z][A-Za-z0-9_-]{2,})/);
+        if (identifier) return identifier[1];
+
+        return null;
+    };
+
     const activeVariant = pickActiveVariant(activeTerm);
     const displayLanguage = getDisplayLanguage(activeTerm, activeVariant);
     const isHtmlActive = activeTerm ? isHtmlTerm(activeTerm, displayLanguage) : false;
-    const isCssActive = activeTerm ? isCssTerm(activeTerm, displayLanguage) : false;
+    const isFrontend = activeTerm?.category === "frontend";
+    const isCssActive = isFrontend && activeTerm ? isCssTerm(activeTerm, displayLanguage) : false;
     const cssPreview = pickCssPreviewSnippet(activeTerm);
     const previewSnippet = cssPreview?.code ?? activeVariant?.snippet ?? "";
     const previewLanguage = cssPreview?.language ?? displayLanguage;
+    // Solo permitir preview interactivo para HTML/CSS/Tailwind
+    const allowLivePreview = isFrontend && (isCssActive || !!cssPreview || isHtmlActive);
+    const showSearchExplainer = !activeTerm && !searchTerm.trim() && results.length === 0 && !loading;
     if (!mounted) {
         return null;
     }
 
     return (
-        <div className="min-h-screen bg-slate-950 text-slate-200 font-sans selection:bg-emerald-500/30 pb-20 relative overflow-x-hidden">
+        <div id="inicio" className="min-h-screen bg-slate-950 text-slate-200 font-sans selection:bg-emerald-500/30 pb-20 relative overflow-x-hidden">
 
             {/* --- Cheat Sheet Slide-over --- */}
             <div className={`fixed inset-y-0 right-0 w-full md:w-96 bg-slate-900/95 backdrop-blur-xl border-l border-slate-800 shadow-2xl transform transition-transform duration-300 ease-in-out z-100 ${showCheatSheet ? 'translate-x-0' : 'translate-x-full'}`}>
@@ -999,53 +1111,76 @@ export default function DiccionarioDevApp() {
             </div>
 
             {/* --- Header Sticky --- */}
-            <header className="sticky top-0 z-50 border-b border-slate-800 bg-slate-950/80 backdrop-blur-md">
+            <header id="buscar" className="sticky top-0 z-50 border-b border-slate-800 bg-slate-950/80 backdrop-blur-md">
                 <div className="mx-auto max-w-7xl px-4 py-4">
-                    <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-                        {/* Logo & Title */}
-                        <div className="flex items-center gap-3 cursor-pointer group" onClick={() => { setSearchTerm(""); setActiveTerm(null); }}>
-                            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-linear-to-br from-emerald-500 to-blue-600 shadow-lg shadow-emerald-500/20 transition-transform group-hover:scale-105">
-                                <Brain className="h-6 w-6 text-white" />
+                    <div className="flex flex-col gap-4">
+                        <div className="flex items-center justify-between gap-4">
+                            {/* Logo & Title */}
+                            <div
+                                className="group flex items-center gap-3 cursor-pointer"
+                                onClick={() => { setSearchTerm(""); setActiveTerm(null); }}
+                            >
+                                <div className="relative h-11 w-11">
+                                    <div className="absolute inset-0 rounded-2xl bg-linear-to-br from-emerald-500 via-cyan-500 to-blue-700 blur-[10px] opacity-80 group-hover:opacity-100 transition" />
+                                    <div className="relative flex h-full w-full items-center justify-center rounded-2xl border border-white/10 bg-slate-950/80 shadow-[0_10px_30px_rgba(16,185,129,0.25)]">
+                                        <Brain className="h-6 w-6 text-white drop-shadow-lg" />
+                                    </div>
+                                </div>
+                                <div>
+                                    <p className="text-[11px] uppercase tracking-[0.2em] text-emerald-200">Diccionario</p>
+                                    <h1 className="text-xl font-bold tracking-tight text-white leading-tight">
+                                        Dev Intelligence
+                                    </h1>
+                                </div>
                             </div>
-                            <div>
-                                <h1 className="text-xl font-bold tracking-tight text-white">
-                                    Diccionario Dev
-                                </h1>
-                                <p className="text-xs font-medium text-slate-400 group-hover:text-emerald-400 transition-colors">
-                                    Inteligencia para Ingenieros
-                                </p>
+
+                            <div className="hidden md:flex items-center gap-2 rounded-full border border-slate-800 bg-slate-900/60 px-2 py-1 shadow-inner">
+                                {navLinks.map((link) => (
+                                    <a
+                                        key={link.href}
+                                        href={link.href}
+                                        className="rounded-full px-3 py-1.5 text-[11px] font-semibold uppercase tracking-wide text-slate-300 transition-all hover:text-white hover:bg-slate-800"
+                                    >
+                                        {link.label}
+                                    </a>
+                                ))}
                             </div>
+
+                            <AuthActions />
                         </div>
 
-                        {/* Context Selectors */}
-                        <div className="flex gap-2 overflow-x-auto pb-2 md:pb-0">
-                            {[
-                                { id: "concept", label: "Concepto", icon: BookOpen, color: "text-emerald-400" },
-                                { id: "interview", label: "Entrevista", icon: MessageSquare, color: "text-amber-400" },
-                                { id: "debug", label: "Debug", icon: Bug, color: "text-red-400" },
-                                { id: "translate", label: "Traducción", icon: Globe, color: "text-blue-400" },
-                            ].map((ctx) => (
-                                <button
-                                    key={ctx.id}
-                                    className="group flex items-center gap-2 rounded-full border border-slate-800 bg-slate-900/50 px-4 py-1.5 text-sm font-medium transition-all hover:border-slate-700 hover:bg-slate-800 active:scale-95"
+                        {/* Mobile nav */}
+                        <div className="flex items-center gap-2 md:hidden overflow-x-auto pb-1">
+                            {navLinks.map((link) => (
+                                <a
+                                    key={link.href}
+                                    href={link.href}
+                                    className="rounded-full border border-slate-800 bg-slate-900/60 px-3 py-1.5 text-[11px] font-semibold uppercase tracking-wide text-slate-300 transition-all hover:border-emerald-500/40 hover:text-white"
                                 >
-                                    <ctx.icon className={`h-4 w-4 ${ctx.color}`} />
-                                    <span className="text-slate-300 group-hover:text-white">
-                                        {ctx.label}
-                                    </span>
-                                </button>
+                                    {link.label}
+                                </a>
                             ))}
-                            {/* Admin Access Button */}
-                            <a
-                                href="/admin"
-                                className="group flex items-center gap-2 rounded-full border border-purple-500/30 bg-purple-500/10 px-4 py-1.5 text-sm font-medium transition-all hover:border-purple-500/50 hover:bg-purple-500/20 active:scale-95"
-                            >
-                                <Settings className="h-4 w-4 text-purple-400" />
-                                <span className="text-purple-300 group-hover:text-purple-200">
-                                    Admin
-                                </span>
-                            </a>
                         </div>
+                    </div>
+
+                    {/* Context Selectors */}
+                    <div className="mt-4 flex gap-2 overflow-x-auto pb-1">
+                        {[
+                            { id: "concept", label: "Concepto", icon: BookOpen, color: "text-emerald-400" },
+                            { id: "interview", label: "Entrevista", icon: MessageSquare, color: "text-amber-400" },
+                            { id: "debug", label: "Debug", icon: Bug, color: "text-red-400" },
+                            { id: "translate", label: "Traducción", icon: Globe, color: "text-blue-400" },
+                        ].map((ctx) => (
+                            <span
+                                key={ctx.id}
+                                className="group flex items-center gap-2 rounded-full border border-slate-800 bg-slate-900/50 px-4 py-1.5 text-sm font-medium transition-all"
+                            >
+                                <ctx.icon className={`h-4 w-4 ${ctx.color}`} />
+                                <span className="text-slate-300 group-hover:text-white">
+                                    {ctx.label}
+                                </span>
+                            </span>
+                        ))}
                     </div>
 
                     {/* Search Bar Omnibox */}
@@ -1234,6 +1369,103 @@ export default function DiccionarioDevApp() {
                 </div>
             </header>
 
+            {showSearchExplainer && (
+                <>
+                    {/* --- Search Explainer --- */}
+                    <section className="mx-auto w-full max-w-7xl px-4 lg:px-6 xl:px-8 mt-4">
+                        <div className="relative overflow-hidden rounded-2xl border border-slate-800 bg-slate-900/70 shadow-[0_25px_80px_rgba(0,0,0,0.55)] backdrop-blur-sm">
+                            <div className="absolute -left-24 -top-24 h-56 w-56 bg-emerald-500/20 blur-3xl" />
+                            <div className="absolute -right-12 -bottom-20 h-64 w-64 bg-blue-500/20 blur-3xl" />
+                            <div className="relative p-6 sm:p-8 space-y-6">
+                                <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+                                    <div className="space-y-2">
+                                        <span className="inline-flex items-center gap-2 rounded-full border border-emerald-500/40 bg-emerald-500/10 px-3 py-1 text-[11px] font-semibold uppercase tracking-wide text-emerald-200">
+                                            <Search className="h-4 w-4" />
+                                            Buscador inteligente
+                                        </span>
+                                        <h2 className="text-2xl md:text-3xl font-bold text-white leading-tight">
+                                            Entiende lo que escribes y te devuelve la pieza exacta
+                                        </h2>
+                                        <p className="text-sm text-slate-300 max-w-2xl">
+                                            Detecta si estás buscando un concepto, una traducción o si pegaste código, para abrir la ficha técnica con ejemplos, previews y buenas prácticas listas para copiar.
+                                        </p>
+                                    </div>
+                                    <div className="flex items-center gap-3 rounded-xl border border-slate-700/60 bg-slate-800/70 px-4 py-3 text-left shadow-inner">
+                                        <div className="flex h-11 w-11 items-center justify-center rounded-lg bg-emerald-500/15 text-emerald-300">
+                                            <ArrowRight className="h-5 w-5" />
+                                        </div>
+                                        <div className="space-y-1">
+                                            <p className="text-sm font-semibold text-white">Tip rápido</p>
+                                            <p className="text-xs text-slate-400">Pega un snippet y el buscador detecta el concepto y abre la ficha adecuada.</p>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div className="grid gap-3 md:grid-cols-3">
+                                    <div className="rounded-xl border border-slate-800 bg-slate-900/80 p-4 shadow-lg shadow-emerald-500/5">
+                                        <div className="flex items-start gap-3">
+                                            <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-emerald-500/15 text-emerald-300">
+                                                <BookOpen className="h-5 w-5" />
+                                            </div>
+                                            <div className="space-y-1">
+                                                <p className="text-sm font-semibold text-white">Define y traduce</p>
+                                                <p className="text-xs text-slate-400">Términos técnicos en español e inglés con contexto, alias y significados claros.</p>
+                                                <div className="mt-2 flex flex-wrap gap-2 text-[11px] text-emerald-200">
+                                                    <span className="inline-flex items-center gap-1 rounded-full bg-emerald-500/10 px-2 py-1 border border-emerald-500/30">
+                                                        <Check className="h-3 w-3" /> ES / EN
+                                                    </span>
+                                                    <span className="inline-flex items-center gap-1 rounded-full bg-emerald-500/10 px-2 py-1 border border-emerald-500/30">
+                                                        <Check className="h-3 w-3" /> Alias y tags
+                                                    </span>
+                                                    <span className="inline-flex items-center gap-1 rounded-full bg-emerald-500/10 px-2 py-1 border border-emerald-500/30">
+                                                        <Check className="h-3 w-3" /> Historial rápido
+                                                    </span>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <div className="rounded-xl border border-slate-800 bg-slate-900/80 p-4 shadow-lg shadow-blue-500/5">
+                                        <div className="flex items-start gap-3">
+                                            <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-blue-500/15 text-blue-300">
+                                                <Code2 className="h-5 w-5" />
+                                            </div>
+                                            <div className="space-y-1">
+                                                <p className="text-sm font-semibold text-white">Entiende tu código</p>
+                                                <p className="text-xs text-slate-400">Detecta hooks, utilidades CSS o APIs pegando un fragmento y muestra el snippet correcto.</p>
+                                                <div className="mt-2 flex flex-wrap gap-2 text-[11px] text-blue-100">
+                                                    <span className="inline-flex items-center gap-1 rounded-full bg-blue-500/10 px-2 py-1 border border-blue-500/30">
+                                                        <Check className="h-3 w-3" /> Modo código auto
+                                                    </span>
+                                                    <span className="inline-flex items-center gap-1 rounded-full bg-blue-500/10 px-2 py-1 border border-blue-500/30">
+                                                        <Check className="h-3 w-3" /> Previews HTML/CSS
+                                                    </span>
+                                                    <span className="inline-flex items-center gap-1 rounded-full bg-blue-500/10 px-2 py-1 border border-blue-500/30">
+                                                        <Check className="h-3 w-3" /> Atajos CMD+K
+                                                    </span>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <div className="rounded-xl border border-slate-800 bg-slate-900/80 p-4 shadow-lg shadow-purple-500/5">
+                                        <div className="flex items-start gap-3">
+                                            <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-purple-500/15 text-purple-200">
+                                                <Mic className="h-5 w-5" />
+                                            </div>
+                                            <div className="space-y-1">
+                                                <p className="text-sm font-semibold text-white">Habla o escribe</p>
+                                                <p className="text-xs text-slate-400">Usa voz, atajos CMD+K o historial para saltar rápido a lo que necesitas.</p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </section>
+                </>
+            )}
+
             {/* --- Main Content --- */}
             <main className="mx-auto w-full max-w-7xl px-4 lg:px-6 xl:px-8 py-8">
                 {activeTerm ? (
@@ -1317,8 +1549,8 @@ export default function DiccionarioDevApp() {
                             
                             {activeVariant?.snippet && (
                                 <>
-                                    {/* HTML / JS Preview: solo un iframe correspondiente */}
-                                    {((previewLanguage === 'html' || isHtmlActive) || previewLanguage === 'javascript' || previewLanguage === 'jsx') && !isCssActive && !cssPreview && (
+                                    {/* HTML Preview: iframe (sólo para HTML/Tailwind/CSS) */}
+                                    {allowLivePreview && (previewLanguage === 'html' || isHtmlActive) && !isCssActive && !cssPreview && (
                                         <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
                                             {/* Código */}
                                             <div className="rounded-2xl border border-slate-800 bg-slate-950 p-6 overflow-hidden">
@@ -1326,28 +1558,28 @@ export default function DiccionarioDevApp() {
                                                     <Code2 className="h-5 w-5" />
                                                     <h4 className="font-bold uppercase tracking-wide text-sm">Ejemplo de Código</h4>
                                                 </div>
-                                                <StyleAwareCode
-                                                    term={activeTerm}
-                                                    snippet={previewSnippet}
-                                                    language={previewLanguage}
-                                                />
-                                            </div>
+                                                    <StyleAwareCode
+                                                        term={activeTerm}
+                                                        snippet={previewSnippet}
+                                                        language={previewLanguage}
+                                                    />
+                                                </div>
 
-                                            {/* Preview específico del lenguaje */}
-                                            <div className="rounded-2xl border border-slate-800 bg-slate-950 p-6 overflow-hidden flex flex-col">
+                                                {/* Preview específico del lenguaje */}
+                                                <div className="rounded-2xl border border-slate-800 bg-slate-950 p-6 overflow-hidden flex flex-col">
                                                 <div className="mb-3 flex items-center gap-2 text-blue-400">
                                                     <Eye className="h-5 w-5" />
                                                     <h4 className="font-bold uppercase tracking-wide text-sm">Preview en Vivo</h4>
                                                 </div>
                                                 <div className="flex-1">
-                                                    <LivePreview
-                                                        code={previewSnippet}
-                                                        language={previewLanguage as 'html' | 'javascript' | 'jsx'}
-                                                        title={`Demo de ${activeTerm.term}`}
-                                                        height="450px"
-                                                    />
+                                                        <LivePreview
+                                                            code={previewSnippet}
+                                                            language="html"
+                                                            title={`Demo de ${activeTerm.term}`}
+                                                            height="450px"
+                                                        />
+                                                    </div>
                                                 </div>
-                                            </div>
                                         </div>
                                     )}
 
@@ -1358,12 +1590,12 @@ export default function DiccionarioDevApp() {
                                                 <Code2 className="h-5 w-5" />
                                                 <h4 className="font-bold uppercase tracking-wide text-sm">Ejemplo de Código + Preview</h4>
                                             </div>
-                                            <CssLiveBlock snippet={previewSnippet} language={previewLanguage} />
+                                            <CssLiveBlock term={activeTerm} snippet={previewSnippet} language={previewLanguage} />
                                         </div>
                                     )}
 
                                     {/* Otros lenguajes sin preview dedicado */}
-                                    {(!(previewLanguage === 'html' || isHtmlActive || previewLanguage === 'javascript' || previewLanguage === 'jsx') && !isCssActive && !cssPreview) && (
+                                    {(!allowLivePreview || (!(previewLanguage === 'html' || isHtmlActive) && !isCssActive && !cssPreview)) && (
                                         <div className="rounded-2xl border border-slate-800 bg-slate-950 p-6 overflow-hidden">
                                             <div className="mb-4 flex items-center gap-2 text-emerald-400">
                                                 <Code2 className="h-5 w-5" />
@@ -1479,7 +1711,16 @@ export default function DiccionarioDevApp() {
                 )}
             </main>
 
+            <div className="relative w-screen -ml-[50vw] left-1/2 right-1/2 mt-6 border-y border-slate-800 bg-slate-900/70 shadow-[0_25px_70px_rgba(0,0,0,0.45)]">
+                <TechStrip
+                    speedSeconds={110}
+                    className="py-6"
+                />
+            </div>
 
+            <div className="mt-10">
+                <ExtensionsShowcase variant="slate" />
+            </div>
 
         </div>
     );

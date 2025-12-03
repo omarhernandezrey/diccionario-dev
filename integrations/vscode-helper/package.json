@@ -2,7 +2,7 @@
   "name": "diccionario-dev-helper",
   "displayName": "Diccionario Dev Helper",
   "description": "Traducir código o explicar conceptos seleccionados en VSCode usando la API de Diccionario Dev.",
-  "version": "0.1.0",
+  "version": "0.1.2",
   "publisher": "omar-hernandez-rey",
   "engines": {
     "vscode": "^1.85.0"
@@ -28,7 +28,7 @@
         "diccionarioDev.baseUrl": {
           "type": "string",
           "default": "http://localhost:3000",
-          "description": "URL base de la instancia de Diccionario Dev (ej. https://diccionario.dev)."
+          "description": "URL base de la instancia de Diccionario Dev (ej. http://localhost:3000 o tu dominio público)."
         },
         "diccionarioDev.defaultContext": {
           "type": "string",

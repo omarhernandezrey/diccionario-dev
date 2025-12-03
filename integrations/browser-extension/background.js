@@ -1,4 +1,4 @@
-// Predeterminado seguro para dev; configurable desde opciones
+// Predeterminado seguro para dev/local; configurable desde opciones
 const DEFAULT_BASE_URL = "http://localhost:3000";
 
 chrome.runtime.onInstalled.addListener(() => {

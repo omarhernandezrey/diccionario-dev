@@ -13,7 +13,7 @@ Extensión ligera (Manifest v3) que captura la selección actual y abre Dicciona
 
 1. Abre `chrome://extensions` y habilita el modo desarrollador.
 2. Haz clic en **Cargar descomprimida** y selecciona `integrations/browser-extension`.
-3. Ajusta la URL base desde el enlace “Detalles → Opciones de la extensión” (ej. `http://localhost:3000` en desarrollo).
+3. La URL base por defecto apunta a `http://localhost:3000`. Si ya tienes un dominio público (ej. `https://diccionariodev.com`), cámbialo en “Detalles → Opciones de la extensión”.
 
 ## Flujo de uso
 

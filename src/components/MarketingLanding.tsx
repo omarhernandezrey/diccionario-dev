@@ -2,11 +2,11 @@
 
 import Link from "next/link";
 import { useEffect, useState } from "react";
-import { VscVscode } from "react-icons/vsc";
-import { LuGlobe, LuLayers, LuSearch, LuSparkles, LuMenu, LuX } from "react-icons/lu";
+import { LuLayers, LuSearch, LuSparkles, LuMenu, LuX } from "react-icons/lu";
 import SearchBox from "./SearchBox";
 import TechStrip from "./TechStrip";
 import ThemeToggle from "./ThemeToggle";
+import ExtensionsShowcase from "./ExtensionsShowcase";
 
 const navLinks = [
   { label: "Inicio", href: "#hero" },
@@ -27,6 +27,7 @@ export default function MarketingLanding() {
       <TechStrip />
       <AppOverview />
       <FeaturePairs />
+      <ExtensionsShowcase variant="neo" />
       <SiteFooter />
     </div>
   );
@@ -120,45 +121,6 @@ function AppOverview() {
         ))}
       </div>
 
-      {/* Extensions Section - MacOS Tiles */}
-      <div className="mt-20 lg:mt-32">
-        <div className="mb-12 text-center">
-          <h2 className="text-3xl font-bold tracking-tight text-neo-text-primary sm:text-4xl">Intégralo en tu flujo de trabajo</h2>
-          <p className="mt-4 text-lg text-neo-text-secondary">Accede a DiccionarioDev directamente desde donde trabajas.</p>
-        </div>
-
-        <div className="grid gap-8 md:grid-cols-2">
-          {/* VS Code Tile */}
-          <div className="group relative overflow-hidden rounded-[2.5rem] border border-neo-border/50 bg-[#1e1e1e] p-10 shadow-2xl transition duration-500 hover:shadow-neo-primary/20">
-            <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,_var(--tw-gradient-stops))] from-white/5 via-transparent to-transparent" />
-            <div className="relative flex flex-col items-center text-center">
-              <div className="mb-8 flex h-24 w-24 items-center justify-center rounded-[2rem] bg-[#2d2d2d] shadow-xl ring-1 ring-white/10">
-                <VscVscode className="h-14 w-14 text-[#007ACC]" />
-              </div>
-              <h3 className="text-2xl font-bold text-white">Extensión para VS Code</h3>
-              <p className="mt-4 mb-8 max-w-md text-gray-400">Busca términos sin salir de tu editor de código. Aumenta tu productividad y mantén el foco.</p>
-              <button className="w-full rounded-xl bg-[#007ACC] py-4 text-sm font-bold text-white shadow-lg shadow-blue-500/25 transition hover:bg-[#0063a5] hover:scale-[1.02]">
-                Instalar ahora
-              </button>
-            </div>
-          </div>
-
-          {/* Browser Tile */}
-          <div className="group relative overflow-hidden rounded-[2.5rem] border border-neo-border/50 bg-[#1e1e1e] p-10 shadow-2xl transition duration-500 hover:shadow-neo-primary/20">
-            <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,_var(--tw-gradient-stops))] from-white/5 via-transparent to-transparent" />
-            <div className="relative flex flex-col items-center text-center">
-              <div className="mb-8 flex h-24 w-24 items-center justify-center rounded-[2rem] bg-[#2d2d2d] shadow-xl ring-1 ring-white/10">
-                <LuGlobe className="h-14 w-14 text-neo-primary" />
-              </div>
-              <h3 className="text-2xl font-bold text-white">Extensión para Navegador</h3>
-              <p className="mt-4 mb-8 max-w-md text-gray-400">Obtén definiciones al instante mientras navegas. Compatible con Chrome, Firefox y Edge.</p>
-              <button className="w-full rounded-xl bg-neo-primary py-4 text-sm font-bold text-white shadow-lg shadow-neo-primary/25 transition hover:bg-neo-primary-dark hover:scale-[1.02]">
-                Añadir a Chrome
-              </button>
-            </div>
-          </div>
-        </div>
-      </div>
     </section>
   );
 }

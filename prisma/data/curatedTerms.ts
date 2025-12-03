@@ -1548,6 +1548,328 @@ type AutoSeedConfig = {
   tags?: string[];
 };
 
+type HtmlExampleSet = {
+  example: ExampleSnippet;
+  secondExample: ExampleSnippet;
+  exerciseExample: ExampleSnippet;
+};
+
+function htmlBaseStyles() {
+  return `
+<style>
+  * { box-sizing: border-box; }
+  body { font-family: 'Inter', system-ui, -apple-system, sans-serif; background: #0f172a; color: #e2e8f0; margin: 0; padding: 18px; }
+  .html-card { background: linear-gradient(135deg, #0b1220, #111827); border: 1px solid #1f2937; box-shadow: 0 20px 60px rgba(0,0,0,0.35); border-radius: 16px; padding: 18px; display: grid; gap: 10px; }
+  .html-pill { display: inline-flex; align-items: center; gap: 8px; padding: 6px 10px; border-radius: 9999px; background: rgba(79,70,229,0.12); color: #c7d2fe; font-weight: 600; font-size: 12px; letter-spacing: 0.02em; }
+  .html-highlight { padding: 10px 14px; border-radius: 12px; background: rgba(16,185,129,0.12); color: #a7f3d0; font-weight: 600; }
+  .html-note { color: #cbd5e1; font-size: 14px; margin: 0; }
+  .html-input { width: 100%; padding: 10px 12px; border-radius: 12px; border: 1px solid #1f2937; background: #0b1220; color: #e2e8f0; }
+  .html-label { display: grid; gap: 6px; color: #e2e8f0; font-weight: 600; }
+  .html-button { display: inline-flex; align-items: center; justify-content: center; gap: 8px; padding: 10px 14px; border-radius: 12px; background: linear-gradient(135deg, #22d3ee, #10b981); color: #0b1220; border: none; font-weight: 700; cursor: pointer; }
+  .html-log { background: #0b1220; border: 1px solid #1f2937; border-radius: 12px; padding: 10px; color: #22d3ee; font-size: 13px; }
+  .html-list { margin: 0; padding-left: 18px; color: #cbd5e1; }
+  .html-code { display: inline-block; padding: 8px 10px; border-radius: 10px; background: #0b1220; border: 1px solid #1f2937; color: #e2e8f0; font-family: 'JetBrains Mono', 'Fira Code', monospace; }
+  .html-legacy { border: 1px dashed #f59e0b; background: rgba(245,158,11,0.08); }
+</style>
+`.trim();
+}
+
+function buildHtmlExamples({
+  term,
+  kind,
+  resolvedTranslation,
+  descEs,
+  tagName,
+  isVoid,
+}: {
+  term: string;
+  kind: AutoSeedConfig["kind"];
+  resolvedTranslation: string;
+  descEs: string;
+  tagName: string;
+  isVoid: boolean;
+}): HtmlExampleSet {
+  const styles = htmlBaseStyles();
+  const sampleContent = `Contenido de ${tagName}`;
+
+  const elementExamples = (() => {
+    const main = isVoid
+      ? `
+${styles}
+<div class="html-card">
+  <p class="html-pill">&lt;${tagName}&gt; elemento vacío</p>
+  <code class="html-code">&lt;${tagName} /&gt;</code>
+  <p class="html-note">Úsalo donde aplique y añade atributos requeridos.</p>
+</div>
+`.trim()
+      : `
+${styles}
+<${tagName} class="html-card">
+  <div class="html-pill">&lt;${tagName}&gt; activo</div>
+  <p class="html-note">${descEs}</p>
+</${tagName}>
+`.trim();
+
+    const variant = isVoid
+      ? `
+${styles}
+<div class="html-card">
+  <p class="html-note">Ejemplo práctico con &lt;${tagName}&gt;</p>
+  <code class="html-code">&lt;${tagName} ... /&gt;</code>
+  <p class="html-note">Añade atributos como src, alt o type según corresponda.</p>
+</div>
+`.trim()
+      : `
+${styles}
+<article class="html-card">
+  <h3 class="html-pill">${resolvedTranslation}</h3>
+  <${tagName} class="html-highlight">${sampleContent}</${tagName}>
+  <p class="html-note">Combínalo con clases utilitarias o estilos propios para darle estructura.</p>
+</article>
+`.trim();
+
+    const exercise = isVoid
+      ? `
+${styles}
+<div class="html-card">
+  <p class="html-note">Práctica: usa &lt;${tagName}&gt; con atributos requeridos y valida accesibilidad.</p>
+  <code class="html-code">&lt;${tagName} ... /&gt;</code>
+</div>
+`.trim()
+      : `
+${styles}
+<section class="html-card">
+  <${tagName} class="html-highlight">Sección principal</${tagName}>
+  <p class="html-note">Añade aria-label o roles si el contexto lo requiere.</p>
+</section>
+`.trim();
+
+    return { example: main, secondExample: variant, exerciseExample: exercise };
+  })();
+
+  const attributeExamples = (() => {
+    const attrSample = `${term}="valor"`;
+    const inputAttr = `
+${styles}
+<div class="html-card">
+  <label class="html-label">
+    Campo con ${term}
+    <input ${attrSample} class="html-input" placeholder="Escribe algo" />
+  </label>
+  <p class="html-note">Úsalo cuando el atributo aporte semántica o accesibilidad.</p>
+</div>
+`.trim();
+
+    const imageAttr = `
+${styles}
+<figure class="html-card">
+  <img src="https://images.unsplash.com/photo-1503264116251-35a269479413?auto=format&fit=crop&w=600&q=60" ${attrSample} alt="Demo ${term}" style="border-radius: 12px; width: 100%; object-fit: cover;" />
+  <figcaption class="html-note">El atributo ${term} aplicado en elementos visuales.</figcaption>
+</figure>
+`.trim();
+
+    const exercise = `
+${styles}
+<form class="html-card">
+  <label class="html-label">
+    ${resolvedTranslation}
+    <input ${attrSample} required class="html-input" />
+  </label>
+  <button class="html-button" type="submit">Enviar</button>
+</form>
+`.trim();
+
+    return { example: inputAttr, secondExample: imageAttr, exerciseExample: exercise };
+  })();
+
+  const eventName = term.replace(/^on/i, "");
+  const eventExamples = (() => {
+    const main = `
+${styles}
+<button id="cta" class="html-button">Disparar ${eventName}</button>
+<pre id="log" class="html-log">Sin eventos</pre>
+<script>
+  const btn = document.getElementById('cta');
+  const log = document.getElementById('log');
+  btn?.addEventListener('${eventName}', () => {
+    log.textContent = 'Evento ${term} capturado';
+  });
+</script>
+`.trim();
+
+    const variant = `
+${styles}
+<div class="html-card">
+  <button id="btn-variant" class="html-button">Hover/Click</button>
+  <pre id="log-variant" class="html-log">Interactúa con el botón</pre>
+</div>
+<script>
+  const btn2 = document.getElementById('btn-variant');
+  const log2 = document.getElementById('log-variant');
+  btn2?.addEventListener('${eventName}', () => { log2.textContent = 'Escuchando ${term} correctamente'; });
+</script>
+`.trim();
+
+    const exercise = `
+${styles}
+<form id="event-form" class="html-card">
+  <label class="html-label">Email <input type="email" class="html-input" required /></label>
+  <button class="html-button" type="submit">Enviar</button>
+  <pre id="log-form" class="html-log">Listo para ${eventName}</pre>
+</form>
+<script>
+  const form = document.getElementById('event-form');
+  const log = document.getElementById('log-form');
+  form?.addEventListener('${eventName}', (event) => {
+    event.preventDefault();
+    log.textContent = 'Evento ${term} manejado sin recargar';
+  });
+</script>
+`.trim();
+
+    return { example: main, secondExample: variant, exerciseExample: exercise };
+  })();
+
+  const inputType = term.startsWith("input-") ? term.replace("input-", "") : term;
+  const inputExamples = (() => {
+    const main = `
+${styles}
+<form class="html-card html-form">
+  <label class="html-label">
+    ${resolvedTranslation}
+    <input type="${inputType}" class="html-input" placeholder="Ej: valor de ${inputType}" />
+  </label>
+  <p class="html-note">El tipo adecuado mejora validación y teclado en móvil.</p>
+</form>
+`.trim();
+
+    const variant = `
+${styles}
+<div class="html-card">
+  <label class="html-label">
+    ${resolvedTranslation} con estado inválido
+    <input type="${inputType}" class="html-input" required />
+  </label>
+  <p class="html-note">Agrega required y patrones para validar antes de enviar.</p>
+</div>
+`.trim();
+
+    const exercise = `
+${styles}
+<form class="html-card html-form">
+  <label class="html-label">
+    ${resolvedTranslation}
+    <input type="${inputType}" class="html-input" aria-label="${resolvedTranslation}" />
+  </label>
+  <button class="html-button" type="submit">Guardar</button>
+</form>
+`.trim();
+
+    return { example: main, secondExample: variant, exerciseExample: exercise };
+  })();
+
+  const conceptExamples = (() => {
+    const main = `
+${styles}
+<article class="html-card">
+  <div class="html-pill">${resolvedTranslation}</div>
+  <p class="html-note">${descEs}</p>
+  <ul class="html-list">
+    <li>Aplica semántica correcta.</li>
+    <li>Valida accesibilidad y estructura.</li>
+  </ul>
+</article>
+`.trim();
+
+    const variant = `
+${styles}
+<section class="html-card">
+  <h3 class="html-pill">${resolvedTranslation}</h3>
+  <p class="html-note">Relaciónalo con etiquetas y roles apropiados.</p>
+</section>
+`.trim();
+
+    const exercise = `
+${styles}
+<main class="html-card">
+  <p class="html-note">Construye un ejemplo corto que demuestre ${resolvedTranslation} y documenta decisiones.</p>
+</main>
+`.trim();
+
+    return { example: main, secondExample: variant, exerciseExample: exercise };
+  })();
+
+  const legacyExamples = (() => {
+    const main = `
+${styles}
+<article class="html-card html-legacy">
+  <p class="html-note">Evita &lt;${tagName}&gt;. Usa alternativas semánticas modernas.</p>
+</article>
+`.trim();
+
+    const variant = `
+${styles}
+<article class="html-card">
+  <p class="html-note">Sustituye &lt;${tagName}&gt; por etiquetas como &lt;div&gt;, &lt;section&gt; o CSS.</p>
+</article>
+`.trim();
+
+    const exercise = `
+${styles}
+<article class="html-card html-legacy">
+  <p class="html-note">Refactoriza un documento eliminando &lt;${tagName}&gt; y registrando los cambios.</p>
+</article>
+`.trim();
+
+    return { example: main, secondExample: variant, exerciseExample: exercise };
+  })();
+
+  switch (kind) {
+    case "element":
+      return {
+        example: { titleEs: `Ejemplo ${term}`, titleEn: `${term} example`, code: elementExamples.example, noteEs: "Visualiza la etiqueta en contexto real.", noteEn: "See the tag in a real context." },
+        secondExample: { titleEs: `Variación ${term}`, titleEn: `${term} variation`, code: elementExamples.secondExample, noteEs: "Cambia contenido o clases para ajustarlo a tu layout.", noteEn: "Swap content or classes to fit your layout." },
+        exerciseExample: { titleEs: `Práctica ${term}`, titleEn: `${term} practice`, code: elementExamples.exerciseExample, noteEs: "Integra aria y semántica en tu propio documento.", noteEn: "Add aria and semantics in your own document." },
+      };
+    case "attribute":
+      return {
+        example: { titleEs: `Ejemplo ${term}`, titleEn: `${term} example`, code: attributeExamples.example, noteEs: "Aplica el atributo en inputs o multimedia.", noteEn: "Apply the attribute on inputs or media." },
+        secondExample: { titleEs: `Variación ${term}`, titleEn: `${term} variation`, code: attributeExamples.secondExample, noteEs: "Prueba en elementos visuales para validar soporte.", noteEn: "Test it on visual elements to validate support." },
+        exerciseExample: { titleEs: `Práctica ${term}`, titleEn: `${term} practice`, code: attributeExamples.exerciseExample, noteEs: "Valida requeridos y accesibilidad con este atributo.", noteEn: "Validate requirements and accessibility with this attribute." },
+      };
+    case "event":
+      return {
+        example: { titleEs: `Ejemplo ${term}`, titleEn: `${term} example`, code: eventExamples.example, noteEs: "Observa el log cuando se dispara el evento.", noteEn: "Watch the log when the event fires." },
+        secondExample: { titleEs: `Variación ${term}`, titleEn: `${term} variation`, code: eventExamples.secondExample, noteEs: "Cambia el listener para otros elementos.", noteEn: "Change the listener for other elements." },
+        exerciseExample: { titleEs: `Práctica ${term}`, titleEn: `${term} practice`, code: eventExamples.exerciseExample, noteEs: "Integra el evento en un formulario real.", noteEn: "Integrate the event into a real form." },
+      };
+    case "inputType":
+      return {
+        example: { titleEs: `Ejemplo ${term}`, titleEn: `${term} example`, code: inputExamples.example, noteEs: "El tipo adecuado mejora UX y validación.", noteEn: "Proper type improves UX and validation." },
+        secondExample: { titleEs: `Variación ${term}`, titleEn: `${term} variation`, code: inputExamples.secondExample, noteEs: "Añade required/pattern para controles robustos.", noteEn: "Add required/pattern for robust controls." },
+        exerciseExample: { titleEs: `Práctica ${term}`, titleEn: `${term} practice`, code: inputExamples.exerciseExample, noteEs: "Prueba con aria-label y submit real.", noteEn: "Test with aria-label and real submit." },
+      };
+    case "concept":
+      return {
+        example: { titleEs: `Ejemplo ${term}`, titleEn: `${term} example`, code: conceptExamples.example, noteEs: "Resume el concepto con puntos clave.", noteEn: "Summarize the concept with key points." },
+        secondExample: { titleEs: `Variación ${term}`, titleEn: `${term} variation`, code: conceptExamples.secondExample, noteEs: "Relaciónalo con semántica y estructura.", noteEn: "Relate it to semantics and structure." },
+        exerciseExample: { titleEs: `Práctica ${term}`, titleEn: `${term} practice`, code: conceptExamples.exerciseExample, noteEs: "Documenta un caso de uso real.", noteEn: "Document a real use case." },
+      };
+    case "legacy":
+      return {
+        example: { titleEs: `Ejemplo ${term}`, titleEn: `${term} example`, code: legacyExamples.example, noteEs: "Marca el uso como no recomendado.", noteEn: "Mark the usage as discouraged." },
+        secondExample: { titleEs: `Variación ${term}`, titleEn: `${term} variation`, code: legacyExamples.secondExample, noteEs: "Sugiere la alternativa moderna.", noteEn: "Suggest the modern alternative." },
+        exerciseExample: { titleEs: `Práctica ${term}`, titleEn: `${term} practice`, code: legacyExamples.exerciseExample, noteEs: "Planifica una migración a HTML moderno.", noteEn: "Plan a migration to modern HTML." },
+      };
+    default:
+      return {
+        example: { titleEs: `Ejemplo ${term}`, titleEn: `${term} example`, code: `${styles}\n<!-- ${resolvedTranslation} -->`, noteEs: descEs, noteEn: descEs },
+        secondExample: { titleEs: `Variación ${term}`, titleEn: `${term} variation`, code: `${styles}`, noteEs: descEs, noteEn: descEs },
+        exerciseExample: { titleEs: `Práctica ${term}`, titleEn: `${term} practice`, code: `${styles}`, noteEs: descEs, noteEn: descEs },
+      };
+  }
+}
+
 function buildHtmlSeed({
   term,
   kind,
@@ -1601,96 +1923,14 @@ function buildHtmlSeed({
 
   const tagName = term.startsWith("input-") ? "input" : term;
   const isVoid = voidHtmlElements.has(tagName);
-  const sampleContent = `Contenido de ${tagName}`;
-  const attrSample = kind === "attribute" ? `${term}=\"valor\"` : "";
-  const openTag = `<${tagName}${attrSample ? ` ${attrSample}` : ""}>`;
-  const closeTag = isVoid ? "" : `</${tagName}>`;
-
-  const defaultExample =
-    kind === "event"
-      ? `<button ${term}=\"console.log('click')\">Acción</button>`
-      : kind === "attribute"
-        ? `<div ${term}=\"valor\">${sampleContent}</div>`
-        : kind === "inputType"
-          ? `<label>
-  ${resolvedTranslation}
-  <input type=\"${term.replace("input-", "")}\" />
-</label>`
-          : kind === "concept"
-            ? `<section>
-  <h2>${resolvedTranslation}</h2>
-  <p>${descEs}</p>
-</section>`
-            : kind === "legacy"
-              ? `<${tagName}>${sampleContent}</${tagName}>`
-              : `${openTag}${isVoid ? "" : sampleContent + closeTag}`;
-
-  const secondExample =
-    kind === "event"
-      ? `<script>
-  document.querySelector('#action')?.addEventListener('${term.replace("on", "")}', () => {
-    console.log('Evento ${term} disparado');
+  const htmlExamples = buildHtmlExamples({
+    term,
+    kind,
+    resolvedTranslation,
+    descEs,
+    tagName,
+    isVoid,
   });
-</script>
-<button id=\"action\">Disparar</button>`
-      : kind === "attribute"
-        ? `<img src=\"/logo.png\" ${term}=\"valor\" alt=\"Logo\" />`
-        : kind === "inputType"
-          ? `<input type=\"${term.replace("input-", "")}\" placeholder=\"${resolvedTranslation}\" />`
-          : kind === "concept"
-            ? `<article>
-  <header>${resolvedTranslation}</header>
-  <p>${descEn}</p>
-</article>`
-            : kind === "legacy"
-              ? `<${tagName}>Ejemplo legacy</${tagName}>`
-              : isVoid
-                ? `${openTag}`
-                : `<${tagName} class=\"${tagName}-box\">${sampleContent}</${tagName}>`;
-
-  const exerciseExample =
-    kind === "event"
-      ? `<button id=\"cta\">CTA</button>
-<script>
-  const btn = document.getElementById('cta');
-  btn?.addEventListener('${term.replace("on", "")}', (event) => {
-    event.preventDefault();
-    btn.textContent = 'Evento ${term} capturado';
-  });
-</script>`
-      : kind === "attribute"
-        ? `<form>
-  <label>
-    Campo con ${term}
-    <input ${term}=\"valor\" />
-  </label>
-</form>`
-        : kind === "inputType"
-          ? `<form>
-  <label>
-    ${resolvedTranslation}
-    <input type=\"${term.replace("input-", "")}\" required />
-  </label>
-</form>`
-          : kind === "concept"
-            ? `<style>
-  main { display: grid; gap: 1rem; }
-</style>
-<main>
-  <section aria-label=\"${resolvedTranslation}\">
-    <h2>${resolvedTranslation}</h2>
-    <p>${descEs}</p>
-  </section>
-</main>`
-            : kind === "legacy"
-              ? `<${tagName}>No recomendado en HTML moderno</${tagName}>
-<!-- Sustituir por una alternativa semántica -->`
-              : isVoid
-                ? `${openTag}
-<!-- ${resolvedTranslation} -->`
-                : `<${tagName}>
-  <p>${descEs}</p>
-</${tagName}>`;
 
   return {
     term,
@@ -1700,21 +1940,9 @@ function buildHtmlSeed({
     descriptionEn: descEn,
     aliases: [term],
     tags: baseTags,
-    example: {
-      titleEs: `Ejemplo ${term}`,
-      titleEn: `${term} example`,
-      code: defaultExample,
-    },
-    secondExample: {
-      titleEs: `Variación ${term}`,
-      titleEn: `${term} variation`,
-      code: secondExample,
-    },
-    exerciseExample: {
-      titleEs: `Practica ${term}`,
-      titleEn: `${term} practice`,
-      code: exerciseExample,
-    },
+    example: htmlExamples.example,
+    secondExample: htmlExamples.secondExample,
+    exerciseExample: htmlExamples.exerciseExample,
   };
 }
 
@@ -3054,6 +3282,96 @@ const jsKindMeta: Record<
   },
 };
 
+function jsBaseStyles() {
+  return `
+<style>
+  .js-card { background: #0f172a; border: 1px solid #1e293b; border-radius: 12px; padding: 16px; font-family: 'Inter', system-ui, sans-serif; color: #e2e8f0; display: flex; flex-direction: column; gap: 12px; }
+  .js-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
+  .js-title { font-size: 14px; font-weight: 600; color: #38bdf8; display: flex; align-items: center; gap: 8px; }
+  .js-btn { background: #3b82f6; color: white; border: none; padding: 6px 12px; border-radius: 6px; font-size: 12px; font-weight: 500; cursor: pointer; transition: background 0.2s; }
+  .js-btn:hover { background: #2563eb; }
+  .js-log { background: #020617; border: 1px solid #1e293b; border-radius: 8px; padding: 12px; font-family: 'JetBrains Mono', monospace; font-size: 12px; color: #94a3b8; min-height: 60px; max-height: 200px; overflow-y: auto; white-space: pre-wrap; }
+  .js-sandbox { padding: 12px; border: 1px dashed #334155; border-radius: 8px; background: #1e293b; margin-bottom: 12px; }
+  .js-sandbox input { background: #0f172a; border: 1px solid #334155; color: white; padding: 4px 8px; border-radius: 4px; margin-right: 8px; }
+  .js-sandbox button { background: #475569; color: white; border: none; padding: 4px 8px; border-radius: 4px; cursor: pointer; }
+  .js-sandbox .box { width: 40px; height: 40px; background: #3b82f6; display: inline-block; vertical-align: middle; margin: 4px; border-radius: 4px; }
+  .js-sandbox .badge { background: #0ea5e9; color: white; padding: 2px 6px; border-radius: 99px; font-size: 10px; }
+</style>
+`.trim();
+}
+
+function getJsSandboxHtml(term: string) {
+  return `
+<div class="js-sandbox" id="sandbox-${term}">
+  <div style="margin-bottom: 8px; font-size: 11px; color: #64748b;">DOM Sandbox</div>
+  <button id="btn" class="primary">Button</button>
+  <input id="input" placeholder="Input..." />
+  <ul id="list" style="margin: 8px 0; padding-left: 20px;"><li>Item 1</li><li>Item 2</li></ul>
+  <div id="box" class="box"></div>
+  <span class="badge">Badge</span>
+  <form id="form" style="display:none"><input name="test" /></form>
+  <div id="root"></div>
+</div>
+`.trim();
+}
+
+function wrapJsSnippet(title: string, code: string, kind: JsKind, term: string) {
+  const styles = jsBaseStyles();
+  const isDom = kind === 'dom' || term === 'fetch' || term === 'localStorage';
+  const sandbox = isDom ? getJsSandboxHtml(term) : '';
+  const runId = `run-${Math.random().toString(36).slice(2)}`;
+  const logId = `log-${Math.random().toString(36).slice(2)}`;
+  
+  const safeCode = code.replace(/console\.log/g, 'log').replace(/console\.error/g, 'log');
+
+  const script = `
+    (function() {
+      const runBtn = document.getElementById('${runId}');
+      const logEl = document.getElementById('${logId}');
+      
+      function log(...args) {
+        if (!logEl) return;
+        const line = document.createElement('div');
+        line.textContent = '> ' + args.map(a => 
+          typeof a === 'object' ? JSON.stringify(a, null, 2) : String(a)
+        ).join(' ');
+        logEl.appendChild(line);
+        logEl.scrollTop = logEl.scrollHeight;
+      }
+
+      function run() {
+        if (logEl) logEl.innerHTML = '';
+        try {
+          ${safeCode}
+        } catch (err) {
+          log('Error: ' + err.message);
+        }
+      }
+
+      if (runBtn) runBtn.addEventListener('click', run);
+      ${!isDom ? 'setTimeout(run, 100);' : ''}
+    })();
+  `;
+
+  return `
+${styles}
+<div class="js-card">
+  <div class="js-header">
+    <div class="js-title">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6H5a2 2 0 0 0-2 2v3a2 2 0 0 0 2 2h13l4-3.5L18 6Z"/><path d="M12 13v8"/><path d="M12 3v3"/></svg>
+      ${title}
+    </div>
+    <button id="${runId}" class="js-btn">Ejecutar</button>
+  </div>
+  ${sandbox}
+  <div id="${logId}" class="js-log"></div>
+</div>
+<script>
+  ${script}
+</script>
+`.trim();
+}
+
 function buildJsSnippets(term: string, kind: JsKind) {
   const clean = term.trim();
   const titleBaseEs = `Ejemplo ${clean}`;
@@ -3146,7 +3464,7 @@ function buildJsSnippets(term: string, kind: JsKind) {
     },
   };
 
-  const baseNote = notes[kind];
+  const baseNote = notes[kind] ?? { es: "Ejemplo práctico.", en: "Practical example." };
 
   const sample = getJsCodeSample(clean, kind);
 
@@ -3154,21 +3472,21 @@ function buildJsSnippets(term: string, kind: JsKind) {
     example: {
       titleEs: titleBaseEs,
       titleEn: titleBaseEn,
-      code: sample.example,
+      code: wrapJsSnippet(titleBaseEs, sample.example, kind, clean),
       noteEs: baseNote.es,
       noteEn: baseNote.en,
     },
     secondExample: {
       titleEs: variantTitleEs,
       titleEn: variantTitleEn,
-      code: sample.variant,
+      code: wrapJsSnippet(variantTitleEs, sample.variant, kind, clean),
       noteEs: baseNote.es,
       noteEn: baseNote.en,
     },
     exerciseExample: {
       titleEs: practiceTitleEs,
       titleEn: practiceTitleEn,
-      code: sample.exercise,
+      code: wrapJsSnippet(practiceTitleEs, sample.exercise, kind, clean),
       noteEs: baseNote.es,
       noteEn: baseNote.en,
     },
@@ -4919,7 +5237,8 @@ pushJsTerms(jsNodeBasics, "node");
 pushJsTerms(jsJsonUtils, "json");
 pushJsTerms(jsConcepts, "concept");
 
-const dedupedJsTerms = jsSeedTerms.filter((term) => !cssTermSet.has(term.term.toLowerCase()));
+const conflictSet = new Set([...autogeneratedHtmlTerms, ...dedupedCssTerms].map(t => t.term.toLowerCase()));
+const dedupedJsTerms = jsSeedTerms.filter((term) => !conflictSet.has(term.term.toLowerCase()));
 const jsTermSet = new Set([...cssTermSet, ...dedupedJsTerms.map((item) => item.term.toLowerCase())]);
 
 type ReactKind =
@@ -11404,6 +11723,911 @@ function resolveTailwindDocs({
   };
 }
 
+type TailwindExample = {
+  code: string;
+  noteEs?: string;
+  noteEn?: string;
+  titleEs?: string;
+  titleEn?: string;
+};
+
+type TailwindExampleSet = {
+  example: TailwindExample;
+  secondExample: TailwindExample;
+  exerciseExample: TailwindExample;
+};
+
+type UtilityCategory =
+  | "flex"
+  | "grid"
+  | "spacing"
+  | "sizing"
+  | "typography"
+  | "color"
+  | "radius"
+  | "border"
+  | "shadow"
+  | "background"
+  | "transform"
+  | "transition"
+  | "animation"
+  | "scroll"
+  | "interaction"
+  | "accessibility"
+  | "opacity"
+  | "layout";
+
+type UtilityPreview = {
+  category: UtilityCategory;
+  target: "container" | "item" | "text";
+};
+
+function classifyUtility(term: string): UtilityPreview {
+  const lower = term.toLowerCase();
+  if (lower.includes("{color}")) return { category: "color", target: "item" };
+  if (lower.includes("grid")) {
+    const target = lower.includes("span") || lower.includes("start") || lower.includes("end") ? "item" : "container";
+    return { category: "grid", target };
+  }
+  if (
+    lower.startsWith("flex") ||
+    lower.startsWith("items-") ||
+    lower.startsWith("justify-") ||
+    lower.startsWith("content-") ||
+    lower.startsWith("self-")
+  ) {
+    const target = lower.startsWith("self-") ? "item" : "container";
+    return { category: "flex", target };
+  }
+  if (
+    lower.startsWith("gap-") ||
+    lower.startsWith("m-") ||
+    lower.startsWith("mt-") ||
+    lower.startsWith("mb-") ||
+    lower.startsWith("ml-") ||
+    lower.startsWith("mr-") ||
+    lower.startsWith("mx-") ||
+    lower.startsWith("my-") ||
+    lower.startsWith("p-") ||
+    lower.startsWith("px-") ||
+    lower.startsWith("py-")
+  ) {
+    return { category: "spacing", target: "container" };
+  }
+  if (
+    lower.startsWith("w-") ||
+    lower.startsWith("min-w-") ||
+    lower.startsWith("max-w-") ||
+    lower.startsWith("h-") ||
+    lower.startsWith("min-h-") ||
+    lower.startsWith("max-h-")
+  ) {
+    return { category: "sizing", target: "item" };
+  }
+  if (
+    lower.startsWith("font-") ||
+    lower.startsWith("text-") ||
+    lower.startsWith("tracking-") ||
+    lower.startsWith("leading-") ||
+    lower.includes("italic") ||
+    lower.includes("underline") ||
+    lower.includes("line-through") ||
+    lower.includes("antialiased") ||
+    lower.includes("ellipsis") ||
+    lower.includes("clip")
+  ) {
+    return { category: "typography", target: "text" };
+  }
+  if (lower.startsWith("rounded")) return { category: "radius", target: "item" };
+  if (lower.startsWith("border")) return { category: "border", target: "item" };
+  if (lower.startsWith("shadow")) return { category: "shadow", target: "item" };
+  if (lower.startsWith("bg-") || lower.includes("background")) return { category: "background", target: "container" };
+  if (
+    lower === "transform" ||
+    lower.startsWith("scale-") ||
+    lower.startsWith("rotate-") ||
+    lower.startsWith("translate-") ||
+    lower.startsWith("skew-") ||
+    lower.startsWith("origin-")
+  ) {
+    return { category: "transform", target: "item" };
+  }
+  if (lower.startsWith("transition") || lower.startsWith("duration-") || lower.startsWith("ease-")) {
+    return { category: "transition", target: "item" };
+  }
+  if (lower.startsWith("animate-")) return { category: "animation", target: "item" };
+  if (lower.startsWith("overflow") || lower.startsWith("overscroll") || lower.startsWith("scroll") || lower.startsWith("snap")) {
+    return { category: "scroll", target: "container" };
+  }
+  if (lower.startsWith("cursor") || lower.startsWith("select-") || lower.startsWith("pointer-events")) {
+    return { category: "interaction", target: "item" };
+  }
+  if (lower.startsWith("sr-only") || lower.startsWith("not-sr-only") || lower.startsWith("aria-")) {
+    return { category: "accessibility", target: "text" };
+  }
+  if (lower.startsWith("opacity")) return { category: "opacity", target: "item" };
+  return { category: "layout", target: "container" };
+}
+
+function buildUtilityExampleSet(term: string, sampleClass: string): TailwindExampleSet {
+  const { category, target } = classifyUtility(term);
+  const applied = sampleClass || term;
+  const tagTarget = target === "text" ? "span" : "div";
+
+  const flexExample = `
+<div class="bg-slate-950 text-slate-100 p-4 rounded-xl space-y-3 shadow-lg shadow-emerald-500/10">
+  <p class="text-[11px] uppercase tracking-[0.28em] text-slate-400">Flex preview</p>
+  <div class="flex ${applied} gap-3">
+    <div class="h-12 w-12 rounded-lg bg-emerald-500/80 text-xs grid place-items-center font-semibold">A</div>
+    <div class="h-16 w-16 rounded-lg bg-sky-500/80 text-xs grid place-items-center font-semibold">B</div>
+    <div class="h-10 w-10 rounded-lg bg-indigo-500/80 text-xs grid place-items-center font-semibold">C</div>
+  </div>
+</div>
+  `.trim();
+
+  const gridExample = `
+<div class="bg-slate-950 text-slate-100 p-4 rounded-xl space-y-3 shadow-lg shadow-cyan-500/10">
+  <p class="text-[11px] uppercase tracking-[0.28em] text-slate-400">Grid preview</p>
+  <div class="grid grid-cols-3 gap-3">
+    <div class="h-12 rounded-lg bg-emerald-500/80 text-xs grid place-items-center font-semibold">1</div>
+    <div class="h-12 rounded-lg bg-sky-500/80 text-xs grid place-items-center font-semibold ${target === "item" ? applied : ""}">2</div>
+    <div class="h-12 rounded-lg bg-indigo-500/80 text-xs grid place-items-center font-semibold">3</div>
+    <div class="${target === "container" ? applied : "col-span-2"} rounded-lg bg-emerald-600/60 text-xs grid place-items-center font-semibold">Layout dinámico</div>
+  </div>
+</div>
+  `.trim();
+
+  const spacingExample = `
+<div class="bg-slate-950 text-slate-100 p-4 rounded-xl space-y-3 shadow-lg shadow-amber-500/10">
+  <p class="text-[11px] uppercase tracking-[0.28em] text-slate-400">Espaciado visible</p>
+  <div class="space-y-3">
+    <${tagTarget} class="bg-slate-800/80 rounded-lg p-3">Bloque base</${tagTarget}>
+    <${tagTarget} class="bg-slate-800/80 rounded-lg p-3 ${applied}">Bloque con ${applied}</${tagTarget}>
+  </div>
+</div>
+  `.trim();
+
+  const sizingExample = `
+<div class="bg-slate-950 text-slate-100 p-4 rounded-xl space-y-3 shadow-lg shadow-blue-500/10">
+  <p class="text-[11px] uppercase tracking-[0.28em] text-slate-400">Tamaños consistentes</p>
+  <div class="flex items-center gap-3">
+    <div class="${applied} h-12 rounded-lg bg-emerald-500/80 grid place-items-center text-xs font-semibold">target</div>
+    <div class="flex-1 h-12 rounded-lg bg-slate-800/70 grid place-items-center text-xs text-slate-300">Contenido fluido</div>
+  </div>
+</div>
+  `.trim();
+
+  const typographyExample = `
+<div class="bg-slate-950 text-slate-50 p-4 rounded-xl space-y-2 shadow-lg shadow-fuchsia-500/10">
+  <p class="text-[11px] uppercase tracking-[0.28em] text-slate-400">Tipografía</p>
+  <p class="${applied}">Clase aplicada: ${applied}</p>
+  <p class="text-sm text-slate-400">Observa tamaño, peso o espaciado según la utilidad.</p>
+</div>
+  `.trim();
+
+  const colorExample = `
+<div class="bg-slate-950 text-slate-100 p-4 rounded-xl space-y-3 shadow-lg shadow-emerald-500/10">
+  <p class="text-[11px] uppercase tracking-[0.28em] text-slate-400">Color en contexto</p>
+  <div class="flex items-center gap-3">
+    <span class="px-3 py-2 rounded-md bg-slate-800 text-slate-200">Base</span>
+    <span class="px-3 py-2 rounded-md ${applied}">Con ${applied}</span>
+  </div>
+</div>
+  `.trim();
+
+  const radiusExample = `
+<div class="bg-slate-950 text-slate-100 p-4 rounded-xl space-y-3 shadow-lg shadow-purple-500/10">
+  <p class="text-[11px] uppercase tracking-[0.28em] text-slate-400">Bordes suaves</p>
+  <div class="flex items-center gap-3">
+    <div class="p-4 bg-slate-800/80 rounded-md">Default</div>
+    <div class="p-4 bg-slate-800/80 ${applied} border border-slate-700">Con ${applied}</div>
+  </div>
+</div>
+  `.trim();
+
+  const borderExample = `
+<div class="bg-slate-950 text-slate-100 p-4 rounded-xl space-y-3 shadow-lg shadow-cyan-500/10">
+  <p class="text-[11px] uppercase tracking-[0.28em] text-slate-400">Trazos y contornos</p>
+  <div class="flex items-center gap-3">
+    <div class="p-4 rounded-lg bg-slate-900 border border-slate-700">Base</div>
+    <div class="p-4 rounded-lg bg-slate-900 ${applied}">Con ${applied}</div>
+  </div>
+</div>
+  `.trim();
+
+  const shadowExample = `
+<div class="bg-slate-950 text-slate-100 p-4 rounded-xl space-y-3 shadow-lg shadow-blue-500/10">
+  <p class="text-[11px] uppercase tracking-[0.28em] text-slate-400">Profundidad</p>
+  <div class="flex items-center gap-3">
+    <div class="p-4 bg-slate-900 rounded-lg shadow">Sombra estándar</div>
+    <div class="p-4 bg-slate-900 rounded-lg ${applied}">Con ${applied}</div>
+  </div>
+</div>
+  `.trim();
+
+  const backgroundExample = `
+<div class="p-4 rounded-xl text-slate-100 bg-slate-900 space-y-3 shadow-lg shadow-indigo-500/10">
+  <p class="text-[11px] uppercase tracking-[0.28em] text-slate-400">Fondos</p>
+  <div class="h-28 rounded-lg border border-slate-800 ${applied} bg-[url('https://images.unsplash.com/photo-1503264116251-35a269479413?auto=format&fit=crop&w=900&q=60')] bg-cover bg-center flex items-end">
+    <span class="bg-slate-900/70 px-3 py-1 m-2 rounded">Fondo con ${applied}</span>
+  </div>
+</div>
+  `.trim();
+
+  const transformExample = `
+<div class="p-4 rounded-xl bg-slate-950 text-slate-100 space-y-3 shadow-lg shadow-lime-500/10">
+  <p class="text-[11px] uppercase tracking-[0.28em] text-slate-400">Transformaciones</p>
+  <button class="px-4 py-2 rounded-lg bg-emerald-500 text-white font-semibold transform ${applied} transition hover:scale-105">
+    ${applied} activo
+  </button>
+</div>
+  `.trim();
+
+  const transitionExample = `
+<div class="p-4 rounded-xl bg-slate-950 text-slate-100 space-y-3 shadow-lg shadow-orange-500/10">
+  <p class="text-[11px] uppercase tracking-[0.28em] text-slate-400">Transiciones</p>
+  <button class="px-4 py-2 rounded-lg bg-slate-800 text-white ${applied} hover:-translate-y-0.5 hover:bg-emerald-500">
+    Hover suave con ${applied}
+  </button>
+</div>
+  `.trim();
+
+  const animationExample = `
+<div class="p-4 rounded-xl bg-slate-950 text-slate-100 space-y-3 shadow-lg shadow-teal-500/10">
+  <p class="text-[11px] uppercase tracking-[0.28em] text-slate-400">Animación</p>
+  <div class="flex items-center gap-2">
+    <span class="${applied} h-3 w-3 rounded-full bg-emerald-400"></span>
+    <span class="text-sm text-slate-300">Observa el movimiento definido por ${applied}.</span>
+  </div>
+</div>
+  `.trim();
+
+  const scrollExample = `
+<div class="p-4 rounded-xl bg-slate-950 text-slate-100 space-y-3 shadow-lg shadow-rose-500/10">
+  <p class="text-[11px] uppercase tracking-[0.28em] text-slate-400">Scroll controlado</p>
+  <div class="${applied} max-h-32 bg-slate-900/80 border border-slate-800 rounded-lg p-3 text-sm leading-relaxed">
+    <p>Usa ${applied} para ajustar el comportamiento del scroll.</p>
+    <p class="mt-2">Contenido adicional para provocar overflow y ver el efecto.</p>
+    <p class="mt-2">Lorem ipsum dolor sit amet, consectetur adipiscing elit. Donec viverra.</p>
+  </div>
+</div>
+  `.trim();
+
+  const interactionExample = `
+<div class="p-4 rounded-xl bg-slate-950 text-slate-100 space-y-3 shadow-lg shadow-yellow-500/10">
+  <p class="text-[11px] uppercase tracking-[0.28em] text-slate-400">Interacción</p>
+  <button class="px-4 py-2 rounded-lg bg-slate-800 text-white ${applied}">
+    Botón con ${applied}
+  </button>
+</div>
+  `.trim();
+
+  const accessibilityExample = `
+<div class="p-4 rounded-xl bg-slate-950 text-slate-100 space-y-3 shadow-lg shadow-green-500/10">
+  <p class="text-[11px] uppercase tracking-[0.28em] text-slate-400">Accesibilidad</p>
+  <label class="flex items-center gap-2">
+    <input type="checkbox" class="accent-emerald-500" aria-pressed="true" />
+    <span class="${applied}">Texto accesible con ${applied}</span>
+  </label>
+</div>
+  `.trim();
+
+  const opacityExample = `
+<div class="p-4 rounded-xl bg-slate-950 text-slate-100 space-y-3 shadow-lg shadow-blue-500/10">
+  <p class="text-[11px] uppercase tracking-[0.28em] text-slate-400">Opacidad</p>
+  <div class="flex items-center gap-3">
+    <div class="h-12 w-12 bg-emerald-500 rounded-lg"></div>
+    <div class="h-12 w-12 bg-emerald-500 rounded-lg ${applied}"></div>
+  </div>
+</div>
+  `.trim();
+
+  const layoutExample = `
+<div class="p-4 rounded-xl bg-slate-950 text-slate-100 space-y-3 shadow-lg shadow-slate-500/10">
+  <p class="text-[11px] uppercase tracking-[0.28em] text-slate-400">Layout</p>
+  <div class="${applied} gap-3 bg-slate-900/80 p-3 rounded-lg">
+    <div class="h-10 bg-emerald-500/80 rounded-md"></div>
+    <div class="h-10 bg-sky-500/80 rounded-md"></div>
+  </div>
+</div>
+  `.trim();
+
+  const bundleByCategory: Record<UtilityCategory, TailwindExampleSet> = {
+    flex: {
+      example: { code: flexExample, noteEs: "Aplica la utilidad sobre el contenedor flex y observa alineación y eje.", noteEn: "Apply it on the flex container to see alignment and axis changes." },
+      secondExample: { code: gridExample, noteEs: "Cambia gap o wrap para ver cómo reaccionan los ítems.", noteEn: "Tweak gap/wrap to see how items reflow." },
+      exerciseExample: { code: spacingExample, noteEs: "Combina la clase con justify-* y items-* para un layout estable.", noteEn: "Mix the class with justify-* and items-* for a stable layout." },
+    },
+    grid: {
+      example: { code: gridExample, noteEs: "Usa la utilidad en contenedor o celda para modificar el grid.", noteEn: "Apply it on the container or cell to adjust the grid." },
+      secondExample: { code: flexExample, noteEs: "Prueba spans/starts en una sola tarjeta y compara.", noteEn: "Test spans/starts on one card and compare." },
+      exerciseExample: { code: spacingExample, noteEs: "Añade breakpoints (sm:, md:) para grids responsivos.", noteEn: "Add breakpoints (sm:, md:) for responsive grids." },
+    },
+    spacing: {
+      example: { code: spacingExample, noteEs: "Aplica la utilidad al bloque inferior para ver separación real.", noteEn: "Apply the utility to the second block to see real spacing." },
+      secondExample: { code: layoutExample, noteEs: "Combina con gap-* en layouts flex/grid.", noteEn: "Pair with gap-* in flex/grid layouts." },
+      exerciseExample: { code: sizingExample, noteEs: "Crea tarjetas y usa padding/margin para jerarquía visual.", noteEn: "Use padding/margin on cards to create visual hierarchy." },
+    },
+    sizing: {
+      example: { code: sizingExample, noteEs: "La clase controla ancho/alto del bloque verde.", noteEn: "The class drives the green block size." },
+      secondExample: { code: spacingExample, noteEs: "Compara distintos tamaños para ver límites min/max.", noteEn: "Compare different sizes to see min/max constraints." },
+      exerciseExample: { code: layoutExample, noteEs: "Combina con flex-1 o grid para layouts fluidos.", noteEn: "Combine with flex-1 or grid for fluid layouts." },
+    },
+    typography: {
+      example: { code: typographyExample, noteEs: "Aplica la utilidad directamente al texto y valida contraste.", noteEn: "Apply the utility to text and check contrast." },
+      secondExample: { code: colorExample, noteEs: "Combina con color y leading para bloques legibles.", noteEn: "Pair with color and leading for readable blocks." },
+      exerciseExample: { code: spacingExample, noteEs: "Crea un título y párrafo aplicando la clase solo al título.", noteEn: "Style a title and body applying the class only to the heading." },
+    },
+    color: {
+      example: { code: colorExample, noteEs: "Observa cómo la utilidad pinta fondo o texto según corresponda.", noteEn: "See how the utility paints background or text accordingly." },
+      secondExample: { code: typographyExample, noteEs: "Añade hover: o focus: para estados accesibles.", noteEn: "Add hover: or focus: for accessible states." },
+      exerciseExample: { code: layoutExample, noteEs: "Define un CTA usando esta paleta y compara con el neutro.", noteEn: "Build a CTA with this palette and compare against neutral." },
+    },
+    radius: {
+      example: { code: radiusExample, noteEs: "La tarjeta derecha usa el radio indicado por la utilidad.", noteEn: "Right card uses the radius set by the utility." },
+      secondExample: { code: shadowExample, noteEs: "Combina radios con sombras suaves para mayor profundidad.", noteEn: "Pair radius with soft shadows for depth." },
+      exerciseExample: { code: spacingExample, noteEs: "Aplica distintos radios a botones y compara consistencia.", noteEn: "Try different radii on buttons to keep consistency." },
+    },
+    border: {
+      example: { code: borderExample, noteEs: "El segundo bloque refleja el borde configurado.", noteEn: "Second block shows the configured border." },
+      secondExample: { code: colorExample, noteEs: "Añade border-{color} para enfatizar contraste.", noteEn: "Add border-{color} to emphasize contrast." },
+      exerciseExample: { code: radiusExample, noteEs: "Combina borde y radio para chips o badges.", noteEn: "Combine border and radius for chips or badges." },
+    },
+    shadow: {
+      example: { code: shadowExample, noteEs: `Compara sombra base vs ${applied}.`, noteEn: `Compare base shadow versus ${applied}.` },
+      secondExample: { code: colorExample, noteEs: "Prueba shadow-*/shadow-color para estados de foco.", noteEn: "Try shadow-* or shadow-color for focus states." },
+      exerciseExample: { code: layoutExample, noteEs: "Añade transiciones para suavizar la sombra en hover.", noteEn: "Add transitions to soften the shadow on hover." },
+    },
+    background: {
+      example: { code: backgroundExample, noteEs: "El contenedor usa fondo con la utilidad aplicada.", noteEn: "Container background uses the applied utility." },
+      secondExample: { code: colorExample, noteEs: "Combina con degradados from-/via-/to- si aplica.", noteEn: "Pair with from-/via-/to- gradients when relevant." },
+      exerciseExample: { code: spacingExample, noteEs: "Construye un hero corto usando este fondo y padding amplio.", noteEn: "Build a short hero using this background plus generous padding." },
+    },
+    transform: {
+      example: { code: transformExample, noteEs: "La transformación se ve en el botón, combinada con hover.", noteEn: "Transformation is visible on the button, combined with hover." },
+      secondExample: { code: transitionExample, noteEs: "Asegura transition para que el cambio sea suave.", noteEn: "Keep a transition so the change feels smooth." },
+      exerciseExample: { code: layoutExample, noteEs: "Crea cards que crezcan en hover con la misma utilidad.", noteEn: "Create cards that grow on hover using the same utility." },
+    },
+    transition: {
+      example: { code: transitionExample, noteEs: "La duración/suavizado se nota al pasar el mouse.", noteEn: "Duration/easing shows up on hover." },
+      secondExample: { code: transformExample, noteEs: "Añade translate/scale para ver el efecto completo.", noteEn: "Add translate/scale to see the full effect." },
+      exerciseExample: { code: backgroundExample, noteEs: "Aplica transiciones a color y sombra simultáneamente.", noteEn: "Animate color and shadow together." },
+    },
+    animation: {
+      example: { code: animationExample, noteEs: "Observa la animación del punto verde.", noteEn: "Watch the green dot animate." },
+      secondExample: { code: transitionExample, noteEs: "Combina animación con easing para microinteracciones.", noteEn: "Combine animation with easing for microinteractions." },
+      exerciseExample: { code: backgroundExample, noteEs: "Crea un loader aplicando la clase a varios elementos.", noteEn: "Build a loader applying the class to multiple items." },
+    },
+    scroll: {
+      example: { code: scrollExample, noteEs: "Provoca overflow para ver el comportamiento del scroll/snap.", noteEn: "Force overflow to see scroll/snap behavior." },
+      secondExample: { code: interactionExample, noteEs: "Añade snap-* en ítems hijos para carruseles.", noteEn: "Add snap-* on child items for carousels." },
+      exerciseExample: { code: spacingExample, noteEs: "Crea una lista con overflow-x y prueba con touchpad.", noteEn: "Build a horizontal list with overflow-x and test on touchpad." },
+    },
+    interaction: {
+      example: { code: interactionExample, noteEs: "La clase ajusta cursor/selección del botón.", noteEn: "Class adjusts cursor/selection on the button." },
+      secondExample: { code: spacingExample, noteEs: "Combina con disabled: o pointer-events para estados inert.", noteEn: "Combine with disabled: or pointer-events for inert states." },
+      exerciseExample: { code: colorExample, noteEs: "Crea un link con select-none y focus-visible para accesibilidad.", noteEn: "Create a link with select-none and focus-visible for a11y." },
+    },
+    accessibility: {
+      example: { code: accessibilityExample, noteEs: "Úsalo para texto accesible sin contaminar visual.", noteEn: "Use it for accessible text without visual clutter." },
+      secondExample: { code: interactionExample, noteEs: "Mezcla con aria-attrs para estados anunciables.", noteEn: "Mix with aria attrs for announced states." },
+      exerciseExample: { code: typographyExample, noteEs: "Oculta labels con sr-only y deja placeholders limpios.", noteEn: "Hide labels with sr-only while keeping clean placeholders." },
+    },
+    opacity: {
+      example: { code: opacityExample, noteEs: "Compara sólido vs clase aplicada.", noteEn: "Compare solid versus applied class." },
+      secondExample: { code: backgroundExample, noteEs: "Usa opacidad en overlays para modales.", noteEn: "Use opacity on overlays for modals." },
+      exerciseExample: { code: layoutExample, noteEs: "Ajusta opacidad en estados hover/active.", noteEn: "Adjust opacity on hover/active states." },
+    },
+    layout: {
+      example: { code: layoutExample, noteEs: "Visualiza la utilidad sobre un contenedor simple.", noteEn: "Visualize the utility on a simple container." },
+      secondExample: { code: flexExample, noteEs: "Prueba la clase junto a gap y padding.", noteEn: "Test the class along with gap and padding." },
+      exerciseExample: { code: gridExample, noteEs: "Integra la utilidad en un layout de tres columnas.", noteEn: "Apply the utility inside a three-column grid." },
+    },
+  };
+
+  return bundleByCategory[category];
+}
+
+function buildVariantExampleSet(term: string, sampleClass: string): TailwindExampleSet {
+  const applied = `${term}${sampleClass}`;
+  const isBreakpoint = /^(sm|md|lg|xl|2xl):/i.test(term);
+  const isGroup = term.startsWith("group-");
+  const isPeer = term.startsWith("peer-");
+  const isDark = term.startsWith("dark:");
+  const isAria = term.startsWith("aria-");
+
+  if (isGroup) {
+    const groupPreview = `
+<div class="group inline-flex items-center gap-3 rounded-xl bg-slate-900 p-4 text-slate-100">
+  <span class="h-10 w-10 rounded-full bg-slate-700"></span>
+  <p class="text-sm text-slate-300 group-hover:${sampleClass} transition">Hover al avatar resalta este texto.</p>
+</div>
+    `.trim();
+
+    const groupExercise = `
+<div class="group p-4 rounded-xl bg-slate-950 text-slate-100 space-y-2">
+  <p class="text-xs uppercase tracking-[0.28em] text-slate-400">Estado de grupo</p>
+  <button class="px-4 py-2 rounded-lg bg-slate-800 text-white group-hover:${sampleClass} transition">
+    Botón con ${term}
+  </button>
+</div>
+    `.trim();
+
+    return {
+      example: { code: groupPreview, noteEs: "Aplica la variante en hijos bajo un contenedor .group.", noteEn: "Apply the variant on children under a .group container." },
+      secondExample: { code: groupExercise, noteEs: "La clase solo se activa cuando el padre está en hover.", noteEn: "Class triggers only when the parent is hovered." },
+      exerciseExample: { code: groupExercise, noteEs: "Combina con focus-visible: para accesibilidad.", noteEn: "Pair with focus-visible: for accessibility." },
+    };
+  }
+
+  if (isPeer) {
+    const peerPreview = `
+<label class="flex flex-col gap-2 p-4 rounded-xl bg-slate-900 text-slate-100">
+  <input type="checkbox" class="peer h-4 w-4 accent-emerald-500" />
+  <span class="text-sm text-slate-400 peer-checked:${sampleClass} transition">El texto cambia con ${term}</span>
+</label>
+    `.trim();
+
+    return {
+      example: { code: peerPreview, noteEs: "Coloca .peer en el input y la variante en el hermano dependiente.", noteEn: "Place .peer on the input and the variant on the dependent sibling." },
+      secondExample: { code: peerPreview, noteEs: "Funciona con focus/invalid para formularios accesibles.", noteEn: "Works with focus/invalid for accessible forms." },
+      exerciseExample: { code: peerPreview, noteEs: "Crea tooltips que reaccionen al estado del campo.", noteEn: "Build tooltips that react to the field state." },
+    };
+  }
+
+  if (isBreakpoint) {
+    const responsivePreview = `
+<div class="grid grid-cols-1 ${term}grid-cols-3 gap-3 bg-slate-950 p-4 rounded-xl text-slate-100">
+  <div class="rounded-lg bg-emerald-500/80 p-4 text-center font-semibold">01</div>
+  <div class="rounded-lg bg-sky-500/80 p-4 text-center font-semibold">02</div>
+  <div class="rounded-lg bg-indigo-500/80 p-4 text-center font-semibold">03</div>
+</div>
+    `.trim();
+
+    return {
+      example: { code: responsivePreview, noteEs: "La variante aplica a partir del breakpoint indicado.", noteEn: "Variant applies starting at the given breakpoint." },
+      secondExample: { code: responsivePreview, noteEs: "Combina con flex para alterar dirección en desktop.", noteEn: "Combine with flex to change direction on desktop." },
+      exerciseExample: { code: responsivePreview, noteEs: "Prueba con grid-cols-2 en móvil y 4 en desktop.", noteEn: "Try grid-cols-2 on mobile and 4 on desktop." },
+    };
+  }
+
+  if (isDark) {
+    const darkPreview = `
+<div class="p-4 rounded-xl border border-slate-800 bg-slate-50 text-slate-900 dark:bg-slate-900 dark:text-slate-100 ${sampleClass}">
+  <p class="text-sm">Este bloque cambia cuando la clase .dark está presente.</p>
+</div>
+    `.trim();
+
+    return {
+      example: { code: darkPreview, noteEs: "Envuelve en .dark (en html o body) para activar la variante.", noteEn: "Wrap with .dark (on html/body) to activate the variant." },
+      secondExample: { code: darkPreview, noteEs: "Combina con prefers-color-scheme para modo automático.", noteEn: "Pair with prefers-color-scheme for auto mode." },
+      exerciseExample: { code: darkPreview, noteEs: "Crea toggle de tema que añada/quite la clase dark.", noteEn: "Build a theme toggle that adds/removes the dark class." },
+    };
+  }
+
+  if (isAria) {
+    const ariaPreview = `
+<button aria-pressed="true" class="px-4 py-2 rounded-lg bg-slate-900 text-slate-100 ${applied} transition">
+  Estado accesible con ${term}
+</button>
+    `.trim();
+
+    return {
+      example: { code: ariaPreview, noteEs: "La variante lee el atributo aria- correspondiente.", noteEn: "Variant reads the matching aria-* attribute." },
+      secondExample: { code: ariaPreview, noteEs: "Útil para toggles, tabs o acordiones accesibles.", noteEn: "Useful for accessible toggles, tabs, or accordions." },
+      exerciseExample: { code: ariaPreview, noteEs: "Sincroniza aria-pressed con el estado de tu componente.", noteEn: "Sync aria-pressed with your component state." },
+    };
+  }
+
+  const baseButton = `
+<button class="px-4 py-2 rounded-lg bg-slate-900 text-slate-100 ${applied} transition">
+  Botón con ${term}
+</button>
+  `.trim();
+
+  const variantStack = `
+<div class="space-y-3 bg-slate-950 p-4 rounded-xl text-slate-100">
+  <button class="px-4 py-2 rounded-lg bg-slate-800 text-white">${term} sin aplicar</button>
+  <button class="px-4 py-2 rounded-lg bg-slate-800 text-white ${applied} transition">${term} activo</button>
+</div>
+  `.trim();
+
+  return {
+    example: { code: baseButton, noteEs: "Antepon el prefijo al utility sin espacio.", noteEn: "Prefix the utility without spaces." },
+    secondExample: { code: variantStack, noteEs: "Muestra el estado base y el estado con la variante.", noteEn: "Shows base state and the variant-applied state." },
+    exerciseExample: { code: variantStack, noteEs: "Agrega transiciones y foco visible para accesibilidad.", noteEn: "Add transitions and focus-visible for accessibility." },
+  };
+}
+
+function buildDirectiveExampleSet(term: string, sampleClass: string): TailwindExampleSet {
+  const directives: Record<string, TailwindExampleSet> = {
+    "@tailwind base": {
+      example: {
+        code: `/* globals.css */\n@tailwind base;\n\nbody { @apply antialiased bg-slate-950 text-slate-50; }`,
+        noteEs: "Declara al inicio para que Tailwind inyecte reset y estilos base.",
+        noteEn: "Place at the top so Tailwind injects reset and base styles.",
+      },
+      secondExample: {
+        code: `/* globals.css */\n@tailwind base;\n@layer base {\n  h1 { @apply font-semibold text-2xl; }\n  p { @apply text-slate-300 leading-relaxed; }\n}`,
+        noteEs: "Usa @layer base para documentar tipografía global.",
+        noteEn: "Use @layer base to document global typography.",
+      },
+      exerciseExample: {
+        code: `/* globals.css */\n@tailwind base;\n@layer base {\n  :root { color-scheme: light dark; }\n  * { @apply scroll-smooth; }\n}`,
+        noteEs: "Añade reset propios sin perder lo que genera Tailwind.",
+        noteEn: "Add your own reset without losing Tailwind output.",
+      },
+    },
+    "@tailwind components": {
+      example: {
+        code: `/* globals.css */\n@tailwind components;\n@layer components {\n  .btn-primary { @apply px-4 py-2 rounded-lg bg-emerald-600 text-white; }\n}`,
+        noteEs: "Inserta componentes reutilizables antes de utilidades.",
+        noteEn: "Insert reusable components before utilities.",
+      },
+      secondExample: {
+        code: `@layer components {\n  .card { @apply rounded-xl bg-slate-900 text-slate-100 p-6 shadow-lg; }\n  .card-title { @apply text-lg font-semibold; }\n}`,
+        noteEs: "Crea APIs semánticas que sigan tokens de diseño.",
+        noteEn: "Build semantic APIs that reuse design tokens.",
+      },
+      exerciseExample: {
+        code: `@layer components {\n  .badge { @apply inline-flex items-center gap-2 px-3 py-1 rounded-full bg-slate-800 text-slate-200; }\n  .badge-success { @apply bg-emerald-500/15 text-emerald-300; }\n}`,
+        noteEs: "Define variantes componibles (.badge-success) en la misma capa.",
+        noteEn: "Define composable variants (.badge-success) in the same layer.",
+      },
+    },
+    "@tailwind utilities": {
+      example: {
+        code: `/* globals.css */\n@tailwind utilities;\n@layer utilities {\n  .elevated { @apply shadow-xl shadow-emerald-500/20; }\n}`,
+        noteEs: "Inyecta utilidades personalizadas tras las generadas por Tailwind.",
+        noteEn: "Inject custom utilities after Tailwind-generated ones.",
+      },
+      secondExample: {
+        code: `@layer utilities {\n  .glass { @apply bg-white/10 backdrop-blur; }\n  .card-grid { @apply grid grid-cols-3 gap-4; }\n}`,
+        noteEs: "Agrupa helpers de uso transversal.",
+        noteEn: "Group reusable helpers in one place.",
+      },
+      exerciseExample: {
+        code: `@layer utilities {\n  .tilt:hover { transform: rotate(-1deg) translateY(-2px); }\n}`,
+        noteEs: "Combina @layer utilities con estados hover/focus.",
+        noteEn: "Combine @layer utilities with hover/focus states.",
+      },
+    },
+    "@layer": {
+      example: {
+        code: `@layer components {\n  .alert { @apply rounded-lg px-4 py-3 bg-amber-100 text-amber-900; }\n}`,
+        noteEs: "Separa tokens por capa: base, components, utilities.",
+        noteEn: "Split tokens by layer: base, components, utilities.",
+      },
+      secondExample: {
+        code: `@layer utilities {\n  .card-shadow { box-shadow: 0 20px 60px rgba(15,23,42,0.25); }\n}`,
+        noteEs: "Añade utilidades atómicas sin sobrescribir las core.",
+        noteEn: "Add atomic utilities without overriding core ones.",
+      },
+      exerciseExample: {
+        code: `@layer components {\n  .pill { @apply inline-flex items-center gap-2 px-3 py-1 rounded-full bg-slate-800 text-slate-200; }\n}`,
+        noteEs: "Refactoriza clases largas moviéndolas a un @layer dedicado.",
+        noteEn: "Refactor long class strings into a dedicated @layer.",
+      },
+    },
+    "@apply": {
+      example: {
+        code: `.btn { @apply px-4 py-2 rounded-lg bg-indigo-600 text-white shadow-md; }\n.btn:hover { @apply bg-indigo-500 shadow-lg; }`,
+        noteEs: "Reutiliza utilidades sin repetirlas en cada className.",
+        noteEn: "Reuse utilities without repeating them in every className.",
+      },
+      secondExample: {
+        code: `.chip { @apply inline-flex items-center gap-2 rounded-full px-3 py-1 bg-slate-800 text-slate-200; }\n.chip--success { @apply bg-emerald-500/15 text-emerald-300; }`,
+        noteEs: "Crea variantes usando modificadores BEM o sufijos.",
+        noteEn: "Create variants using BEM-like modifiers or suffixes.",
+      },
+      exerciseExample: {
+        code: `.card { @apply rounded-xl p-6 bg-slate-900 text-slate-50 shadow-lg; }\n.card__title { @apply text-lg font-semibold; }`,
+        noteEs: "Limpia JSX moviendo patrones repetidos a hojas globales.",
+        noteEn: "Move repeated JSX patterns into globals for clarity.",
+      },
+    },
+    "@screen": {
+      example: {
+        code: `@screen md {\n  .sidebar { width: 260px; }\n}\n@screen lg {\n  .sidebar { width: 320px; }\n}`,
+        noteEs: "Declara estilos responsive sin reescribir media queries.",
+        noteEn: "Declare responsive styles without rewriting media queries.",
+      },
+      secondExample: {
+        code: `@screen md {\n  .hero-title { font-size: 2.5rem; }\n}`,
+        noteEs: "Usa breakpoints del tema para tipografía fluida.",
+        noteEn: "Use theme breakpoints for fluid typography.",
+      },
+      exerciseExample: {
+        code: `@screen lg {\n  .grid-dashboard { grid-template-columns: 320px 1fr; }\n}`,
+        noteEs: "Aplica layouts diferentes según breakpoint declarativo.",
+        noteEn: "Swap layouts declaratively per breakpoint.",
+      },
+    },
+    "@variants": {
+      example: {
+        code: `@variants hover, focus {\n  .lift { transform: translateY(-2px); }\n}`,
+        noteEs: "Define variantes personalizadas para tus utilidades.",
+        noteEn: "Define custom variants for your utilities.",
+      },
+      secondExample: {
+        code: `@variants responsive {\n  .debug { outline: 1px dashed red; }\n}`,
+        noteEs: "Activa helpers solo en ciertos breakpoints.",
+        noteEn: "Enable helpers only on specific breakpoints.",
+      },
+      exerciseExample: {
+        code: `@variants group-hover {\n  .card-accent { filter: saturate(120%); }\n}`,
+        noteEs: "Crea experiencias condicionales con variantes de grupo.",
+        noteEn: "Create conditional effects with group variants.",
+      },
+    },
+    "@config": {
+      example: {
+        code: `@config "./tailwind.config.js";`,
+        noteEs: "Apunta a un config alterno o generado dinámicamente.",
+        noteEn: "Point to an alternate or generated config file.",
+      },
+      secondExample: {
+        code: `@config "../../design-system/tailwind.config.ts";`,
+        noteEs: "Útil para monorepos o libs compartidas.",
+        noteEn: "Useful for monorepos or shared libraries.",
+      },
+      exerciseExample: {
+        code: `@config "./tailwind.admin.config.js";`,
+        noteEs: "Divide configs por superficie (app, admin, docs).",
+        noteEn: "Split configs per surface (app, admin, docs).",
+      },
+    },
+    "@theme": {
+      example: {
+        code: `@theme {\n  --color-brand: #0ea5e9;\n  --space-7: 1.75rem;\n}`,
+        noteEs: "Declara tokens en modo CSS vars con sintaxis v4.",
+        noteEn: "Declare tokens as CSS vars using the v4 syntax.",
+      },
+      secondExample: {
+        code: `@theme {\n  --font-display: "Inter", system-ui;\n  --shadow-card: 0 20px 60px rgba(15,23,42,0.25);\n}`,
+        noteEs: "Sirve para compartir tema entre capas.",
+        noteEn: "Helps share theme values across layers.",
+      },
+      exerciseExample: {
+        code: `@theme {\n  --radius-card: 16px;\n  --container-max: 1200px;\n}`,
+        noteEs: "Define radios y anchos máximos consistentes.",
+        noteEn: "Define consistent radii and container max widths.",
+      },
+    },
+    "@font-face": {
+      example: {
+        code: `@font-face {\n  font-family: "Inter";\n  src: url("/fonts/Inter.var.woff2") format("woff2-variations");\n  font-weight: 100 900;\n}`,
+        noteEs: "Registra fuentes variables antes de las capas de Tailwind.",
+        noteEn: "Register variable fonts before Tailwind layers.",
+      },
+      secondExample: {
+        code: `@font-face {\n  font-family: "MonoLisa";\n  src: url("/fonts/MonoLisa.woff2") format("woff2");\n  font-display: swap;\n}`,
+        noteEs: "Usa font-display: swap para mejorar LCP.",
+        noteEn: "Use font-display: swap to improve LCP.",
+      },
+      exerciseExample: {
+        code: `@font-face {\n  font-family: "Geist";\n  src: url("/fonts/Geist.woff2") format("woff2");\n  unicode-range: U+000-5FF;\n}`,
+        noteEs: "Segmenta unicode-range para optimizar descargas.",
+        noteEn: "Segment unicode-range to optimize downloads.",
+      },
+    },
+    "@keyframes": {
+      example: {
+        code: `@keyframes pulse-ring {\n  0% { transform: scale(1); opacity: 0.9; }\n  100% { transform: scale(1.6); opacity: 0; }\n}`,
+        noteEs: "Declara animaciones reutilizables y combínalas con animate-*.",
+        noteEn: "Declare reusable animations and pair them with animate-*.",
+      },
+      secondExample: {
+        code: `.ping-dot { @apply relative inline-flex h-3 w-3 rounded-full bg-emerald-500; }\n.ping-dot::after { content: ""; @apply absolute inset-0 rounded-full animate-[pulse-ring_1.5s_ease-out_infinite]; }`,
+        noteEs: "Usa animate-[nombre] para invocar el keyframe.",
+        noteEn: "Use animate-[name] to invoke the keyframe.",
+      },
+      exerciseExample: {
+        code: `@keyframes float {\n  0%,100% { transform: translateY(0); }\n  50% { transform: translateY(-6px); }\n}`,
+        noteEs: "Crea microinteracciones para cards o tooltips.",
+        noteEn: "Create microinteractions for cards or tooltips.",
+      },
+    },
+  };
+
+  return directives[term] ?? {
+    example: { code: `/* ${term} */\n${sampleClass}`, noteEs: "Directiva Tailwind aplicada en tu hoja de entrada.", noteEn: "Tailwind directive placed in your entry CSS." },
+    secondExample: { code: sampleClass, noteEs: "Ajusta la directiva según la capa que necesites.", noteEn: "Adjust the directive depending on the layer you need." },
+    exerciseExample: { code: sampleClass, noteEs: "Integra esta directiva en un archivo dedicado.", noteEn: "Integrate this directive in a dedicated file." },
+  };
+}
+
+function buildConfigExampleSet(term: string, sampleClass: string): TailwindExampleSet {
+  const configSnippets: Record<string, string> = {
+    content: `// tailwind.config.js\nmodule.exports = {\n  content: ["./src/**/*.{ts,tsx,mdx,html}"],\n  theme: { extend: {} },\n};`,
+    theme: `// tailwind.config.js\nmodule.exports = {\n  theme: {\n    extend: {\n      colors: { brand: "#10b981" },\n      fontFamily: { sans: ["Inter", "system-ui"] },\n    },\n  },\n};`,
+    extend: `// tailwind.config.js\nmodule.exports = {\n  theme: {\n    extend: {\n      spacing: { 18: "4.5rem" },\n      borderRadius: { xl: "0.9rem" },\n    },\n  },\n};`,
+    plugins: `// tailwind.config.js\nmodule.exports = {\n  plugins: [require("@tailwindcss/typography"), require("@tailwindcss/forms")],\n};`,
+    darkMode: `// tailwind.config.js\nmodule.exports = { darkMode: "class" };`,
+    variants: `// tailwind.config.js\nmodule.exports = {\n  variants: { extend: { opacity: ["disabled"], translate: ["group-hover"] } },\n};`,
+    important: `// tailwind.config.js\nmodule.exports = { important: "#app" };`,
+    prefix: `// tailwind.config.js\nmodule.exports = { prefix: "tw-" };`,
+    corePlugins: `// tailwind.config.js\nmodule.exports = { corePlugins: { preflight: false } };`,
+    safelist: `// tailwind.config.js\nmodule.exports = {\n  safelist: ["bg-emerald-500", "text-center", "md:grid-cols-3"],\n};`,
+    screens: `// tailwind.config.js\nmodule.exports = {\n  theme: {\n    screens: { xs: "420px", sm: "640px", md: "768px", lg: "1024px", xl: "1280px" },\n  },\n};`,
+    colors: `// tailwind.config.js\nmodule.exports = {\n  theme: {\n    extend: { colors: { brand: { 50: "#ecfdf5", 500: "#10b981", 700: "#047857" } } },\n  },\n};`,
+    spacing: `// tailwind.config.js\nmodule.exports = {\n  theme: { extend: { spacing: { 13: "3.25rem", 18: "4.5rem" } } },\n};`,
+    fontFamily: `// tailwind.config.js\nmodule.exports = {\n  theme: { extend: { fontFamily: { sans: ["Inter", "system-ui"], display: ["Clash Display", "Inter"] } } },\n};`,
+    fontSize: `// tailwind.config.js\nmodule.exports = {\n  theme: { extend: { fontSize: { "2xs": "0.72rem", "4.5xl": "2.6rem" } } },\n};`,
+    borderRadius: `// tailwind.config.js\nmodule.exports = {\n  theme: { extend: { borderRadius: { "2.5xl": "1.35rem" } } },\n};`,
+    boxShadow: `// tailwind.config.js\nmodule.exports = {\n  theme: { extend: { boxShadow: { card: "0 24px 80px rgba(15,23,42,0.25)" } } },\n};`,
+    transitionProperty: `// tailwind.config.js\nmodule.exports = {\n  theme: { extend: { transitionProperty: { height: "height" } } },\n};`,
+    backgroundImage: `// tailwind.config.js\nmodule.exports = {\n  theme: { extend: { backgroundImage: { "hero-grid": "radial-gradient(circle at 20% 20%, #22d3ee33 0, transparent 45%)" } } },\n};`,
+    animation: `// tailwind.config.js\nmodule.exports = {\n  theme: { extend: { animation: { "float": "float 4s ease-in-out infinite" } } },\n};`,
+    keyframes: `// tailwind.config.js\nmodule.exports = {\n  theme: { extend: { keyframes: { float: { "0%,100%": { transform: "translateY(0)" }, "50%": { transform: "translateY(-6px)" } } } } },\n};`,
+    container: `// tailwind.config.js\nmodule.exports = {\n  theme: { container: { center: true, padding: "1.5rem" } },\n};`,
+    typography: `// tailwind.config.js\nmodule.exports = {\n  theme: { extend: { typography: { brand: { css: { h1: { color: "#0f172a" }, a: { color: "#10b981" } } } } } },\n};`,
+    forms: `// tailwind.config.js\nmodule.exports = { theme: { extend: {} }, plugins: [require("@tailwindcss/forms")] };`,
+    aspectRatio: `// tailwind.config.js\nmodule.exports = { theme: { extend: { aspectRatio: { video: "16 / 9" } } } };`,
+    lineClamp: `// tailwind.config.js\nmodule.exports = { theme: { extend: { lineClamp: { 7: "7" } } } };`,
+    scrollbar: `// tailwind.config.js\nmodule.exports = { theme: { extend: { scrollbar: { thin: "8px" } } }, plugins: [require("@tailwindcss/scrollbar")] };`,
+  };
+
+  const base = configSnippets[term] ?? `// tailwind.config.js\nmodule.exports = {\n  ${term}: ${sampleClass || "{ /* config */ }"},\n  theme: { extend: {} },\n};`;
+
+  const extended = term === "extend" ? configSnippets.theme : configSnippets.extend;
+
+  return {
+    example: {
+      code: base,
+      noteEs: `Configura la clave ${term} directamente en tailwind.config.js.`,
+      noteEn: `Configure the ${term} key directly in tailwind.config.js.`,
+    },
+    secondExample: {
+      code: extended ?? base,
+      noteEs: "Prefiere theme.extend para no perder los valores por defecto.",
+      noteEn: "Prefer theme.extend to keep default values intact.",
+    },
+    exerciseExample: {
+      code: base,
+      noteEs: "Ajusta este bloque y reinicia el watcher para ver los cambios.",
+      noteEn: "Tweak this block and restart the watcher to see changes.",
+    },
+  };
+}
+
+function buildPluginExampleSet(term: string): TailwindExampleSet {
+  const pluginSnippets: Record<string, TailwindExampleSet> = {
+    "@tailwindcss/forms": {
+      example: {
+        code: `<form class="space-y-3 max-w-md">\n  <label class="block text-sm font-medium text-slate-200">Email</label>\n  <input type="email" class="w-full rounded-lg" placeholder="you@example.com" />\n</form>`,
+        noteEs: "El plugin estiliza inputs, selects y checkboxes con clases nativas.",
+        noteEn: "Plugin styles inputs, selects, and checkboxes with native classes.",
+      },
+      secondExample: {
+        code: `// tailwind.config.js\nmodule.exports = {\n  plugins: [require("@tailwindcss/forms")],\n};`,
+        noteEs: "Regístralo en plugins para habilitar las utilidades.",
+        noteEn: "Register it under plugins to enable utilities.",
+      },
+      exerciseExample: {
+        code: `<textarea class="w-full rounded-lg" rows="3" placeholder="Escribe tu mensaje"></textarea>`,
+        noteEs: "Combina con focus-visible: para formularios accesibles.",
+        noteEn: "Pair with focus-visible: for accessible forms.",
+      },
+    },
+    "@tailwindcss/typography": {
+      example: {
+        code: `<article class="prose prose-invert">\n  <h1>Guía de estilo</h1>\n  <p>El plugin typography aplica estilos a contenido rico.</p>\n</article>`,
+        noteEs: "Usa la clase prose/prose-invert para contenido largo.",
+        noteEn: "Use prose/prose-invert on long-form content.",
+      },
+      secondExample: {
+        code: `// tailwind.config.js\nmodule.exports = { plugins: [require("@tailwindcss/typography")] };`,
+        noteEs: "Configura variantes personalizadas con theme.extend.typography.",
+        noteEn: "Configure custom variants via theme.extend.typography.",
+      },
+      exerciseExample: {
+        code: `<article class="prose prose-emerald">\n  <h2>Notas</h2>\n  <ul><li>Listas estilizadas</li><li>Citas y código</li></ul>\n</article>`,
+        noteEs: "Crea variantes de marca (prose-emerald) para blogs o docs.",
+        noteEn: "Create brand variants (prose-emerald) for blogs or docs.",
+      },
+    },
+    "@tailwindcss/aspect-ratio": {
+      example: {
+        code: `<div class="aspect-video rounded-xl overflow-hidden">\n  <img src="https://images.unsplash.com/photo-1503264116251-35a269479413?auto=format&fit=crop&w=900&q=60" alt="cover" class="h-full w-full object-cover" />\n</div>`,
+        noteEs: "Usa aspect-video/auto para iframes, imágenes o tarjetas.",
+        noteEn: "Use aspect-video/auto for iframes, images, or cards.",
+      },
+      secondExample: {
+        code: `// tailwind.config.js\nmodule.exports = { plugins: [require("@tailwindcss/aspect-ratio")] };`,
+        noteEs: "Añade tokens propios con theme.extend.aspectRatio.",
+        noteEn: "Add custom tokens via theme.extend.aspectRatio.",
+      },
+      exerciseExample: {
+        code: `<div class="aspect-[4/5] bg-slate-900 rounded-xl grid place-items-center text-slate-200">Poster 4:5</div>`,
+        noteEs: "Declara relaciones personalizadas (aspect-[4/5]).",
+        noteEn: "Declare custom ratios (aspect-[4/5]).",
+      },
+    },
+    "@tailwindcss/container-queries": {
+      example: {
+        code: `<div class="@container p-4 rounded-xl bg-slate-900 text-slate-100">\n  <div class="@md:grid @md:grid-cols-3 gap-3">\n    <div class="rounded-lg bg-emerald-500/80 p-3">Item</div>\n    <div class="rounded-lg bg-sky-500/80 p-3">Item</div>\n    <div class="rounded-lg bg-indigo-500/80 p-3">Item</div>\n  </div>\n</div>`,
+        noteEs: "Marca el contenedor con @container y usa @md: dentro.",
+        noteEn: "Mark the parent with @container and use @md: inside.",
+      },
+      secondExample: {
+        code: `// tailwind.config.js\nmodule.exports = { plugins: [require("@tailwindcss/container-queries")] };`,
+        noteEs: "Permite layouts responsive basados en anchura del contenedor.",
+        noteEn: "Enables responsive layouts based on container width.",
+      },
+      exerciseExample: {
+        code: `<div class="@container py-6">\n  <button class="@lg:w-auto w-full px-4 py-2 bg-emerald-600 text-white rounded">CTA</button>\n</div>`,
+        noteEs: "Practica alternando w-full/w-auto según el ancho del contenedor.",
+        noteEn: "Practice toggling w-full/w-auto based on container width.",
+      },
+    },
+    "@tailwindcss/line-clamp": {
+      example: {
+        code: `<p class="line-clamp-3 text-slate-200">\n  Este párrafo se corta a tres líneas con line-clamp-3 sin CSS manual.\n</p>`,
+        noteEs: "Corta texto multi-línea sin JS.",
+        noteEn: "Clamp multi-line text without JS.",
+      },
+      secondExample: {
+        code: `// tailwind.config.js\nmodule.exports = { plugins: [require("@tailwindcss/line-clamp")] };`,
+        noteEs: "Añade más valores con theme.extend.lineClamp.",
+        noteEn: "Add more values via theme.extend.lineClamp.",
+      },
+      exerciseExample: {
+        code: `<article class="space-y-2">\n  <h3 class="font-semibold text-slate-100">Artículo</h3>\n  <p class="line-clamp-2 text-slate-400">Resumen corto con line-clamp-2.</p>\n</article>`,
+        noteEs: "Úsalo en cards o listados para evitar alturas variables.",
+        noteEn: "Use it on cards/lists to avoid height jumps.",
+      },
+    },
+    "@tailwindcss/scrollbar": {
+      example: {
+        code: `<div class="scrollbar-thin scrollbar-thumb-emerald-500/60 scrollbar-track-slate-800 max-h-32 overflow-y-auto rounded-lg p-3">\n  <p class="text-sm text-slate-200">Lista con scrollbar personalizado.</p>\n  <p class="text-sm text-slate-400 mt-2">Agrega más contenido para ver el efecto.</p>\n</div>`,
+        noteEs: "Personaliza track/thumb de scroll en navegadores soportados.",
+        noteEn: "Customize scroll track/thumb in supported browsers.",
+      },
+      secondExample: {
+        code: `// tailwind.config.js\nmodule.exports = { plugins: [require("@tailwindcss/scrollbar")] };`,
+        noteEs: "Habilita variantes dark: y responsive para scrollbars.",
+        noteEn: "Enable dark: and responsive variants for scrollbars.",
+      },
+      exerciseExample: {
+        code: `<div class="scrollbar scrollbar-thumb-indigo-500 scrollbar-track-slate-900 h-24 overflow-y-scroll rounded-lg p-3 text-sm text-slate-200">\n  <p>Prueba distintas densidades y colores.</p>\n</div>`,
+        noteEs: "Ajusta densidad (scrollbar-thin) según plataforma/UX.",
+        noteEn: "Tune density (scrollbar-thin) based on platform/UX.",
+      },
+    },
+  };
+
+  return pluginSnippets[term] ?? {
+    example: { code: `// tailwind.config.js\nmodule.exports = { plugins: [require("${term}")] };`, noteEs: "Registra el plugin en tailwind.config.js.", noteEn: "Register the plugin in tailwind.config.js." },
+    secondExample: { code: `<div class="p-4 rounded bg-slate-900 text-white">Usa las utilidades que exponga el plugin.</div>`, noteEs: "Consulta la docs del plugin para sus clases.", noteEn: "Check the plugin docs for its classes." },
+    exerciseExample: { code: `<section class="p-4 rounded bg-slate-900 text-white">Integra el plugin en un componente real.</section>`, noteEs: "Integra el plugin en un componente real y valida el build.", noteEn: "Integrate it in a real component and validate the build." },
+  };
+}
+
+function buildTailwindExamples({
+  term,
+  kind,
+  sampleClass,
+}: {
+  term: string;
+  kind: TailwindKind;
+  sampleClass: string;
+}): TailwindExampleSet {
+  switch (kind) {
+    case "directive":
+      return buildDirectiveExampleSet(term, sampleClass);
+    case "config":
+      return buildConfigExampleSet(term, sampleClass);
+    case "variant":
+      return buildVariantExampleSet(term, sampleClass);
+    case "plugin":
+      return buildPluginExampleSet(term);
+    case "utility":
+    default:
+      return buildUtilityExampleSet(term, sampleClass);
+  }
+}
+
 function buildTailwindSeed({
   term,
   kind,
@@ -11423,48 +12647,15 @@ function buildTailwindSeed({
 }): SeedTermInput {
   const baseTags = ["tailwind", kind, term].concat(tags).map((t) => t.toLowerCase());
   const docs = resolveTailwindDocs({ term, kind, translation, descriptionEs, descriptionEn, sample });
-  const configValue = sample ?? (term === "content" ? "['./src/**/*.{ts,tsx,html}']" : "{ /* config */ }");
-  const configExtendValue = sample ?? "{ custom: 'value' }";
-  const configExerciseValue = sample ?? (term === "content" ? "['./src/**/*.{ts,tsx}']" : "{ /* config */ }");
 
-  const exampleCode =
-    kind === "directive"
-      ? `/* globals.css */\n@tailwind base;\n@tailwind components;\n@tailwind utilities;\n\n@layer components {\n  .btn-primary { @apply px-4 py-2 rounded bg-indigo-600 text-white; }\n}`
-      : kind === "config"
-        ? `// tailwind.config.js\nmodule.exports = {\n  ${term}: ${configValue},\n};`
-        : kind === "variant"
-          ? `<button class="${term}${docs.sampleClass} bg-emerald-500 text-white px-4 py-2 rounded transition">Acción</button>`
-          : kind === "plugin"
-            ? `// tailwind.config.js\nmodule.exports = {\n  plugins: [require('${term}')],\n};`
-            : `<div class="${docs.sampleClass} bg-slate-900 text-white p-4 rounded">Bloque usando ${term}</div>`;
-
-  const secondExample =
-    kind === "config"
-      ? term === "content"
-        ? `// tailwind.config.js\nmodule.exports = {\n  content: ${configValue},\n  theme: { extend: {} },\n};`
-        : `// tailwind.config.js\nmodule.exports = {\n  theme: {\n    extend: {\n      ${term}: ${configExtendValue},\n    },\n  },\n};`
-      : kind === "variant"
-        ? `<div class="group p-4 rounded border">\n  <span class="group-hover:${docs.sampleClass} transition-colors">Hover de grupo</span>\n</div>`
-        : kind === "directive"
-          ? `@layer utilities {\n  .card-shadow { box-shadow: 0 10px 30px rgba(15,23,42,0.12); }\n}\n@layer components {\n  .badge { @apply inline-flex items-center gap-2 px-3 py-1 rounded-full bg-indigo-600 text-white; }\n}`
-          : kind === "plugin"
-            ? `<article class="prose">\n  <h1>Título estilizado</h1>\n  <p>Contenido del post.</p>\n</article>`
-            : `<div class="${docs.sampleClass} hover:shadow-lg transition duration-200">Contenido usando ${term}</div>`;
-
-  const exerciseExample =
-    kind === "config"
-      ? `// tailwind.config.js\nmodule.exports = {\n  ${term}: ${configExerciseValue},\n  theme: { extend: {} },\n};`
-      : kind === "variant"
-        ? `<button class="${term}${docs.sampleClass} bg-slate-800 text-white px-3 py-2 rounded w-full sm:w-auto">Estado controlado</button>`
-        : kind === "directive"
-          ? `@layer components {\n  .pill { @apply inline-flex items-center gap-2 px-4 py-1 rounded-full bg-slate-100 text-slate-800; }\n}\n/* Practica agregando variantes como hover: o focus-visible: */`
-          : kind === "plugin"
-            ? `// tailwind.config.js\nmodule.exports = {\n  theme: {},\n  plugins: [require('${term}')],\n};`
-            : `<section class="${docs.sampleClass} p-4 border border-slate-200 rounded-lg">\n  <h2 class="text-lg font-semibold">Demo ${term}</h2>\n  <p>Combina esta utilidad con variantes responsive y de estado.</p>\n</section>`;
+  const enrichedExamples = buildTailwindExamples({ term, kind, sampleClass: docs.sampleClass });
 
   const aliases = [term];
   if ((kind === "utility" || kind === "variant") && docs.sampleClass && docs.sampleClass !== term) {
     aliases.push(docs.sampleClass);
+  }
+  if (kind === "variant" && term.endsWith(":")) {
+    aliases.push(term.replace(/:$/, ""));
   }
 
   return {
@@ -11481,25 +12672,25 @@ function buildTailwindSeed({
     howEs: docs.howEs,
     howEn: docs.howEn,
     example: {
-      titleEs: `Ejemplo ${term}`,
-      titleEn: `${term} example`,
-      code: exampleCode,
-      noteEs: tailwindExampleNotes[kind].es,
-      noteEn: tailwindExampleNotes[kind].en,
+      titleEs: enrichedExamples.example.titleEs ?? `Ejemplo ${term}`,
+      titleEn: enrichedExamples.example.titleEn ?? `${term} example`,
+      code: enrichedExamples.example.code,
+      noteEs: enrichedExamples.example.noteEs ?? tailwindExampleNotes[kind].es,
+      noteEn: enrichedExamples.example.noteEn ?? tailwindExampleNotes[kind].en,
     },
     secondExample: {
-      titleEs: `Variación ${term}`,
-      titleEn: `${term} variation`,
-      code: secondExample,
-      noteEs: tailwindVariationNotes[kind].es,
-      noteEn: tailwindVariationNotes[kind].en,
+      titleEs: enrichedExamples.secondExample.titleEs ?? `Variación ${term}`,
+      titleEn: enrichedExamples.secondExample.titleEn ?? `${term} variation`,
+      code: enrichedExamples.secondExample.code,
+      noteEs: enrichedExamples.secondExample.noteEs ?? tailwindVariationNotes[kind].es,
+      noteEn: enrichedExamples.secondExample.noteEn ?? tailwindVariationNotes[kind].en,
     },
     exerciseExample: {
-      titleEs: `Práctica ${term}`,
-      titleEn: `${term} practice`,
-      code: exerciseExample,
-      noteEs: tailwindPracticeNotes[kind].es,
-      noteEn: tailwindPracticeNotes[kind].en,
+      titleEs: enrichedExamples.exerciseExample.titleEs ?? `Práctica ${term}`,
+      titleEn: enrichedExamples.exerciseExample.titleEn ?? `${term} practice`,
+      code: enrichedExamples.exerciseExample.code,
+      noteEs: enrichedExamples.exerciseExample.noteEs ?? tailwindPracticeNotes[kind].es,
+      noteEn: enrichedExamples.exerciseExample.noteEn ?? tailwindPracticeNotes[kind].en,
     },
   };
 }
