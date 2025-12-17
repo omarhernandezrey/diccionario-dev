@@ -2,17 +2,22 @@
 
 import Link from "next/link";
 import { useEffect, useState } from "react";
-import { LuLayers, LuSearch, LuSparkles, LuMenu, LuX } from "react-icons/lu";
+import { Github, Home, Linkedin, Twitter } from "lucide-react";
+import { LuLayers, LuSearch, LuSparkles, LuMenu, LuX, LuGlobe, LuCpu, LuPuzzle } from "react-icons/lu";
 import SearchBox from "./SearchBox";
 import TechStrip from "./TechStrip";
 import ThemeToggle from "./ThemeToggle";
 import ExtensionsShowcase from "./ExtensionsShowcase";
+import Footer from "./Footer";
+import { AuthActions } from "./AuthActions";
+import { NotificationBell } from "./NotificationBell";
+import { ThemeLogo } from "./ThemeLogo";
 
 const navLinks = [
-  { label: "Inicio", href: "#hero" },
-  { label: "Buscar", href: "#search" },
-  { label: "Tecnologías", href: "#tech" },
-  { label: "Extensiones", href: "#extensions" },
+  { label: "Inicio", href: "#hero", icon: Home },
+  { label: "Buscar", href: "#search", icon: LuSearch },
+  { label: "Tecnologías", href: "#tech", icon: LuCpu },
+  { label: "Extensiones", href: "#extensions", icon: LuPuzzle },
 ];
 
 export default function MarketingLanding() {
@@ -28,7 +33,7 @@ export default function MarketingLanding() {
       <AppOverview />
       <FeaturePairs />
       <ExtensionsShowcase variant="neo" />
-      <SiteFooter />
+      <Footer />
     </div>
   );
 }
@@ -38,14 +43,14 @@ function Hero() {
     <section className="relative mx-auto max-w-7xl px-4 pt-12 pb-12 text-center sm:px-6 lg:px-8 lg:pt-20 lg:pb-16">
       <div className="absolute top-1/2 left-1/2 -z-10 h-[300px] w-[300px] -translate-x-1/2 -translate-y-1/2 rounded-full bg-neo-primary/10 blur-[60px] md:h-[600px] md:w-[600px] md:blur-[100px]" />
 
-      <div className="relative mx-auto max-w-5xl rounded-[2rem] border border-neo-border/50 bg-neo-card/30 p-6 shadow-2xl shadow-black/20 backdrop-blur-xl ring-1 ring-white/10 md:rounded-[2.5rem] md:p-16">
+      <div className="relative mx-auto max-w-5xl rounded-4xl border border-neo-border/50 bg-neo-card/30 p-6 shadow-2xl shadow-black/20 backdrop-blur-xl ring-1 ring-white/10 md:rounded-[2.5rem] md:p-16">
         <div className="flex flex-col items-center gap-8">
           <span className="inline-flex items-center gap-2 rounded-full border border-neo-primary/30 bg-neo-primary/10 px-4 py-1.5 text-xs font-bold uppercase tracking-widest text-neo-primary shadow-[0_0_15px_rgba(77,154,255,0.3)]">
             <span className="h-2 w-2 animate-pulse rounded-full bg-neo-primary shadow-[0_0_10px_#4d9aff]" />
             Diccionario Dev v2.0
           </span>
 
-          <h1 className="max-w-4xl text-4xl font-extrabold tracking-tight text-transparent bg-clip-text bg-gradient-to-b from-white via-white to-white/60 sm:text-5xl md:text-7xl">
+          <h1 className="max-w-4xl text-4xl font-extrabold tracking-tight text-transparent bg-clip-text bg-linear-to-b from-white via-white to-white/60 sm:text-5xl md:text-7xl">
             El diccionario técnico para <span className="text-neo-primary">desarrolladores</span>
           </h1>
 
@@ -109,9 +114,9 @@ function AppOverview() {
             key={item.title}
             className="group relative overflow-hidden rounded-3xl border border-neo-border/50 bg-neo-card/40 p-8 backdrop-blur-md transition duration-300 hover:-translate-y-1 hover:border-neo-primary/50 hover:shadow-2xl hover:shadow-neo-primary/10"
           >
-            <div className="absolute inset-0 bg-gradient-to-br from-neo-primary/5 via-transparent to-transparent opacity-0 transition duration-500 group-hover:opacity-100" />
+            <div className="absolute inset-0 bg-linear-to-br from-neo-primary/5 via-transparent to-transparent opacity-0 transition duration-500 group-hover:opacity-100" />
             <div className="relative z-10">
-              <div className="mb-6 inline-flex h-12 w-12 items-center justify-center rounded-xl bg-gradient-to-br from-neo-primary to-neo-accent-purple shadow-lg shadow-neo-primary/20">
+              <div className="mb-6 inline-flex h-12 w-12 items-center justify-center rounded-xl bg-linear-to-br from-neo-primary to-neo-accent-purple shadow-lg shadow-neo-primary/20">
                 <item.icon className="h-6 w-6 text-white" />
               </div>
               <h3 className="mb-3 text-xl font-bold text-neo-text-primary">{item.title}</h3>
@@ -136,94 +141,198 @@ function PageNav() {
     return () => window.removeEventListener("hashchange", handleHashChange);
   }, []);
 
+  // Prevent scrolling when menu is open
+  useEffect(() => {
+    if (isMobileMenuOpen) {
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = 'unset';
+    }
+    return () => { document.body.style.overflow = 'unset'; };
+  }, [isMobileMenuOpen]);
+
   return (
-    <nav className="sticky top-4 z-30 px-4 animate-slide-down">
-      <div className="mx-auto flex max-w-6xl items-center justify-between gap-4 rounded-full border border-neo-border/60 bg-neo-bg/90 px-4 py-3 shadow-[0_8px_30px_rgb(0,0,0,0.12)] backdrop-blur-xl md:px-6">
+    <>
+      <nav className="sticky top-4 z-30 px-4 animate-slide-down">
+        <div className="mx-auto flex max-w-6xl items-center justify-between gap-4 rounded-full border border-neo-border/60 bg-neo-bg/90 px-4 py-3 shadow-[0_8px_30px_rgb(0,0,0,0.12)] backdrop-blur-xl md:px-6">
         {/* Logo */}
-        <div className="flex items-center gap-2">
-          <div className="h-7 w-7 rounded-lg bg-gradient-to-br from-neo-primary to-neo-accent-purple shadow-lg shadow-neo-primary/30" />
-          <span className="text-sm font-bold tracking-tight text-neo-text-primary">
-            Diccionario<span className="text-neo-primary">Dev</span>
-          </span>
-        </div>
-
-        {/* Desktop Nav Links */}
-        <div className="hidden items-center gap-2 md:flex">
-          {navLinks.map((link) => {
-            const isActive = activeHash === link.href || (link.href === "#hero" && !activeHash);
-            return (
-              <a
-                key={link.label}
-                href={link.href}
-                className={`group relative rounded-full px-4 py-2 text-xs font-semibold uppercase tracking-[0.15em] transition-all duration-300 ${isActive
-                  ? "bg-neo-primary text-white shadow-lg shadow-neo-primary/30"
-                  : "text-neo-text-secondary hover:bg-neo-surface hover:text-neo-primary"
-                  }`}
-              >
-                {link.label}
-                {!isActive && (
-                  <span className="absolute inset-0 -z-10 rounded-full bg-gradient-to-r from-neo-primary/0 via-neo-primary/5 to-neo-primary/0 opacity-0 transition-opacity group-hover:opacity-100" />
-                )}
-              </a>
-            );
-          })}
-        </div>
-
-        {/* Actions */}
         <div className="flex items-center gap-3">
-          <ThemeToggle />
-          <a
-            href="/admin"
-            className="hidden group md:flex items-center gap-2 rounded-full bg-gradient-to-r from-neo-primary to-neo-accent-purple px-4 py-2 text-xs font-semibold text-white shadow-lg shadow-neo-primary/30 transition-all hover:shadow-xl hover:shadow-neo-primary/40 hover:scale-105"
-          >
-            <span>Admin</span>
-            <span className="transition-transform group-hover:translate-x-0.5">→</span>
-          </a>
+          <ThemeLogo 
+            width={36} 
+            height={36} 
+            className="transition-transform duration-300 hover:scale-105" 
+          />
+	            <div className="flex flex-col justify-center">
+	              <p className="text-[9px] uppercase tracking-[0.2em] text-indigo-400 font-bold leading-none mb-0.5">Diccionario</p>
+	              <span className="text-base font-bold tracking-tight text-neo-text-primary leading-none">
+	              <span className="text-indigo-500">Dev</span>
+	              </span>
+	            </div>
+	        </div>          {/* Desktop Nav Links */}
+          <div className="hidden items-center gap-2 md:flex">
+            {navLinks.map((link) => {
+              const isActive = activeHash === link.href || (link.href === "#hero" && !activeHash);
+              return (
+                <a
+                  key={link.label}
+                  href={link.href}
+                  className={`group relative rounded-full px-4 py-2 text-xs font-semibold uppercase tracking-[0.15em] transition-all duration-300 ${isActive
+                    ? "bg-neo-primary text-white shadow-lg shadow-neo-primary/30"
+                    : "text-neo-text-secondary hover:bg-neo-surface hover:text-neo-primary"
+                    }`}
+                >
+                  {link.label}
+                  {!isActive && (
+                    <span className="absolute inset-0 -z-10 rounded-full bg-linear-to-r from-neo-primary/0 via-neo-primary/5 to-neo-primary/0 opacity-0 transition-opacity group-hover:opacity-100" />
+                  )}
+                </a>
+              );
+            })}
+          </div>
 
-          {/* Mobile Menu Toggle */}
-          <button
-            onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-            className="flex h-9 w-9 items-center justify-center rounded-full border border-neo-border bg-neo-surface text-neo-text-primary md:hidden"
-          >
-            {isMobileMenuOpen ? <LuX /> : <LuMenu />}
-          </button>
-        </div>
-      </div>
+          {/* Actions */}
+          <div className="flex items-center gap-3">
+            <NotificationBell size="sm" className="inline-flex" />
+            <ThemeToggle />
+            <a
+              href="/admin"
+              className="hidden group md:flex items-center gap-2 rounded-full bg-linear-to-r from-neo-primary to-neo-accent-purple px-4 py-2 text-xs font-semibold text-white shadow-lg shadow-neo-primary/30 transition-all hover:shadow-xl hover:shadow-neo-primary/40 hover:scale-105"
+            >
+              <span>Admin</span>
+              <span className="transition-transform group-hover:translate-x-0.5">→</span>
+            </a>
 
-      {/* Mobile Menu */}
-      {isMobileMenuOpen && (
-        <div className="absolute top-full left-0 right-0 mt-2 px-4 md:hidden">
-          <div className="rounded-3xl border border-neo-border/60 bg-neo-bg/95 p-4 shadow-2xl backdrop-blur-xl">
-            <div className="flex flex-col gap-2">
-              {navLinks.map((link) => {
-                const isActive = activeHash === link.href;
-                return (
-                  <a
-                    key={link.label}
-                    href={link.href}
-                    onClick={() => setIsMobileMenuOpen(false)}
-                    className={`rounded-xl px-4 py-3 text-sm font-semibold transition-colors ${isActive
-                      ? "bg-neo-primary/10 text-neo-primary"
-                      : "text-neo-text-secondary hover:bg-neo-surface hover:text-neo-text-primary"
-                      }`}
-                  >
-                    {link.label}
-                  </a>
-                );
-              })}
-              <div className="my-2 h-px bg-neo-border/50" />
-              <a
-                href="/admin"
-                className="flex items-center justify-center gap-2 rounded-xl bg-neo-primary px-4 py-3 text-sm font-bold text-white shadow-lg shadow-neo-primary/20"
-              >
-                Ir al panel admin
-              </a>
-            </div>
+            {/* Mobile Menu Toggle */}
+            <button
+              onClick={() => setIsMobileMenuOpen(true)}
+              className="flex h-9 w-9 items-center justify-center rounded-full border border-neo-border bg-neo-surface text-neo-text-primary md:hidden"
+            >
+              <LuMenu />
+            </button>
           </div>
         </div>
-      )}
-    </nav>
-  );
+      </nav>
+
+      {/* Mobile Menu Drawer (Twitter Style) */}
+      {/* Overlay */}
+      <div 
+        className={`fixed inset-0 z-40 bg-black/70 backdrop-blur-sm transition-opacity duration-300 md:hidden ${
+          isMobileMenuOpen ? "opacity-100" : "opacity-0 pointer-events-none"
+        }`}
+        onClick={() => setIsMobileMenuOpen(false)}
+      />
+
+      {/* Drawer */}
+	      <div 
+	        className={`fixed top-2 bottom-2 left-0 z-50 w-[78vw] max-w-80 rounded-2xl bg-linear-to-b from-neo-bg via-neo-bg/95 to-neo-surface border border-neo-border shadow-2xl overflow-hidden transform transition-transform duration-300 ease-out md:hidden ${
+	          isMobileMenuOpen ? "translate-x-0" : "-translate-x-full"
+	        }`}
+	      >
+	        <div className="flex flex-col h-full p-4 gap-3">
+            {/* Header */}
+            <div className="flex items-center justify-between pb-3 border-b border-neo-border/60">
+                 <div className="flex items-center gap-3">
+                    <ThemeLogo 
+                        width={36} 
+                        height={36} 
+                        className="shrink-0" 
+                    />
+	                    <div className="flex flex-col justify-center">
+	                        <p className="text-[9px] uppercase tracking-[0.2em] text-indigo-400 font-bold leading-none mb-0.5">Diccionario</p>
+	                        <span className="text-base font-bold tracking-tight text-neo-text-primary leading-none">
+	                            <span className="text-indigo-500">Dev</span>
+	                        </span>
+	                    </div>
+	                 </div>
+                 <div className="flex items-center gap-2">
+                   <NotificationBell size="sm" />
+                   <ThemeToggle />
+                   <button onClick={() => setIsMobileMenuOpen(false)} className="p-2 rounded-full hover:bg-neo-surface text-neo-text-secondary transition-colors">
+                    <LuX className="w-6 h-6" />
+                   </button>
+                 </div>
+            </div>
+
+	            {/* Links */}
+	            <div className="flex-1 overflow-y-auto space-y-3 pr-1 no-scrollbar">
+	                <div className="flex items-center justify-between text-[11px] uppercase tracking-[0.15em] text-neo-text-secondary px-1">
+	                  <span>Menú</span>
+	                  <span className="inline-block h-px flex-1 mx-3 bg-neo-border/70" />
+	                </div>
+                <div className="space-y-2">
+                  {navLinks.map((link) => {
+                    const isActive = activeHash === link.href;
+                    const Icon = link.icon;
+                    return (
+                        <a 
+                            href={link.href} 
+                            key={link.label} 
+                            onClick={() => setIsMobileMenuOpen(false)} 
+                            className={`flex items-center gap-3 rounded-2xl border px-4 py-2.5 text-sm font-semibold shadow-sm transition-all ${
+                              isActive
+                                ? "border-neo-primary/50 bg-neo-primary/10 text-neo-primary"
+                                : "border-neo-border bg-neo-card/70 text-neo-text-primary hover:border-neo-primary/40 hover:bg-neo-card"
+                            }`}
+                        >
+                            <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-neo-surface text-neo-text-secondary">
+                              <Icon className="w-5 h-5" />
+                            </span>
+                            {link.label}
+                        </a>
+                    );
+                  })}
+                </div>
+
+                <div className="rounded-2xl border border-neo-border bg-neo-card/70 p-3 shadow-sm space-y-2">
+                  <p className="text-[11px] uppercase tracking-[0.2em] text-neo-text-secondary">Acceso</p>
+                  <AuthActions variant="compact" layout="stacked" />
+                </div>
+
+	                <a
+	                  href="/admin"
+	                  className="flex items-center justify-between rounded-2xl border border-neo-border bg-neo-card/60 px-4 py-2 text-sm font-semibold text-neo-text-primary transition hover:border-neo-primary/50 hover:bg-neo-card"
+	                >
+	                  <span className="flex items-center gap-2">
+	                    <LuGlobe className="h-4 w-4 text-neo-primary" />
+	                    Panel Admin
+	                  </span>
+	                  <span className="text-neo-primary">→</span>
+	                </a>
+	            </div>
+
+	            <div className="pt-4 border-t border-neo-border/70">
+	              <div className="flex items-center justify-between gap-3">
+	                <span className="text-[11px] font-semibold uppercase tracking-[0.18em] text-neo-text-secondary">Redes</span>
+	                <div className="flex items-center gap-2">
+	                  <a
+	                    href="https://github.com"
+	                    aria-label="GitHub"
+	                    className="flex h-10 w-10 items-center justify-center rounded-full border border-neo-border bg-neo-card/60 text-neo-text-secondary transition hover:-translate-y-0.5 hover:border-neo-primary/60 hover:text-neo-primary"
+	                  >
+	                    <Github className="h-5 w-5" />
+	                  </a>
+	                  <a
+	                    href="https://twitter.com"
+	                    aria-label="Twitter"
+	                    className="flex h-10 w-10 items-center justify-center rounded-full border border-neo-border bg-neo-card/60 text-neo-text-secondary transition hover:-translate-y-0.5 hover:border-neo-primary/60 hover:text-neo-primary"
+	                  >
+	                    <Twitter className="h-5 w-5" />
+	                  </a>
+	                  <a
+	                    href="https://linkedin.com"
+	                    aria-label="LinkedIn"
+	                    className="flex h-10 w-10 items-center justify-center rounded-full border border-neo-border bg-neo-card/60 text-neo-text-secondary transition hover:-translate-y-0.5 hover:border-neo-primary/60 hover:text-neo-primary"
+	                  >
+	                    <Linkedin className="h-5 w-5" />
+	                  </a>
+	                </div>
+	              </div>
+	            </div>
+
+	        </div>
+	      </div>
+	    </>
+	  );
 }
 
 
@@ -231,7 +340,7 @@ function FeaturePairs() {
   return (
     <section className="relative mx-auto max-w-7xl overflow-hidden px-4 py-16 sm:px-6 lg:px-8 lg:py-32">
       {/* Mesh Gradient Background */}
-      <div className="absolute inset-0 -z-10 bg-[radial-gradient(ellipse_at_center,_var(--tw-gradient-stops))] from-neo-primary/10 via-neo-bg to-neo-bg" />
+      <div className="absolute inset-0 -z-10 bg-[radial-gradient(ellipse_at_center,var(--tw-gradient-stops))] from-neo-primary/10 via-neo-bg to-neo-bg" />
       <div className="absolute top-1/2 left-1/2 -z-10 h-[800px] w-[800px] -translate-x-1/2 -translate-y-1/2 rounded-full bg-neo-accent-purple/5 blur-[120px]" />
 
       <div className="grid gap-16 lg:grid-cols-2 lg:items-center">
@@ -241,7 +350,7 @@ function FeaturePairs() {
           </div>
           <h2 className="text-4xl font-extrabold tracking-tight text-neo-text-primary sm:text-5xl">
             Búsqueda semántica <br />
-            <span className="text-transparent bg-clip-text bg-gradient-to-r from-neo-primary to-neo-accent-cyan">bilingüe</span>
+            <span className="text-transparent bg-clip-text bg-linear-to-r from-neo-primary to-neo-accent-cyan">bilingüe</span>
           </h2>
           <p className="text-lg leading-relaxed text-neo-text-secondary">
             Nuestro IA no solo traduce, sino que interpreta la intención y el contexto técnico detrás de cada término. Obtén resultados que entienden la diferencia entre &apos;state&apos; en React y &apos;state&apos; en una máquina de estados.
@@ -257,74 +366,10 @@ function FeaturePairs() {
               <div className="absolute bottom-1/4 right-1/4 h-40 w-40 rounded-full bg-neo-accent-purple blur-[60px] animate-float" />
             </div>
             {/* Grid Lines */}
-            <div className="absolute inset-0 bg-[linear-gradient(to_right,#80808012_1px,transparent_1px),linear-gradient(to_bottom,#80808012_1px,transparent_1px)] bg-[size:24px_24px]" />
+            <div className="absolute inset-0 bg-[linear-gradient(to_right,#80808012_1px,transparent_1px),linear-gradient(to_bottom,#80808012_1px,transparent_1px)] bg-size-[24px_24px]" />
           </div>
         </div>
       </div>
     </section>
-  );
-}
-
-
-
-function SiteFooter() {
-  return (
-    <footer className="border-t border-neo-border bg-neo-bg pt-10 pb-8 md:pt-16">
-      <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-        <div className="grid gap-8 md:gap-12 grid-cols-2 md:grid-cols-4 mb-12 md:mb-16">
-          <div className="col-span-2 md:col-span-1 space-y-4">
-            <div className="flex items-center gap-2 text-xl font-bold text-neo-text-primary">
-              <div className="h-6 w-6 rounded bg-gradient-to-br from-neo-primary to-neo-accent-purple" />
-              DiccionarioDev
-            </div>
-            <p className="text-sm text-neo-text-secondary max-w-xs">
-              El diccionario técnico inteligente para la próxima generación de desarrolladores.
-            </p>
-          </div>
-
-          <div>
-            <h4 className="mb-4 flex items-center gap-2 text-sm font-bold uppercase tracking-wider text-neo-text-primary">
-              <LuLayers className="text-neo-primary" /> Producto
-            </h4>
-            <ul className="space-y-3 text-sm text-neo-text-secondary">
-              <li><a href="#" className="hover:text-neo-primary transition">Features</a></li>
-              <li><a href="#" className="hover:text-neo-primary transition">Integraciones</a></li>
-              <li><a href="#" className="hover:text-neo-primary transition">Precios</a></li>
-              <li><a href="#" className="hover:text-neo-primary transition">Changelog</a></li>
-            </ul>
-          </div>
-
-          <div>
-            <h4 className="mb-4 flex items-center gap-2 text-sm font-bold uppercase tracking-wider text-neo-text-primary">
-              <LuGlobe className="text-neo-accent-purple" /> Comunidad
-            </h4>
-            <ul className="space-y-3 text-sm text-neo-text-secondary">
-              <li><a href="#" className="hover:text-neo-primary transition">Discord</a></li>
-              <li><a href="#" className="hover:text-neo-primary transition">Twitter</a></li>
-              <li><a href="#" className="hover:text-neo-primary transition">GitHub</a></li>
-              <li><a href="#" className="hover:text-neo-primary transition">Blog</a></li>
-            </ul>
-          </div>
-
-          <div className="col-span-2 md:col-span-1">
-            <h4 className="mb-4 text-sm font-bold uppercase tracking-wider text-neo-text-primary">Estadísticas</h4>
-            <div className="grid grid-cols-2 md:grid-cols-1 gap-4">
-              <div>
-                <div className="text-3xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-neo-primary to-neo-accent-cyan">10k+</div>
-                <div className="text-xs text-neo-text-secondary uppercase tracking-wide">Usuarios Activos</div>
-              </div>
-              <div>
-                <div className="text-3xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-neo-accent-purple to-neo-accent-pink">5k+</div>
-                <div className="text-xs text-neo-text-secondary uppercase tracking-wide">Términos Definidos</div>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <div className="border-t border-neo-border pt-8 text-center text-xs text-neo-text-secondary">
-          &copy; {new Date().getFullYear()} DiccionarioDev. Todos los derechos reservados.
-        </div>
-      </div>
-    </footer>
   );
 }

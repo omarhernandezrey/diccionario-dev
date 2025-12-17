@@ -4,6 +4,13 @@ import { buildLogoutCookie, getTokenFromHeaders, verifyJwt } from "@/lib/auth";
 import { ensureContributorProfile } from "@/lib/contributors";
 
 const UNAUTHORIZED = { ok: false, error: "Unauthorized" };
+const IS_PROD = process.env.NODE_ENV === "production";
+
+function respondUnauthorized(allowBootstrap: boolean, reason: string) {
+  // En dev devolvemos 200 para no inundar la consola con 401 cuando no hay sesión
+  const status = IS_PROD ? 401 : 200;
+  return NextResponse.json({ ...UNAUTHORIZED, allowBootstrap, reason }, { status });
+}
 
 /**
  * GET /api/auth
@@ -14,12 +21,12 @@ export async function GET(req: NextRequest) {
   const allowBootstrap = (await prisma.user.count({ where: { role: "admin" } })) === 0;
 
   if (!token) {
-    return NextResponse.json({ ...UNAUTHORIZED, allowBootstrap }, { status: 401 });
+    return respondUnauthorized(allowBootstrap, "missing_token");
   }
 
   const payload = verifyJwt(token);
   if (!payload) {
-    const res = NextResponse.json({ ...UNAUTHORIZED, allowBootstrap }, { status: 401 });
+    const res = respondUnauthorized(allowBootstrap, "invalid_token");
     res.headers.append("Set-Cookie", buildLogoutCookie());
     return res;
   }
@@ -35,7 +42,7 @@ export async function GET(req: NextRequest) {
   });
 
   if (!user) {
-    const res = NextResponse.json({ ...UNAUTHORIZED, allowBootstrap }, { status: 401 });
+    const res = respondUnauthorized(allowBootstrap, "user_not_found");
     res.headers.append("Set-Cookie", buildLogoutCookie());
     return res;
   }

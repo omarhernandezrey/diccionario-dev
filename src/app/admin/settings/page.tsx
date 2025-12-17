@@ -49,7 +49,7 @@ export default function AdminSettingsPage() {
 
   return (
     <div className="space-y-8 text-neo-text-primary">
-      <section className="relative overflow-hidden rounded-4xl border border-neo-border bg-neo-card p-8 shadow-glow-card">
+      <section className="relative overflow-hidden rounded-4xl border border-neo-border bg-neo-card p-5 sm:p-8 shadow-glow-card">
         <div className="absolute inset-y-0 right-0 hidden w-1/3 bg-linear-to-l from-neo-primary/10 to-transparent blur-3xl lg:block" />
         <div className="relative flex flex-wrap items-center gap-4">
           <div className="rounded-3xl border border-neo-border bg-neo-surface p-3 shadow-glow-card">
@@ -57,7 +57,7 @@ export default function AdminSettingsPage() {
           </div>
           <div>
             <p className="text-xs uppercase tracking-[0.3em] text-neo-text-secondary">Administración</p>
-            <h1 className="text-3xl font-semibold">Configuración General</h1>
+            <h1 className="text-2xl font-semibold sm:text-3xl">Configuración General</h1>
           </div>
         </div>
         <p className="relative mt-4 max-w-3xl text-sm text-neo-text-secondary">
@@ -90,7 +90,7 @@ export default function AdminSettingsPage() {
                 />
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                 <div>
                   <label className="block text-sm font-medium text-neo-text-primary mb-2">Idioma por defecto</label>
                   <select

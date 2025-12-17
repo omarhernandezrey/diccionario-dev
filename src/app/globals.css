@@ -1,4 +1,5 @@
 @import "tailwindcss";
+@config "../../tailwind.config.cjs";
 
 :root {
   color-scheme: light;
@@ -16,13 +17,33 @@
   --neo-accent-cyan: #00e1d4;
   --neo-accent-lime: #c7f235;
   --neo-accent-orange: #ffb347;
+  --neo-success: #10b981;
+  --neo-warning: #f59e0b;
+  --neo-danger: #f43f5e;
+  --neo-info: #06b6d4;
+
+  --accent-primary: var(--neo-primary);
+  --accent-secondary: var(--neo-accent-purple);
+  --accent-emerald: var(--neo-success);
+  --accent-danger: var(--neo-danger);
+  --accent-cyan: var(--neo-info);
+  --accent-amber: var(--neo-warning);
+  --accent-rose: var(--neo-danger);
+
+  --chart-1: var(--neo-primary);
+  --chart-2: var(--neo-accent-purple);
+  --chart-3: var(--neo-accent-cyan);
+  --chart-4: var(--neo-success);
+  --chart-5: var(--neo-warning);
+  --chart-6: var(--neo-danger);
+  --chart-7: var(--neo-accent-pink);
+  --chart-8: var(--neo-accent-orange);
+
+  --app-bg-image: none;
   --grad-1: linear-gradient(110deg, #ff61d8, #7c3aed, #00e1d4);
   --grad-2: linear-gradient(90deg, #1a73e8, #7c3aed);
   --grad-3: linear-gradient(90deg, #ff7ce7, #39f5e2);
   --grad-4: linear-gradient(120deg, #c7f235, #00e1d4);
-  --font-ui: var(--font-ui, "Inter", system-ui, sans-serif);
-  --font-heading: var(--font-heading, "Space Grotesk", "Inter", system-ui, sans-serif);
-  --font-code: var(--font-jetbrains, "JetBrains Mono", "SFMono-Regular", monospace);
   --space-xs: 4px;
   --space-sm: 8px;
   --space-md: 12px;
@@ -63,6 +84,11 @@
   --neo-accent-cyan: #39f5e2;
   --neo-accent-lime: #dfff57;
   --neo-accent-orange: #ffcc7a;
+  --neo-success: #34d399;
+  --neo-warning: #fbbf24;
+  --neo-danger: #fb7185;
+  --neo-info: #22d3ee;
+  --app-bg-image: none;
   --grad-1: linear-gradient(110deg, #ff61d8, #7c3aed, #39f5e2);
   --grad-2: linear-gradient(90deg, #1a73e8, #7c3aed);
   --grad-3: linear-gradient(90deg, #ff7ce7, #39f5e2);
@@ -80,9 +106,9 @@ body {
 
 body {
   margin: 0;
-  font-family: var(--font-ui);
+  font-family: var(--font-ui, ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace);
   background-color: var(--neo-bg);
-  background-image: radial-gradient(circle at top, rgba(122, 58, 237, 0.08), transparent 65%);
+  background-image: var(--app-bg-image);
   color: var(--neo-text-primary);
 }
 
@@ -92,7 +118,7 @@ h3,
 h4,
 h5,
 h6 {
-  font-family: var(--font-heading);
+  font-family: inherit;
   letter-spacing: -0.01em;
 }
 
@@ -100,7 +126,7 @@ code,
 pre,
 kbd,
 samp {
-  font-family: var(--font-code);
+  font-family: inherit;
   font-size: 0.95em;
 }
 
@@ -113,7 +139,7 @@ a:focus-visible,
 input:focus-visible,
 textarea:focus-visible,
 select:focus-visible {
-  outline: 2px solid #6c63ff;
+  outline: 2px solid var(--neo-primary);
   outline-offset: 2px;
 }
 
@@ -162,7 +188,7 @@ select:focus-visible {
     gap: 0.25rem;
     border-radius: 9999px;
     border: 1px solid var(--neo-border);
-    background-color: #ffffff;
+    background-color: var(--neo-card);
     padding: 0.25rem 0.75rem;
     font-size: 0.75rem;
     font-weight: 500;
@@ -205,15 +231,15 @@ select:focus-visible {
     border-radius: 1rem;
     padding: 0.75rem 1.5rem;
     font-weight: 600;
-    color: #0f172a;
-    border: 1px solid #d1d5db;
-    background-color: transparent;
+    color: var(--neo-text-primary);
+    border: 1px solid var(--neo-border);
+    background-color: var(--neo-card);
     transition: background 200ms ease, color 200ms ease;
   }
 
   .btn-secondary:hover:not(:disabled) {
-    background-color: #f3f4f6;
-    color: #0f172a;
+    background-color: var(--neo-surface);
+    color: var(--neo-text-primary);
   }
 
   .btn-secondary:disabled {
@@ -229,7 +255,7 @@ select:focus-visible {
     padding: 0.75rem 1rem;
     font-size: 0.875rem;
     font-weight: 500;
-    color: #6b7280;
+    color: var(--neo-text-secondary);
     background-color: transparent;
     border: none;
     transition: color 200ms ease;
@@ -240,7 +266,7 @@ select:focus-visible {
   }
 
   .btn-ghost:hover:not(:disabled) {
-    color: #111;
+    color: var(--neo-text-primary);
   }
 
   .motion-elevate {
@@ -345,16 +371,17 @@ select:focus-visible {
 
 @keyframes marquee {
   0% {
-    transform: translateX(0);
+    transform: translate3d(0, 0, 0);
   }
   100% {
-    transform: translateX(-50%);
+    transform: translate3d(-50%, 0, 0);
   }
 }
 
-  .animate-marquee {
-    animation: marquee 60s linear infinite;
-  }
+.animate-marquee {
+  animation: marquee 60s linear infinite;
+  will-change: transform;
+}
 
 @media (prefers-reduced-motion: reduce) {
   .animate-marquee {
@@ -387,6 +414,15 @@ select:focus-visible {
     opacity: 0.15;
     border-width: 1px;
   }
+}
+
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
 }
 
 @layer utilities {

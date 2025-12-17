@@ -18,9 +18,19 @@ export async function POST(req: NextRequest) {
   }
 
   const { username, password } = parsed.data;
-  const user = await prisma.user.findUnique({ where: { username } });
+  
+  // Permitir login por username O email
+  const user = await prisma.user.findFirst({
+    where: {
+      OR: [
+        { username: username },
+        { email: username } // El campo "username" del form puede contener un email
+      ]
+    }
+  });
+
   if (!user) {
-    return NextResponse.json({ ok: false, error: "Invalid credentials" }, { status: 401 });
+    return NextResponse.json({ ok: false, error: "Credenciales inválidas" }, { status: 401 });
   }
 
   const valid = await comparePassword(password, user.password);

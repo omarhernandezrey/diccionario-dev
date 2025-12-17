@@ -40,33 +40,53 @@ export async function POST(req: NextRequest) {
   }
 
   const email = payload.email;
-  const usernameBase = email.split("@")[0];
+  // Sanitizar username
+  const usernameBase = email.split("@")[0].replace(/[^a-zA-Z0-9_-]/g, "");
   const displayName = payload.name || usernameBase;
 
-  let user = await prisma.user.findFirst({
-    where: {
-      OR: [{ email }, { username: usernameBase }],
-    },
+  // 1. Buscar usuario existente SOLO por email para garantizar identidad
+  let user = await prisma.user.findUnique({
+    where: { email },
   });
 
+  // 2. Si no existe, registrar automáticamente
   if (!user) {
-    // Google users requieren password en el esquema; generar uno aleatorio
+    // Generar username único en caso de colisión
+    let finalUsername = usernameBase;
+    let isUnique = false;
+    let attempts = 0;
+
+    while (!isUnique && attempts < 5) {
+      const existing = await prisma.user.findUnique({ where: { username: finalUsername } });
+      if (!existing) {
+        isUnique = true;
+      } else {
+        // Si existe, agregar sufijo aleatorio
+        finalUsername = `${usernameBase}${Math.floor(Math.random() * 10000)}`;
+        attempts++;
+      }
+    }
+
     const tempPassword = `google-${crypto.randomUUID()}`;
     const hashed = await hashPassword(tempPassword);
-    user = await prisma.user.create({
-      data: {
-        username: usernameBase,
-        email,
-        password: hashed,
-        role: "user",
-      },
-      select: {
-        id: true,
-        username: true,
-        email: true,
-        role: true,
-      },
-    });
+
+    try {
+      user = await prisma.user.create({
+        data: {
+          username: finalUsername,
+          email,
+          password: hashed,
+          role: "user",
+        },
+      });
+    } catch (error) {
+      console.error("Error creating Google user:", error);
+      return NextResponse.json({ ok: false, error: "Error al crear usuario con Google" }, { status: 500 });
+    }
+  }
+
+  if (!user) {
+    return NextResponse.json({ ok: false, error: "No se pudo crear el usuario" }, { status: 500 });
   }
 
   await ensureContributorProfile(user.id, displayName);

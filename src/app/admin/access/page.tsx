@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useTransition } from "react";
+import { Suspense, useEffect, useState, useTransition } from "react";
 import { useSearchParams } from "next/navigation";
 import { Icon } from "@/components/Icon";
 import { notifySessionChange } from "@/components/admin/SessionProvider";
@@ -13,6 +13,14 @@ type SessionUser = {
 };
 
 export default function AdminAccessPage() {
+  return (
+    <Suspense fallback={null}>
+      <AdminAccessPageInner />
+    </Suspense>
+  );
+}
+
+function AdminAccessPageInner() {
   const searchParams = useSearchParams();
   const returnUrl = searchParams?.get("returnUrl") || "/admin";
 
@@ -127,14 +135,14 @@ export default function AdminAccessPage() {
 
   return (
     <div className="space-y-8 text-neo-text-primary">
-      <section className="rounded-[32px] border border-neo-border bg-neo-card p-8 shadow-glow-card">
+      <section className="rounded-[32px] border border-neo-border bg-neo-card p-5 sm:p-8 shadow-glow-card">
         <div className="flex flex-wrap items-center gap-4">
           <div className="rounded-3xl border border-neo-border bg-neo-surface p-3 shadow-glow-card">
             <Icon library="lucide" name="ShieldCheck" className="h-7 w-7 text-accent-emerald" />
           </div>
           <div>
             <p className="text-xs uppercase tracking-[0.3em] text-neo-text-secondary">Control de acceso</p>
-            <h1 className="text-3xl font-semibold">Autenticación avanzada</h1>
+            <h1 className="text-2xl font-semibold sm:text-3xl">Autenticación avanzada</h1>
           </div>
           <div className="ml-auto flex items-center gap-2 rounded-full border border-neo-border bg-neo-surface px-4 py-2 text-xs text-neo-text-secondary">
             {session ? (

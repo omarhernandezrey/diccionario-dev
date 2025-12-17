@@ -18,32 +18,72 @@ import bcrypt from 'bcryptjs';
     const hash = await bcrypt.hash(password, saltRounds);
 
     const existing = await prisma.user.findUnique({ where: { username } });
-    let user;
+    let userId: number;
+
     if (existing) {
-      user = await prisma.user.update({
+      const updated = await prisma.user.update({
         where: { id: existing.id },
         data: {
           password: hash,
           role: 'admin',
-          // no forzamos email en update para evitar conflictos de unique
+          email: email || existing.email, // Actualizar email si está definido en .env
         },
       });
-      console.log(`Usuario actualizado: ${user.username} (id=${user.id})`);
+      userId = updated.id;
+      console.log(`✅ Super Admin actualizado: ${updated.username} (id=${updated.id})`);
     } else {
-      user = await prisma.user.create({
-        data: {
-          username,
-          password: hash,
-          role: 'admin',
-          email: email || undefined,
-        },
-      });
-      console.log(`Usuario creado: ${user.username} (id=${user.id})`);
+      // Si no existe por username, intentamos buscar por email para evitar duplicados
+      const existingEmail = email ? await prisma.user.findUnique({ where: { email } }) : null;
+      
+      if (existingEmail) {
+         const updated = await prisma.user.update({
+          where: { id: existingEmail.id },
+          data: {
+            username, // Forzar el username del .env
+            password: hash,
+            role: 'admin',
+          },
+        });
+        userId = updated.id;
+        console.log(`✅ Super Admin actualizado (encontrado por email): ${updated.username} (id=${updated.id})`);
+      } else {
+        const created = await prisma.user.create({
+          data: {
+            username,
+            password: hash,
+            role: 'admin',
+            email: email || undefined,
+          },
+        });
+        userId = created.id;
+        console.log(`✅ Super Admin creado: ${created.username} (id=${created.id})`);
+      }
     }
 
-    console.log('Listo. Ahora puedes iniciar sesión con:');
-    console.log(`  usuario: ${username}`);
-    console.log(`  contraseña: ${password}`);
+    // --- FASE DE LIMPIEZA: ELIMINAR COMPETENCIA ---
+    // Degradar a cualquier otro usuario que tenga rol 'admin'
+    const { count } = await prisma.user.updateMany({
+      where: {
+        role: 'admin',
+        id: { not: userId }, // Todos excepto el super admin actual
+      },
+      data: {
+        role: 'user',
+      },
+    });
+
+    if (count > 0) {
+      console.log(`⚠️  Se han degradado ${count} usuarios que tenían rol 'admin' injustificadamente.`);
+    } else {
+      console.log(`🛡️  Seguridad verificada: No existen otros administradores.`);
+    }
+
+    console.log('---------------------------------------------------');
+    console.log('👑 SUPER USUARIO CONFIGURADO CORRECTAMENTE');
+    console.log(`   Usuario: ${username}`);
+    console.log(`   Email:   ${email || 'No definido'}`);
+    console.log('---------------------------------------------------');
+
   } catch (err) {
     console.error('Error al asegurar/crear admin:', err);
     process.exit(1);

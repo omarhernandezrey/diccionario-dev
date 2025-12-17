@@ -668,7 +668,7 @@ export function AdminConsole({ initialView = "overview" }: AdminConsoleProps) {
         </div>
       )}
 
-      <section className="relative overflow-hidden rounded-[32px] border border-neo-border bg-neo-card p-8 shadow-glow-card">
+      <section className="relative overflow-hidden rounded-[32px] border border-neo-border bg-neo-card p-5 sm:p-8 shadow-glow-card">
         <div className="absolute inset-y-0 right-0 hidden w-1/3 bg-gradient-to-l from-neo-primary/10 to-transparent blur-3xl lg:block" />
         <div className="flex flex-wrap items-center gap-4">
           <div className="rounded-3xl border border-neo-border bg-neo-surface p-3 shadow-glow-card">
@@ -676,7 +676,7 @@ export function AdminConsole({ initialView = "overview" }: AdminConsoleProps) {
           </div>
           <div className="flex-1">
             <p className="text-xs uppercase tracking-[0.3em] text-neo-text-secondary">Panel de control</p>
-            <h1 className="text-3xl font-semibold">Diccionario Dev · Admin</h1>
+            <h1 className="text-2xl font-semibold sm:text-3xl">Diccionario Dev · Admin</h1>
           </div>
         </div>
         <p className="mt-4 max-w-3xl text-sm text-neo-text-secondary">
@@ -720,7 +720,7 @@ export function AdminConsole({ initialView = "overview" }: AdminConsoleProps) {
                   <Icon library="lucide" name={iconName} className="h-5 w-5 text-neo-primary" />
                 </div>
                 <dt className="text-xs uppercase tracking-wide text-neo-text-secondary">{stat.label}</dt>
-                <dd className="text-3xl font-semibold text-neo-text-primary">{stat.value}</dd>
+                <dd className="text-2xl font-semibold text-neo-text-primary sm:text-3xl">{stat.value}</dd>
               </div>
             );
           })}
@@ -955,24 +955,24 @@ function TeamPlaybookPanel({
       <header className="flex flex-wrap items-center justify-between gap-3">
         <div>
           <p className="text-xs uppercase tracking-wide text-neo-text-secondary">Operaciones del equipo</p>
-          <h2 className="text-lg font-semibold">
-            {session ? (
-              <span className="inline-flex items-center gap-2">
-                Hola {session.displayName || session.username}
-                <span className="inline-flex h-2 w-2 rounded-full bg-[#10b981]"></span>
-              </span>
-            ) : (
-              "Gestiona los accesos"
-            )}
-          </h2>
+	          <h2 className="text-lg font-semibold">
+	            {session ? (
+	              <span className="inline-flex items-center gap-2">
+	                Hola {session.displayName || session.username}
+	                <span className="inline-flex h-2 w-2 rounded-full bg-accent-emerald"></span>
+	              </span>
+	            ) : (
+	              "Gestiona los accesos"
+	            )}
+	          </h2>
         </div>
-        <span
-          className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-semibold ${authLoading ? "bg-neo-surface text-neo-text-secondary" : session ? "bg-[#10b981]/20 text-[#10b981]" : "bg-accent-danger/20 text-accent-danger"
-            }`}
-        >
-          {session && <span className="h-1.5 w-1.5 rounded-full bg-[#10b981]"></span>}
-          {authLoading ? "Validando…" : session ? "En línea" : "Sin sesión"}
-        </span>
+	        <span
+	          className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-semibold ${authLoading ? "bg-neo-surface text-neo-text-secondary" : session ? "bg-accent-emerald/20 text-accent-emerald" : "bg-accent-danger/20 text-accent-danger"
+	            }`}
+	        >
+	          {session && <span className="h-1.5 w-1.5 rounded-full bg-accent-emerald"></span>}
+	          {authLoading ? "Validando…" : session ? "En línea" : "Sin sesión"}
+	        </span>
       </header>
       <p className="mt-2 text-sm text-neo-text-secondary">
         {session
@@ -1167,10 +1167,10 @@ function TermsTable({
             )}
           </p>
         </div>
-        <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
-          <label className="w-full text-sm text-neo-text-secondary sm:w-64">
-            <span className="sr-only">Buscar término</span>
-            <div className="flex items-center gap-2 rounded-2xl border border-neo-border bg-neo-card px-3 py-2">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+        <label className="w-full text-sm text-neo-text-secondary sm:w-64">
+          <span className="sr-only">Buscar término</span>
+          <div className="flex items-center gap-2 rounded-2xl border border-neo-border bg-neo-card px-3 py-2">
               <span aria-hidden>🔍</span>
               <input
                 className="w-full bg-transparent text-sm text-neo-text-primary focus:outline-none"
@@ -1201,7 +1201,118 @@ function TermsTable({
           </button>
         </div>
       </div>
-      <div className="overflow-x-auto rounded-3xl border border-neo-border bg-neo-surface">
+
+      {/* Mobile cards */}
+      <div className="space-y-3 md:hidden">
+        {loading ? (
+          Array.from({ length: 6 }).map((_, index) => (
+            <div key={`mobile-skeleton-${index}`} className="animate-pulse rounded-2xl border border-neo-border bg-neo-card p-4">
+              <div className="flex items-start gap-3">
+                <div className="mt-1 h-4 w-4 rounded border border-neo-border bg-neo-surface" />
+                <div className="flex-1 space-y-3">
+                  <div className="h-4 w-2/3 rounded bg-neo-surface" />
+                  <div className="h-3 w-1/2 rounded bg-neo-surface" />
+                  <div className="flex gap-2">
+                    <div className="h-6 w-16 rounded-full bg-neo-surface" />
+                    <div className="h-6 w-20 rounded-full bg-neo-surface" />
+                    <div className="h-6 w-24 rounded-full bg-neo-surface" />
+                  </div>
+                  <div className="grid grid-cols-2 gap-2">
+                    <div className="h-9 rounded-xl bg-neo-surface" />
+                    <div className="h-9 rounded-xl bg-neo-surface" />
+                  </div>
+                </div>
+              </div>
+            </div>
+          ))
+        ) : error ? (
+          <div className="rounded-2xl border border-accent-danger/40 bg-accent-danger/10 p-6">
+            <div className="flex flex-col items-center gap-4 text-center">
+              <div className="rounded-full border border-accent-danger/40 bg-accent-danger/10 p-4">
+                <Icon library="lucide" name="AlertCircle" className="h-8 w-8 text-accent-danger" />
+              </div>
+              <div className="flex flex-col gap-2">
+                <strong className="text-lg font-semibold text-neo-text-primary">Error cargando términos</strong>
+                <span className="text-sm text-neo-text-secondary">{error}</span>
+              </div>
+              <button className="btn-primary inline-flex items-center gap-2" type="button" onClick={onRetry}>
+                <Icon library="lucide" name="RefreshCw" className="h-4 w-4" />
+                Reintentar
+              </button>
+            </div>
+          </div>
+        ) : items.length ? (
+          items.map((item) => {
+            const exercisesCount = item.exerciseCount ?? item.exercises?.length ?? 0;
+            return (
+              <div key={item.id} className="rounded-2xl border border-neo-border bg-neo-card p-4">
+                <div className="flex items-start gap-3">
+                  <input
+                    type="checkbox"
+                    aria-label={`Seleccionar término ${item.term}`}
+                    checked={selectedIds.includes(item.id)}
+                    onChange={() => onToggleItem(item.id)}
+                    disabled={!canEdit}
+                    className="mt-1 h-4 w-4 rounded border-neo-border bg-transparent"
+                  />
+
+                  <div className="min-w-0 flex-1">
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="min-w-0">
+                        <p className="text-sm font-semibold text-neo-text-primary line-clamp-2">{item.translation || item.term}</p>
+                        <p className="mt-1 text-xs text-neo-text-secondary line-clamp-1">{item.term}</p>
+                      </div>
+                      <span className={`shrink-0 rounded-full px-2 py-1 text-xs font-semibold ${statusBadgeClass(item.status)}`}>
+                        {item.status}
+                      </span>
+                    </div>
+
+                    <div className="mt-3 flex flex-wrap gap-2 text-xs">
+                      <span className="rounded-full bg-neo-surface px-2 py-1 text-neo-text-secondary">#{item.id}</span>
+                      <span className="rounded-full bg-neo-surface px-2 py-1 capitalize text-neo-text-secondary">{item.category}</span>
+                      {exercisesCount > 0 ? (
+                        <span className="rounded-full bg-accent-secondary/10 px-2 py-1 font-medium text-accent-secondary">
+                          {exercisesCount} ejer.
+                        </span>
+                      ) : (
+                        <span className="rounded-full bg-neo-surface px-2 py-1 text-neo-text-secondary">Sin ejercicios</span>
+                      )}
+                    </div>
+
+                    <div className="mt-4 grid grid-cols-2 gap-2">
+                      <button className="btn-ghost w-full" type="button" onClick={() => onEdit(item.id)} disabled={!canEdit}>
+                        Editar
+                      </button>
+                      <button className="btn-ghost w-full" type="button" onClick={() => onDelete(item.id)} disabled={!canEdit}>
+                        Eliminar
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            );
+          })
+        ) : (
+          <div className="rounded-2xl border border-neo-border bg-neo-card p-6">
+            <div className="flex flex-col items-center gap-4 text-center">
+              <div className="rounded-full border border-neo-border bg-neo-surface p-4">
+                <Icon library="lucide" name="Inbox" className="h-8 w-8 text-neo-text-secondary" />
+              </div>
+              <div className="flex flex-col gap-2">
+                <strong className="text-lg font-semibold text-neo-text-primary">Sin resultados</strong>
+                <span className="text-sm text-neo-text-secondary">Crea un término nuevo o ajusta la búsqueda para ver registros.</span>
+              </div>
+              <button className="btn-primary inline-flex items-center gap-2" type="button" onClick={onCreate} disabled={!canEdit}>
+                <Icon library="lucide" name="Plus" className="h-4 w-4" />
+                Crear término
+              </button>
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* Desktop / Tablet table */}
+      <div className="hidden overflow-x-auto rounded-3xl border border-neo-border bg-neo-surface md:block">
         <table className="min-w-[720px] divide-y divide-neo-border text-sm">
           <thead className="bg-neo-card text-left text-xs uppercase tracking-wide text-neo-text-secondary">
             <tr>

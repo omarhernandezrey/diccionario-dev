@@ -136,6 +136,11 @@ export const termsQuerySchema = z.object({
     .optional()
     .transform((value) => value?.trim())
     .pipe(z.string().min(1).optional()),
+  context: z
+    .enum(["dictionary", "concept", "interview", "debug", "translate"])
+    .default("dictionary")
+    .optional(),
+  mode: z.enum(["list", "app", "widget"]).default("list").optional(),
   page: z.coerce.number().int().min(1).default(1),
   pageSize: z.coerce.number().int().min(1).max(50).default(25),
   sort: z.enum(["recent", "oldest", "term_asc", "term_desc"]).default("term_asc"),

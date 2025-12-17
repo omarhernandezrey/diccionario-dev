@@ -118,23 +118,12 @@ export default function AdminDashboard() {
         <DonutChart
           data={categoryData}
           title="Lenguajes más buscados"
-          colors={[
-            "#6c63ff",
-            "#80e0ff",
-            "#5ce9b9",
-            "#f59e0b",
-            "#f43f5e",
-            "#8b5cf6",
-            "#06b6d4",
-            "#ec4899",
-          ]}
         />
 
         {/* Contextos Donut */}
         <DonutChart
           data={contextData}
           title="Contextos de búsqueda"
-          colors={["#06b6d4", "#80e0ff", "#6c63ff", "#5ce9b9", "#f59e0b", "#f43f5e"]}
         />
       </div>
 
@@ -144,7 +133,6 @@ export default function AdminDashboard() {
           data={topTermsData}
           title="Top 8 términos más consultados"
           dataKey="hits"
-          stroke="#6c63ff"
         />
 
         {/* Empty Queries Bar Chart */}
@@ -152,7 +140,7 @@ export default function AdminDashboard() {
           data={emptyQueriesData}
           title="Búsquedas sin resultados"
           dataKey="attempts"
-          fill="#f43f5e"
+          fill="var(--chart-6)"
         />
       </div>
 

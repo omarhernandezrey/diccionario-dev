@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useTransition, useRef, type ReactNode } from "react";
+import { useCallback, useEffect, useState, useTransition, useRef, type ReactNode } from "react";
 import Image from "next/image";
 import { Icon } from "@/components/Icon";
 import { notifySessionChange } from "@/components/admin/SessionProvider";
@@ -10,6 +10,40 @@ const avatarFallback = (seed: string) =>
   `https://api.dicebear.com/7.x/avataaars/png?seed=${encodeURIComponent(seed)}&size=240&radius=50&backgroundColor=b6c3ff`;
 
 import { useUser } from "@/hooks/useUser";
+
+// Reusable localStorage hook
+function useLocalStorage<T>(key: string, initialValue: T): [T, (value: T | ((val: T) => T)) => void] {
+  const readValue = useCallback((storageKey: string) => {
+    if (typeof window === "undefined") return initialValue;
+    try {
+      const item = window.localStorage.getItem(storageKey);
+      return item ? (JSON.parse(item) as T) : initialValue;
+    } catch {
+      return initialValue;
+    }
+  }, [initialValue]);
+
+  const [storedValue, setStoredValue] = useState<T>(() => readValue(key));
+
+  useEffect(() => {
+    setStoredValue(readValue(key));
+  }, [key, readValue]);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    try {
+      window.localStorage.setItem(key, JSON.stringify(storedValue));
+    } catch {
+      // ignore
+    }
+  }, [key, storedValue]);
+
+  const setValue = (value: T | ((val: T) => T)) => {
+    setStoredValue((prev) => (value instanceof Function ? value(prev) : value));
+  };
+
+  return [storedValue, setValue];
+}
 
 const sanitize = (value: string | null | undefined) => value?.trim() || "No especificado";
 
@@ -28,6 +62,14 @@ function getRadianAngle(degreeValue: number) {
   return (degreeValue * Math.PI) / 180;
 }
 
+function rotateSize(width: number, height: number, rotation: number) {
+  const rotRad = getRadianAngle(rotation);
+  return {
+    width: Math.abs(Math.cos(rotRad) * width) + Math.abs(Math.sin(rotRad) * height),
+    height: Math.abs(Math.sin(rotRad) * width) + Math.abs(Math.cos(rotRad) * height),
+  };
+}
+
 async function getCroppedImg(
   imageSrc: string,
   pixelCrop: Area,
@@ -37,67 +79,55 @@ async function getCroppedImg(
   const canvas = document.createElement("canvas");
   const ctx = canvas.getContext("2d");
 
-  if (!ctx) {
-    return null;
-  }
+  if (!ctx) return null;
 
-  const maxSize = Math.max(image.width, image.height);
-  const safeArea = 2 * ((maxSize / 2) * Math.sqrt(2));
+  const rotRad = getRadianAngle(rotation);
 
-  canvas.width = safeArea;
-  canvas.height = safeArea;
+  // Calcular bounding box de la imagen rotada
+  const { width: bBoxWidth, height: bBoxHeight } = rotateSize(image.width, image.height, rotation);
 
-  ctx.translate(safeArea / 2, safeArea / 2);
-  ctx.rotate(getRadianAngle(rotation));
-  ctx.translate(-safeArea / 2, -safeArea / 2);
+  // Ajustar canvas al bounding box
+  canvas.width = bBoxWidth;
+  canvas.height = bBoxHeight;
 
-  ctx.drawImage(
-    image,
-    safeArea / 2 - image.width * 0.5,
-    safeArea / 2 - image.height * 0.5
-  );
+  // Trasladar al centro para rotar
+  ctx.translate(bBoxWidth / 2, bBoxHeight / 2);
+  ctx.rotate(rotRad);
+  ctx.translate(-image.width / 2, -image.height / 2);
 
-  const data = ctx.getImageData(0, 0, safeArea, safeArea);
+  ctx.drawImage(image, 0, 0);
 
-  // Canvas intermedio con el recorte exacto a full resolución
-  const cropCanvas = document.createElement("canvas");
-  cropCanvas.width = pixelCrop.width;
-  cropCanvas.height = pixelCrop.height;
-  const cropCtx = cropCanvas.getContext("2d");
+  // Extraer la imagen recortada usando las coordenadas relativas al bounding box
+  const data = ctx.getImageData(pixelCrop.x, pixelCrop.y, pixelCrop.width, pixelCrop.height);
 
-  if (!cropCtx) return null;
-
-  cropCtx.putImageData(
-    data,
-    Math.round(0 - safeArea / 2 + image.width * 0.5 - pixelCrop.x),
-    Math.round(0 - safeArea / 2 + image.height * 0.5 - pixelCrop.y)
-  );
-
-  // Redimensionar si es necesario para optimizar tamaño (max 400x400)
+  // Canvas final redimensionado (max 400x400)
   const maxDimension = 400;
-  const finalCanvas = document.createElement("canvas");
-
-  // Mantener aspecto cuadrado ya que el crop es cuadrado (aspect={1})
   const finalSize = Math.min(pixelCrop.width, maxDimension);
-
+  
+  const finalCanvas = document.createElement("canvas");
   finalCanvas.width = finalSize;
   finalCanvas.height = finalSize;
-
+  
   const finalCtx = finalCanvas.getContext("2d");
   if (!finalCtx) return null;
 
-  // Usar imageSmoothingQuality para mejor resultado al reducir
+  // Crear canvas temporal para el recorte full-res
+  const tempCanvas = document.createElement("canvas");
+  tempCanvas.width = pixelCrop.width;
+  tempCanvas.height = pixelCrop.height;
+  const tempCtx = tempCanvas.getContext("2d");
+  if (!tempCtx) return null;
+  
+  tempCtx.putImageData(data, 0, 0);
+
+  // Dibujar redimensionado en el canvas final
   finalCtx.imageSmoothingEnabled = true;
   finalCtx.imageSmoothingQuality = "high";
+  finalCtx.drawImage(tempCanvas, 0, 0, pixelCrop.width, pixelCrop.height, 0, 0, finalSize, finalSize);
 
-  finalCtx.drawImage(
-    cropCanvas,
-    0, 0, pixelCrop.width, pixelCrop.height,
-    0, 0, finalSize, finalSize
-  );
+  // Retornar JPEG optimizado
+  return finalCanvas.toDataURL("image/jpeg", 0.85);
 
-  // Retornar JPEG con calidad 0.8 para asegurar <1MB
-  return finalCanvas.toDataURL("image/jpeg", 0.8);
 }
 
 // --- Main Component ---
@@ -106,15 +136,24 @@ export default function AdminProfilePage() {
   const { user: session, isLoading: loading, mutate } = useUser();
   const [status, setStatus] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
+  const userStorageKey = session?.username || "guest";
 
-  // Form states - initialized when session loads
+  // Form states
   const [displayName, setDisplayName] = useState("");
   const [bio, setBio] = useState("");
   const [copied, setCopied] = useState(false);
+  const [initialized, setInitialized] = useState(false);
+  useEffect(() => {
+    setInitialized(false);
+    setAvatarDraft(null);
+    setTempImgUrl(null);
+  }, [userStorageKey]);
 
   // Avatar states
-  const [avatarPreview, setAvatarPreview] = useState<string | null>(null);
   const [avatarDraft, setAvatarDraft] = useState<string | null>(null);
+  const [avatarOverride, setAvatarOverride] = useLocalStorage<string | null>(`user_avatar_override:${userStorageKey}`, null);
+  const [coverUrl, setCoverUrl] = useLocalStorage<string>(`user_cover:${userStorageKey}`, "");
+  const coverInputRef = useRef<HTMLInputElement>(null);
 
   // Cropping states
   const [isCropping, setIsCropping] = useState(false);
@@ -127,15 +166,17 @@ export default function AdminProfilePage() {
   const [error, setError] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  // Sync local state with session data when it loads
+  // Sync local state with session data ONLY ONCE or when explicitly needed
   useEffect(() => {
-    if (session) {
+    if (session && !initialized) {
       setDisplayName(session.displayName || session.username);
       setBio(session.bio || "");
-      const fallback = avatarFallback(session.username);
-      setAvatarPreview(session.avatarUrl || fallback);
+      setInitialized(true);
     }
-  }, [session]);
+  }, [session, initialized]);
+
+  // Derived avatar for display
+  const activeAvatar = avatarDraft || avatarOverride || session?.avatarUrl || (session ? avatarFallback(session.username) : null);
 
   const handleSave = () => {
     setStatus(null);
@@ -164,6 +205,7 @@ export default function AdminProfilePage() {
 
         // Update local preview and clear draft
         setAvatarDraft(null);
+        if (payload.avatarUrl) setAvatarOverride(payload.avatarUrl);
         setStatus("Perfil actualizado correctamente.");
         notifySessionChange();
 
@@ -179,7 +221,7 @@ export default function AdminProfilePage() {
   const handleLogout = async () => {
     try {
       await fetch("/api/auth", { method: "DELETE" });
-      window.location.href = "/login";
+      window.location.href = "/";
     } catch (error) {
       console.error("Error al cerrar sesión:", error);
     }
@@ -201,6 +243,26 @@ export default function AdminProfilePage() {
     }
   };
 
+  const handleCoverUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (!file.type.startsWith("image/")) {
+      alert("Selecciona una imagen válida.");
+      return;
+    }
+    if (file.size > 5 * 1024 * 1024) {
+      alert("La imagen es demasiado grande (máx 5MB).");
+      return;
+    }
+    const reader = new FileReader();
+    reader.onload = () => {
+      const src = reader.result as string;
+      setCoverUrl(src);
+    };
+    reader.readAsDataURL(file);
+    e.target.value = "";
+  };
+
   const onCropComplete = (croppedArea: Area, croppedAreaPixels: Area) => {
     setCroppedAreaPixels(croppedAreaPixels);
   };
@@ -210,7 +272,6 @@ export default function AdminProfilePage() {
     try {
       const croppedImage = await getCroppedImg(tempImgUrl, croppedAreaPixels, rotation);
       if (croppedImage) {
-        setAvatarPreview(croppedImage);
         setAvatarDraft(croppedImage);
         setIsCropping(false);
         setTempImgUrl(null);
@@ -243,6 +304,63 @@ export default function AdminProfilePage() {
 
   return (
     <div className="space-y-8 text-neo-text-primary">
+      {/* Vista previa estilo home (una sola) */}
+      {session && (
+        <section className="relative overflow-visible rounded-3xl border border-neo-border bg-neo-card shadow-glow-card">
+          <div className="relative h-32 sm:h-40 w-full overflow-hidden rounded-t-3xl">
+            {coverUrl ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img src={coverUrl} alt="Portada" className="absolute inset-0 h-full w-full object-cover" />
+            ) : (
+              <div className="absolute inset-0 bg-linear-to-r from-neo-primary/20 via-neo-primary/10 to-transparent" />
+            )}
+            <button
+              onClick={() => coverInputRef.current?.click()}
+              className="absolute right-4 top-4 inline-flex h-10 w-10 items-center justify-center text-white/90 hover:text-white"
+              title="Cambiar portada"
+            >
+              <Icon library="lucide" name="Camera" className="h-5 w-5 drop-shadow-[0_2px_6px_rgba(0,0,0,0.55)]" />
+            </button>
+            <input
+              ref={coverInputRef}
+              type="file"
+              accept="image/*"
+              className="hidden"
+              onChange={handleCoverUpload}
+            />
+          </div>
+          <div className="relative -mt-12 sm:-mt-16 px-4 sm:px-6 pb-4 flex flex-col sm:flex-row sm:items-end sm:justify-between gap-3">
+            <div className="flex flex-col sm:flex-row sm:items-center gap-3">
+              <div className="relative z-10 h-20 w-20 rounded-full border-2 border-white/70 bg-neo-surface overflow-visible shadow-xl ring-2 ring-white/20">
+                <Image
+                  src={activeAvatar || avatarFallback(session.username)}
+                  alt="Avatar"
+                  width={80}
+                  height={80}
+                  className="h-full w-full object-cover rounded-full"
+                />
+                <button
+                  onClick={triggerFileInput}
+                  className="absolute -bottom-2 -right-2 inline-flex h-9 w-9 items-center justify-center text-white/90 hover:text-white"
+                  title="Cambiar foto"
+                >
+                  <Icon library="lucide" name="Camera" className="h-4 w-4 drop-shadow-[0_2px_6px_rgba(0,0,0,0.55)]" />
+                </button>
+              </div>
+              <div className="space-y-1">
+                <p className="text-[11px] uppercase tracking-[0.16em] text-neo-text-secondary">Perfil</p>
+                <h3 className="text-xl font-bold text-neo-text-primary leading-tight">
+                  {displayName || session.username}
+                </h3>
+                <p className="text-sm text-neo-text-secondary max-w-xl">
+                  {bio || "Completa tu bio para que otros sepan en qué estás trabajando."}
+                </p>
+              </div>
+            </div>
+          </div>
+        </section>
+      )}
+
       {/* Crop Modal */}
       {isCropping && tempImgUrl && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-4 backdrop-blur-sm">
@@ -316,7 +434,7 @@ export default function AdminProfilePage() {
                   onClick={saveCroppedImage}
                   className="rounded-xl bg-neo-primary px-6 py-2 text-sm font-medium text-white shadow-lg shadow-neo-primary/20 hover:bg-neo-primary-dark hover:scale-105 transition-transform"
                 >
-                  Aplicar y Guardar
+                  Aplicar Recorte
                 </button>
               </div>
             </div>
@@ -324,46 +442,23 @@ export default function AdminProfilePage() {
         </div>
       )}
 
-      <section className="relative overflow-hidden rounded-4xl border border-neo-border bg-neo-card p-8 shadow-glow-card">
+      <section className="relative overflow-hidden rounded-4xl border border-neo-border bg-neo-card p-5 sm:p-8 shadow-glow-card">
         <div className="absolute inset-y-0 right-0 hidden w-1/3 bg-linear-to-l from-neo-primary/10 to-transparent blur-3xl lg:block" />
-        <div className="relative flex flex-wrap items-center gap-6">
-          <div className="relative group">
-            <div className="h-24 w-24 overflow-hidden rounded-full border-4 border-neo-surface shadow-xl transition-transform group-hover:scale-105">
-              <Image
-                src={avatarPreview || avatarFallback(session?.username || "default")}
-                alt="Avatar"
-                width={96}
-                height={96}
-                className="h-full w-full object-cover"
-              />
-            </div>
-            <button
-              onClick={triggerFileInput}
-              className="absolute bottom-0 right-0 rounded-full bg-neo-primary p-2 text-white shadow-lg hover:scale-110 hover:bg-neo-primary-dark transition-all"
-              title="Cambiar foto"
-            >
-              <Icon library="lucide" name="Camera" className="h-4 w-4" />
-            </button>
-            <input
-              type="file"
-              ref={fileInputRef}
-              className="hidden"
-              accept="image/*"
-              onChange={handleFileChange}
-            />
+        <div className="relative flex flex-col gap-4">
+          <div className="flex items-center gap-3">
+            <h1 className="text-2xl font-bold text-neo-text-primary sm:text-3xl">{displayName || session?.username}</h1>
+            {session?.role === "admin" && (
+              <span className="rounded-full bg-neo-primary/10 px-2 py-0.5 text-xs font-medium text-neo-primary border border-neo-primary/20">
+                ADMIN
+              </span>
+            )}
           </div>
-
-          <div className="flex-1 min-w-0">
-            <div className="flex items-center gap-3">
-              <h1 className="text-3xl font-bold text-neo-text-primary">{displayName || session?.username}</h1>
-              {session?.role === "admin" && (
-                <span className="rounded-full bg-neo-primary/10 px-2 py-0.5 text-xs font-medium text-neo-primary border border-neo-primary/20">
-                  ADMIN
-                </span>
-              )}
-            </div>
-            <p className="text-sm font-medium text-neo-text-secondary">@{session?.username}</p>
-          </div>
+          <p className="text-sm font-medium text-neo-text-secondary">@{session?.username}</p>
+          {bio && (
+            <p className="mt-1 max-w-2xl text-sm leading-relaxed text-neo-text-secondary/90 whitespace-pre-wrap wrap-break-word">
+              {bio}
+            </p>
+          )}
         </div>
 
         {status && (
@@ -378,6 +473,13 @@ export default function AdminProfilePage() {
             {error}
           </div>
         )}
+        <input
+          type="file"
+          ref={fileInputRef}
+          className="hidden"
+          accept="image/*"
+          onChange={handleFileChange}
+        />
       </section>
 
       <div className="grid gap-6 lg:grid-cols-3">
@@ -462,7 +564,7 @@ export default function AdminProfilePage() {
               ) : (
                 <>
                   <Icon library="lucide" name="Save" className="h-4 w-4" />
-                  Guardar Cambios
+                  {avatarDraft ? "Guardar Cambios (Foto pendiente)" : "Guardar Cambios"}
                 </>
               )}
             </button>

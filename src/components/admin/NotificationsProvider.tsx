@@ -1,6 +1,7 @@
 "use client";
 
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
+import { useSession } from "@/components/admin/SessionProvider";
 
 export type AdminNotification = {
   id: number;
@@ -15,6 +16,7 @@ type NotificationsContextValue = {
   notifications: AdminNotification[];
   unreadCount: number;
   loading: boolean;
+  requireLogin: boolean;
   markAsRead: (id: number) => void;
   markAllRead: () => void;
   refresh: () => Promise<void>;
@@ -22,68 +24,84 @@ type NotificationsContextValue = {
 
 const NotificationsContext = createContext<NotificationsContextValue | undefined>(undefined);
 
-const STORAGE_KEY = "diccionario.notifications";
-const FALLBACK_NOTIFICATIONS: AdminNotification[] = [
-  { id: 1, title: "Sincronización completada", detail: "Se indexaron 12 términos nuevos.", type: "info", timestamp: new Date().toISOString(), read: false },
-  { id: 2, title: "Revisión pendiente", detail: "3 términos requieren aprobación.", type: "alert", timestamp: new Date().toISOString(), read: false },
-];
+const FALLBACK_NOTIFICATIONS: AdminNotification[] = [];
 
 export function NotificationsProvider({ children }: { children: React.ReactNode }) {
+  const { session } = useSession();
+  const storageKey = session ? `diccionario.notifications:${session.username}` : "diccionario.notifications:guest";
   const [notifications, setNotifications] = useState<AdminNotification[]>(FALLBACK_NOTIFICATIONS);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
+  const [requireLogin, setRequireLogin] = useState(false);
 
   const persist = useCallback((next: AdminNotification[]) => {
     setNotifications(next);
     if (typeof window !== "undefined") {
       try {
-        localStorage.setItem(STORAGE_KEY, JSON.stringify(next));
+        localStorage.setItem(storageKey, JSON.stringify(next));
       } catch {
         // noop
       }
     }
-  }, []);
+  }, [storageKey]);
 
   const refresh = useCallback(async () => {
+    if (!session) {
+      setNotifications([]);
+      setRequireLogin(true);
+      return;
+    }
     setLoading(true);
     try {
       const res = await fetch("/api/notifications", { cache: "no-store" });
+      if (res.status === 401) {
+        setRequireLogin(true);
+        setNotifications([]);
+        setLoading(false);
+        return;
+      }
       if (!res.ok) throw new Error("Request falló");
       const payload = await res.json();
       if (Array.isArray(payload?.items)) {
-        persist(
-          payload.items.map((item: AdminNotification, idx: number) => ({
+        const stored = (() => {
+          try {
+            const ls = localStorage.getItem(storageKey);
+            return ls ? (JSON.parse(ls) as AdminNotification[]) : [];
+          } catch {
+            return [];
+          }
+        })();
+
+        const merged = payload.items.map((item: AdminNotification, idx: number) => {
+          const existing = stored.find((n) => n.id === item.id);
+          return {
             ...item,
             id: Number(item.id ?? idx + 1),
-            read: Boolean(item.read),
-          })),
-        );
+            read: existing?.read ?? false,
+          };
+        });
+        persist(merged);
+        setRequireLogin(false);
+      } else {
+        persist(FALLBACK_NOTIFICATIONS);
       }
     } catch {
       persist(FALLBACK_NOTIFICATIONS);
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
-  }, [persist]);
+  }, [persist, session, storageKey]);
 
   useEffect(() => {
     if (typeof window === "undefined") return;
-    try {
-      const stored = localStorage.getItem(STORAGE_KEY);
-      if (stored) {
-        const parsed = JSON.parse(stored) as AdminNotification[];
-        setNotifications(parsed);
-        setLoading(false);
-      } else {
-        refresh();
-      }
-    } catch {
-      refresh();
-    }
-  }, [refresh]);
+    setNotifications([]);
+    setRequireLogin(!session);
+    refresh();
+  }, [refresh, session, storageKey]);
 
   useEffect(() => {
     if (typeof window === "undefined") return;
     const handler = (event: StorageEvent) => {
-      if (event.key === STORAGE_KEY && event.newValue) {
+      if (event.key === storageKey && event.newValue) {
         try {
           const parsed = JSON.parse(event.newValue) as AdminNotification[];
           setNotifications(parsed);
@@ -94,7 +112,7 @@ export function NotificationsProvider({ children }: { children: React.ReactNode 
     };
     window.addEventListener("storage", handler);
     return () => window.removeEventListener("storage", handler);
-  }, []);
+  }, [storageKey]);
 
   const markAsRead = useCallback(
     (id: number) => {
@@ -114,11 +132,12 @@ export function NotificationsProvider({ children }: { children: React.ReactNode 
       notifications,
       unreadCount,
       loading,
+      requireLogin,
       markAsRead,
       markAllRead,
       refresh,
     }),
-    [notifications, unreadCount, loading, markAsRead, markAllRead, refresh],
+    [notifications, unreadCount, loading, requireLogin, markAsRead, markAllRead, refresh],
   );
 
   return <NotificationsContext.Provider value={value}>{children}</NotificationsContext.Provider>;

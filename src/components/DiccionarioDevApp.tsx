@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, useRef, KeyboardEvent, useMemo } from "react";
+import React, { useCallback, useState, useEffect, useRef, KeyboardEvent, useMemo } from "react";
 import { useSearchParams } from "next/navigation";
 import {
     Lightbulb,
@@ -28,17 +28,78 @@ import {
     FileJson,
     ThumbsUp,
     Rocket,
-    Eye
+    Eye,
+    Menu,
+    Sparkles,
+    Camera,
+    Github,
+    Twitter,
+    Linkedin,
+    Home,
 } from "lucide-react";
-import { Prism as SyntaxHighlighter } from "react-syntax-highlighter";
-import { dracula } from "react-syntax-highlighter/dist/cjs/styles/prism";
 import type { TermDTO, TermExampleDTO } from "@/types/term";
 import { LivePreview } from "./LivePreview";
 import { getHtmlForPreview, extractRawCss } from "@/lib/tailwindPreview";
 import TechStrip from "./TechStrip";
 import ExtensionsShowcase from "./ExtensionsShowcase";
+import ExtensionsGuide from "./ExtensionsGuide";
+import Footer from "./Footer";
 import { AuthActions } from "./AuthActions";
 import { useSession } from "@/components/admin/SessionProvider";
+import { NotificationBell } from "./NotificationBell";
+import { ThemeLogo } from "./ThemeLogo";
+import ThemeToggle from "./ThemeToggle";
+
+type SearchContext = "concept" | "interview" | "debug" | "translate";
+
+type ContextOption = {
+    id: SearchContext;
+    label: string;
+    icon: React.ElementType;
+    color: string;
+    activeBg: string;
+    placeholder: string;
+    hint: string;
+};
+
+const CONTEXT_OPTIONS: ContextOption[] = [
+    {
+        id: "concept",
+        label: "Concepto",
+        icon: BookOpen,
+        color: "text-emerald-400",
+        activeBg: "border-emerald-500/40 bg-emerald-500/10",
+        placeholder: "Concepto: escribe un término (ej. useEffect) para ver definición y para qué sirve.",
+        hint: "Define rápido: traducción, para qué sirve y alias clave.",
+    },
+    {
+        id: "interview",
+        label: "Entrevista",
+        icon: MessageSquare,
+        color: "text-amber-400",
+        activeBg: "border-amber-400/50 bg-amber-400/10",
+        placeholder: "Entrevista: busca un término y ten a mano un speech corto con puntos clave.",
+        hint: "Prepárate: qué es, cuándo usarlo y ejemplo corto para responder en entrevistas.",
+    },
+    {
+        id: "debug",
+        label: "Debug",
+        icon: Bug,
+        color: "text-red-400",
+        activeBg: "border-red-400/50 bg-red-400/10",
+        placeholder: "Debug: pega el mensaje o el hook que falla para ver cómo resolverlo.",
+        hint: "Errores comunes y solución rápida para salir del bloqueo.",
+    },
+    {
+        id: "translate",
+        label: "Traducción",
+        icon: Globe,
+        color: "text-blue-400",
+        activeBg: "border-blue-400/50 bg-blue-400/10",
+        placeholder: "Traducción: escribe el término para ver ES/EN y usarlo bien en contexto.",
+        hint: "Evita falsos amigos: significado, equivalentes y uso correcto.",
+    },
+];
 
 function getDisplayLanguage(term: TermDTO | null, variant?: { language?: string | null }) {
     const tags = (term?.tags || []).map(tag => tag.toLowerCase());
@@ -99,7 +160,42 @@ function pickCssPreviewSnippet(term: TermDTO | null): { code: string; language: 
     return undefined;
 }
 
+type PrismModule = typeof import("react-syntax-highlighter");
+
+let prismLoader: Promise<{ Highlighter: PrismModule["Prism"]; style: unknown }> | null = null;
+
+async function loadPrismHighlighter() {
+    if (!prismLoader) {
+        prismLoader = Promise.all([
+            import("react-syntax-highlighter").then((mod) => mod.Prism),
+            import("react-syntax-highlighter/dist/cjs/styles/prism").then((mod) => mod.dracula),
+        ]).then(([Highlighter, style]) => ({ Highlighter, style }));
+    }
+    return prismLoader;
+}
+
 function CodeBlock({ code, language = "javascript", showLineNumbers = true }: { code: string; language?: string; showLineNumbers?: boolean }) {
+    const [Highlighter, setHighlighter] = useState<PrismModule["Prism"] | null>(null);
+    const [style, setStyle] = useState<unknown>(null);
+
+    useEffect(() => {
+        let cancelled = false;
+        loadPrismHighlighter()
+            .then(({ Highlighter, style }) => {
+                if (cancelled) return;
+                setHighlighter(() => Highlighter);
+                setStyle(style);
+            })
+            .catch(() => {
+                if (cancelled) return;
+                setHighlighter(null);
+                setStyle(null);
+            });
+        return () => {
+            cancelled = true;
+        };
+    }, []);
+
     return (
         <div className="rounded-xl border border-slate-800 bg-[#1e1e1e] overflow-hidden shadow-lg">
             <div className="flex items-center justify-between px-4 py-2 border-b border-slate-800 bg-[#111827]">
@@ -112,15 +208,19 @@ function CodeBlock({ code, language = "javascript", showLineNumbers = true }: { 
                     <span className="ml-2">{language}</span>
                 </div>
             </div>
-            <SyntaxHighlighter
-                language={language === "ts" ? "typescript" : language}
-                style={dracula}
-                customStyle={{ margin: 0, padding: "1rem", background: "transparent" }}
-                showLineNumbers={showLineNumbers}
-                wrapLines={true}
-            >
-                {code}
-            </SyntaxHighlighter>
+            {Highlighter ? (
+                <Highlighter
+                    language={language === "ts" ? "typescript" : language}
+                    style={style as never}
+                    customStyle={{ margin: 0, padding: "1rem", background: "transparent" }}
+                    showLineNumbers={showLineNumbers}
+                    wrapLines={true}
+                >
+                    {code}
+                </Highlighter>
+            ) : (
+                <pre className="overflow-x-auto p-4 font-mono text-xs text-slate-200 whitespace-pre">{code}</pre>
+            )}
         </div>
     );
 }
@@ -130,7 +230,7 @@ function CssLiveBlock({ term, snippet, language }: { term: TermDTO; snippet: str
     const doc = useMemo(() => buildCssDocument(snippet, isTailwindTerm), [snippet, isTailwindTerm]);
 
     return (
-        <div className="grid gap-4 lg:grid-cols-2">
+        <div className="grid grid-cols-1 xl:grid-cols-2 gap-4 lg:gap-6">
             <CodeBlock code={snippet} language={language === "css" ? "css" : language} showLineNumbers />
             <CssDocPreview documentHtml={doc} />
         </div>
@@ -141,7 +241,7 @@ function buildTailwindShell(html: string) {
     return `
       <div class="min-h-[360px] bg-slate-950 text-slate-100 tw-grid-bg">
         <div class="max-w-5xl mx-auto p-6">
-          <div class="rounded-2xl border border-slate-800 bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950 shadow-[0_25px_70px_rgba(0,0,0,0.55)]">
+          <div class="rounded-2xl border border-slate-800 bg-linear-to-br from-slate-950 via-slate-900 to-slate-950 shadow-[0_25px_70px_rgba(0,0,0,0.55)]">
             <div class="rounded-[18px] border border-white/10 bg-slate-900/60 p-6 ring-1 ring-white/5 space-y-6">
               ${html}
             </div>
@@ -259,19 +359,21 @@ function useDebounce<T>(value: T, delay: number): T {
 }
 
 function useLocalStorage<T>(key: string, initialValue: T): [T, (value: T | ((val: T) => T)) => void] {
-    // Initialize state function to read from LS only once (lazy initialization)
-    const [storedValue, setStoredValue] = useState<T>(() => {
-        if (typeof window === "undefined") {
-            return initialValue;
-        }
+    const readValue = useCallback((storageKey: string) => {
+        if (typeof window === "undefined") return initialValue;
         try {
-            const item = window.localStorage.getItem(key);
+            const item = window.localStorage.getItem(storageKey);
             return item ? JSON.parse(item) : initialValue;
-        } catch (error) {
-            console.log(error);
+        } catch {
             return initialValue;
         }
-    });
+    }, [initialValue]);
+
+    const [storedValue, setStoredValue] = useState<T>(() => readValue(key));
+
+    useEffect(() => {
+        setStoredValue(readValue(key));
+    }, [key, readValue]);
 
     const setValue = (value: T | ((val: T) => T)) => {
         try {
@@ -331,7 +433,7 @@ function isHtmlTerm(term: TermDTO, language: string): boolean {
         "center", "font", "big", "strike", "tt", "acronym", "applet", "basefont",
         "bgsound", "blink", "marquee", "frameset", "frame", "noframes"
     ];
-    
+
     if (htmlElements.includes(termName)) return true;
 
     // Input types
@@ -576,12 +678,12 @@ function GeminiStar() {
                         <stop offset="100%" stopColor="#f472b6" />
                     </linearGradient>
                 </defs>
-                <path
-                    d="M12 0L14.5 9.5L24 12L14.5 14.5L12 24L9.5 14.5L0 12L9.5 9.5L12 0Z"
-                    fill="url(#gemini-core)"
-                    className="drop-shadow-[0_0_10px_rgba(192,132,252,0.8)]"
-                />
-            </svg>
+	                <path
+	                    d="M12 0L14.5 9.5L24 12L14.5 14.5L12 24L9.5 14.5L0 12L9.5 9.5L12 0Z"
+	                    fill="url(#gemini-core)"
+	                    className="dark:drop-shadow-[0_0_10px_rgba(192,132,252,0.8)]"
+	                />
+	            </svg>
 
             {/* Outer Aura - Reverse Spin & Blur */}
             <svg viewBox="0 0 24 24" className="absolute w-[140%] h-[140%] animate-[spin_6s_linear_infinite_reverse] opacity-50 blur-sm z-0">
@@ -618,25 +720,25 @@ function GeminiLoader({ term }: { term: string }) {
     }, []);
 
     return (
-        <div className="relative flex flex-col items-center justify-center py-12 px-8 text-center">
+        <div className="relative flex flex-col items-center justify-center py-10 px-6 text-center w-full">
 
-            <div className="relative z-10 flex flex-col items-center gap-10">
+            <div className="relative z-10 flex flex-col items-center gap-6 sm:gap-8">
                 {/* The Star */}
                 <GeminiStar />
 
                 {/* The Text */}
-                <div className="space-y-4 max-w-md">
-                    <p className="text-2xl font-medium tracking-tight text-white">
-                        <span className="opacity-60">Generando para </span>
-                        <span className="font-bold text-transparent bg-clip-text bg-linear-to-r from-blue-400 via-purple-400 to-pink-400 animate-gradient-x">
+                <div className="space-y-3 sm:space-y-4 max-w-md">
+                    <p className="text-xl sm:text-2xl font-medium tracking-tight text-slate-900 dark:text-white">
+                        <span className="opacity-70 dark:opacity-60 text-slate-700 dark:text-slate-300">Generando para </span>
+                        <span className="font-bold text-transparent bg-clip-text bg-linear-to-r from-blue-600 via-purple-600 to-pink-600 dark:from-blue-400 dark:via-purple-400 dark:to-pink-400 animate-gradient-x">
                             &quot;{term}&quot;
                         </span>
                     </p>
 
                     {/* Status Pill */}
-                    <div className="inline-flex items-center gap-2.5 px-4 py-1.5 rounded-full bg-white/5 border border-white/10 backdrop-blur-md">
-                        <div className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
-                        <span className="text-xs font-mono font-medium tracking-wider text-white/50 uppercase min-w-[180px] text-left">
+                    <div className="inline-flex items-center gap-2.5 px-4 py-1.5 rounded-full bg-slate-100 dark:bg-white/5 border border-slate-200 dark:border-white/10 backdrop-blur-md">
+                        <div className="w-2 h-2 rounded-full bg-emerald-500 dark:bg-emerald-400 animate-pulse" />
+                        <span className="text-xs font-mono font-bold tracking-wider text-slate-600 dark:text-white/50 uppercase min-w-[180px] text-left">
                             {statusText}
                         </span>
                     </div>
@@ -650,7 +752,7 @@ function GeminiLoader({ term }: { term: string }) {
 
 export default function DiccionarioDevApp() {
     const searchParams = useSearchParams();
-    const { session } = useSession();
+    const { session, refreshSession } = useSession();
     const [searchTerm, setSearchTerm] = useState("");
     const debouncedSearch = useDebounce(searchTerm, 300);
 
@@ -669,9 +771,11 @@ export default function DiccionarioDevApp() {
     // UX Avanzada
     const [selectedIndex, setSelectedIndex] = useState(-1);
     const [showHistory, setShowHistory] = useState(false);
-    const [recentSearches, setRecentSearches] = useLocalStorage<string[]>("recent_searches", []);
+    const userStorageKey = session?.username || "guest";
+    const [recentSearches, setRecentSearches] = useLocalStorage<string[]>(`recent_searches:${userStorageKey}`, []);
     const searchInputRef = useRef<HTMLInputElement>(null);
     const [isCodeMode, setIsCodeMode] = useState(false);
+    const [searchContext, setSearchContext] = useState<SearchContext | null>(null);
 
     // New Features State
     const [showCheatSheet, setShowCheatSheet] = useState(false);
@@ -680,6 +784,47 @@ export default function DiccionarioDevApp() {
     const [isListening, setIsListening] = useState(false);
     const [isStartingMic, setIsStartingMic] = useState(false);
     const [micError, setMicError] = useState<string | null>(null);
+    const activeContextOption = searchContext ? CONTEXT_OPTIONS.find((ctx) => ctx.id === searchContext) : undefined;
+    const ActiveContextIcon = activeContextOption?.icon;
+    const [showMobileMenu, setShowMobileMenu] = useState(false);
+
+    // Evita scroll en el fondo cuando el drawer está abierto (móvil).
+    useEffect(() => {
+        if (typeof document === "undefined") return;
+        if (showMobileMenu) {
+            document.body.style.overflow = "hidden";
+        } else {
+            document.body.style.overflow = "unset";
+        }
+        return () => {
+            document.body.style.overflow = "unset";
+        };
+    }, [showMobileMenu]);
+
+    const coverStorageKey = `user_cover:${userStorageKey}`;
+    const avatarStorageKey = `user_avatar_override:${userStorageKey}`;
+    const [coverUrl, setCoverUrl] = useLocalStorage<string>(coverStorageKey, "");
+    const [coverEditorOpen, setCoverEditorOpen] = useState(false);
+    const [coverDraftUrl, setCoverDraftUrl] = useState<string>("");
+    const [coverZoom, setCoverZoom] = useState(1);
+    const [coverOffsetX, setCoverOffsetX] = useState(0);
+    const [coverOffsetY, setCoverOffsetY] = useState(0);
+    const [coverBaseScale, setCoverBaseScale] = useState(1);
+    const [isDraggingCover, setIsDraggingCover] = useState(false);
+    const dragStartRef = useRef<{ x: number; y: number; offsetX: number; offsetY: number } | null>(null);
+    const coverPreviewRef = useRef<HTMLDivElement | null>(null);
+    const coverInputRef = useRef<HTMLInputElement>(null);
+    const avatarInputRef = useRef<HTMLInputElement>(null);
+    const [avatarPreview, setAvatarPreview] = useState<string | null>(null);
+    const [avatarEditorOpen, setAvatarEditorOpen] = useState(false);
+    const [avatarDraftUrl, setAvatarDraftUrl] = useState<string>("");
+    const [avatarZoom, setAvatarZoom] = useState(1);
+    const [avatarOffsetX, setAvatarOffsetX] = useState(0);
+    const [avatarOffsetY, setAvatarOffsetY] = useState(0);
+    const [avatarBaseScale, setAvatarBaseScale] = useState(1);
+    const avatarPreviewRef = useRef<HTMLDivElement | null>(null);
+    const [isDraggingAvatar, setIsDraggingAvatar] = useState(false);
+    const dragAvatarRef = useRef<{ x: number; y: number; offsetX: number; offsetY: number } | null>(null);
     const navLinks = [
         { label: "Inicio", href: "#inicio" },
         { label: "Buscar", href: "#buscar" },
@@ -688,6 +833,256 @@ export default function DiccionarioDevApp() {
     if (session?.role === "admin") {
         navLinks.push({ label: "Panel", href: "/admin" });
     }
+
+    // Reset editores y previews cuando cambia de usuario
+    useEffect(() => {
+        setAvatarPreview(null);
+        setAvatarDraftUrl("");
+        setAvatarEditorOpen(false);
+        setCoverDraftUrl("");
+        setCoverEditorOpen(false);
+    }, [userStorageKey]);
+
+    const handleContextSelect = (contextId: SearchContext) => {
+        setSearchContext((prev) => (prev === contextId ? null : contextId));
+        setShowHistory(false);
+        searchInputRef.current?.focus();
+    };
+
+    const getPlaceholder = () => {
+        if (isCodeMode) return "Modo Código detectado...";
+        if (isListening) return "Escuchando...";
+        if (activeContextOption) return activeContextOption.placeholder;
+        return "Busca un término (ej. useState) o pega código...";
+    };
+
+    const handleCoverUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        if (!file) return;
+        if (!file.type.startsWith("image/")) {
+            alert("Selecciona una imagen válida.");
+            return;
+        }
+        if (file.size > 3 * 1024 * 1024) {
+            alert("La imagen es demasiado grande. Máximo 3MB.");
+            return;
+        }
+        const reader = new FileReader();
+        reader.onload = () => {
+            const src = reader.result as string;
+            const img = new window.Image();
+            img.onload = () => {
+                const base = Math.max(1600 / img.width, 480 / img.height); // cubrir completo sin recortar en render
+                setCoverBaseScale(base);
+                setCoverDraftUrl(src);
+                setCoverUrl(src); // se aplica de inmediato con calidad original
+                setCoverEditorOpen(true);
+                setCoverZoom(1);
+                setCoverOffsetX(0);
+                setCoverOffsetY(0);
+            };
+            img.src = src;
+        };
+        reader.readAsDataURL(file);
+        e.target.value = "";
+    };
+
+    const handleAvatarUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        if (!file) return;
+        if (!file.type.startsWith("image/")) {
+            alert("Selecciona una imagen válida.");
+            return;
+        }
+        if (file.size > 5 * 1024 * 1024) {
+            alert("La imagen es demasiado grande. Máximo 5MB.");
+            return;
+        }
+        const reader = new FileReader();
+        reader.onload = () => {
+            const src = reader.result as string;
+            const img = new window.Image();
+            img.onload = () => {
+                const base = Math.max(400 / img.width, 400 / img.height);
+                setAvatarBaseScale(base);
+                setAvatarDraftUrl(src);
+                setAvatarEditorOpen(true);
+                setAvatarZoom(1);
+                setAvatarOffsetX(0);
+                setAvatarOffsetY(0);
+            };
+            img.src = src;
+        };
+        reader.readAsDataURL(file);
+        e.target.value = "";
+    };
+
+    const handleResetCover = () => {
+        setCoverUrl("");
+        setCoverDraftUrl("");
+        setCoverEditorOpen(false);
+        setCoverZoom(1);
+        setCoverOffsetX(0);
+        setCoverOffsetY(0);
+        setCoverBaseScale(1);
+    };
+
+    const clamp = (value: number, min: number, max: number) => Math.min(Math.max(value, min), max);
+
+    const startDragCover = (clientX: number, clientY: number) => {
+        dragStartRef.current = { x: clientX, y: clientY, offsetX: coverOffsetX, offsetY: coverOffsetY };
+        setIsDraggingCover(true);
+    };
+
+    const moveDragCover = (clientX: number, clientY: number) => {
+        if (!isDraggingCover || !dragStartRef.current || !coverPreviewRef.current) return;
+        const rect = coverPreviewRef.current.getBoundingClientRect();
+        const dxPx = clientX - dragStartRef.current.x;
+        const dyPx = clientY - dragStartRef.current.y;
+
+        const deltaXPercent = (dxPx / rect.width) * 100;
+        const deltaYPercent = (dyPx / rect.height) * 100;
+
+        setCoverOffsetX(clamp(dragStartRef.current.offsetX + deltaXPercent, -100, 100));
+        setCoverOffsetY(clamp(dragStartRef.current.offsetY + deltaYPercent, -100, 100));
+    };
+
+    const endDragCover = () => {
+        setIsDraggingCover(false);
+        dragStartRef.current = null;
+    };
+
+    const startDragAvatar = (clientX: number, clientY: number) => {
+        dragAvatarRef.current = { x: clientX, y: clientY, offsetX: avatarOffsetX, offsetY: avatarOffsetY };
+        setIsDraggingAvatar(true);
+    };
+
+    const moveDragAvatar = (clientX: number, clientY: number) => {
+        if (!isDraggingAvatar || !dragAvatarRef.current || !avatarPreviewRef.current) return;
+        const rect = avatarPreviewRef.current.getBoundingClientRect();
+        const dxPx = clientX - dragAvatarRef.current.x;
+        const dyPx = clientY - dragAvatarRef.current.y;
+
+        const deltaXPercent = (dxPx / rect.width) * 100;
+        const deltaYPercent = (dyPx / rect.height) * 100;
+
+        setAvatarOffsetX(clamp(dragAvatarRef.current.offsetX + deltaXPercent, -100, 100));
+        setAvatarOffsetY(clamp(dragAvatarRef.current.offsetY + deltaYPercent, -100, 100));
+    };
+
+    const endDragAvatar = () => {
+        setIsDraggingAvatar(false);
+        dragAvatarRef.current = null;
+    };
+
+    const saveAvatar = async (dataUrl: string) => {
+        try {
+            const payload = {
+                displayName: session?.displayName || session?.username || "",
+                bio: session?.bio || "",
+                avatarUrl: dataUrl,
+            };
+            const res = await fetch("/api/profile", {
+                method: "PUT",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(payload),
+            });
+            if (!res.ok) {
+                const data = await res.json().catch(() => ({}));
+                throw new Error(data.error || "No se pudo guardar el avatar");
+            }
+            setAvatarPreview(dataUrl);
+            try {
+                window.localStorage.setItem(avatarStorageKey, JSON.stringify(dataUrl));
+                window.dispatchEvent(new Event("avatar-updated"));
+            } catch {
+                // ignore
+            }
+            await refreshSession();
+        } catch (err) {
+            console.error(err);
+            alert("No se pudo actualizar la foto de perfil.");
+        }
+    };
+
+    const applyAvatarEdits = async () => {
+        if (!avatarDraftUrl) return;
+        const img = new window.Image();
+        img.src = avatarDraftUrl;
+        await new Promise((resolve) => {
+            img.onload = resolve;
+        });
+
+        const target = 400;
+        const canvas = document.createElement("canvas");
+        canvas.width = target;
+        canvas.height = target;
+        const ctx = canvas.getContext("2d");
+        if (!ctx) return;
+        ctx.imageSmoothingEnabled = true;
+        ctx.imageSmoothingQuality = "high";
+
+        const baseScale = Math.max(target / img.width, target / img.height);
+        const scale = baseScale * avatarZoom;
+        const scaledW = img.width * scale;
+        const scaledH = img.height * scale;
+        const offsetXPx = (avatarOffsetX / 100) * (target / 2);
+        const offsetYPx = (avatarOffsetY / 100) * (target / 2);
+        const dx = (target - scaledW) / 2 + offsetXPx;
+        const dy = (target - scaledH) / 2 + offsetYPx;
+
+        ctx.save();
+        ctx.beginPath();
+        ctx.arc(target / 2, target / 2, target / 2, 0, Math.PI * 2);
+        ctx.closePath();
+        ctx.clip();
+        ctx.drawImage(img, dx, dy, scaledW, scaledH);
+        ctx.restore();
+
+        const dataUrl = canvas.toDataURL("image/jpeg", 0.95);
+        await saveAvatar(dataUrl);
+        setAvatarEditorOpen(false);
+        setAvatarDraftUrl("");
+    };
+
+    const applyCoverEdits = async () => {
+        if (!coverDraftUrl) return;
+        const img = new window.Image();
+        img.src = coverDraftUrl;
+        await new Promise((resolve) => {
+            img.onload = resolve;
+        });
+
+        const targetW = 2400;
+        const targetH = 720;
+        const canvas = document.createElement("canvas");
+        canvas.width = targetW;
+        canvas.height = targetH;
+        const ctx = canvas.getContext("2d");
+        if (!ctx) return;
+        ctx.imageSmoothingEnabled = true;
+        ctx.imageSmoothingQuality = "high";
+
+        const baseScale = Math.max(targetW / img.width, targetH / img.height);
+        const scale = baseScale * coverZoom;
+        const scaledW = img.width * scale;
+        const scaledH = img.height * scale;
+
+        const offsetXPx = (coverOffsetX / 100) * (targetW / 2);
+        const offsetYPx = (coverOffsetY / 100) * (targetH / 2);
+
+        const dx = (targetW - scaledW) / 2 + offsetXPx;
+        const dy = (targetH - scaledH) / 2 + offsetYPx;
+
+        ctx.fillStyle = "#0f172a";
+        ctx.fillRect(0, 0, targetW, targetH);
+        ctx.drawImage(img, dx, dy, scaledW, scaledH);
+
+        const dataUrl = canvas.toDataURL("image/jpeg", 0.95);
+        setCoverUrl(dataUrl);
+        setCoverEditorOpen(false);
+        setCoverDraftUrl("");
+    };
 
     type SpeechRecognitionLike = {
         abort?: () => void;
@@ -718,6 +1113,7 @@ export default function DiccionarioDevApp() {
 
     // Prellenar desde query params (extensiones, deep-links)
     useEffect(() => {
+        if (!searchParams) return;
         const q = searchParams.get("q");
         if (q) {
             setSearchTerm(q);
@@ -783,6 +1179,10 @@ export default function DiccionarioDevApp() {
                     q: query,
                     pageSize: "10",
                 });
+                if (searchContext) {
+                    params.set("context", searchContext);
+                    params.set("mode", "app");
+                }
                 const res = await fetch(`/api/terms?${params.toString()}`);
                 if (!res.ok) throw new Error("Error fetching terms");
                 const data = await res.json();
@@ -798,7 +1198,7 @@ export default function DiccionarioDevApp() {
         };
 
         fetchTerms();
-    }, [debouncedSearch, isCodeMode]);
+    }, [debouncedSearch, isCodeMode, searchContext]);
 
     // Fetching de Términos Relacionados (Discovery)
     useEffect(() => {
@@ -864,8 +1264,8 @@ export default function DiccionarioDevApp() {
             setIsStartingMic(true);
 
             if (recognitionRef.current) {
-            recognitionRef.current?.abort?.();
-        }            // Cast the constructor so TypeScript knows it is constructible
+                recognitionRef.current?.abort?.();
+            }            // Cast the constructor so TypeScript knows it is constructible
             const recognition = new (SpeechRecognition as { new(): SpeechRecognitionLike })();
             recognitionRef.current = recognition;
 
@@ -1026,12 +1426,13 @@ export default function DiccionarioDevApp() {
     // Solo permitir preview interactivo para HTML/CSS/Tailwind
     const allowLivePreview = isFrontend && (isCssActive || !!cssPreview || isHtmlActive);
     const showSearchExplainer = !activeTerm && !searchTerm.trim() && results.length === 0 && !loading;
+    const showEmptyMessage = showSearchExplainer;
     if (!mounted) {
         return null;
     }
 
     return (
-        <div id="inicio" className="min-h-screen bg-slate-950 text-slate-200 font-sans selection:bg-emerald-500/30 pb-20 relative overflow-x-hidden">
+        <div id="inicio" className="min-h-screen bg-white dark:bg-slate-950 text-slate-900 dark:text-slate-200 font-sans selection:bg-emerald-500/30 relative overflow-x-hidden">
 
             {/* --- Cheat Sheet Slide-over --- */}
             <div className={`fixed inset-y-0 right-0 w-full md:w-96 bg-slate-900/95 backdrop-blur-xl border-l border-slate-800 shadow-2xl transform transition-transform duration-300 ease-in-out z-100 ${showCheatSheet ? 'translate-x-0' : 'translate-x-full'}`}>
@@ -1111,7 +1512,7 @@ export default function DiccionarioDevApp() {
             </div>
 
             {/* --- Header Sticky --- */}
-            <header id="buscar" className="sticky top-0 z-50 border-b border-slate-800 bg-slate-950/80 backdrop-blur-md">
+            <header id="buscar" className="sticky top-0 z-50 border-b border-slate-900 dark:border-slate-800 bg-white/95 dark:bg-slate-950/80 backdrop-blur-md">
                 <div className="mx-auto max-w-7xl px-4 py-4">
                     <div className="flex flex-col gap-4">
                         <div className="flex items-center justify-between gap-4">
@@ -1120,34 +1521,145 @@ export default function DiccionarioDevApp() {
                                 className="group flex items-center gap-3 cursor-pointer"
                                 onClick={() => { setSearchTerm(""); setActiveTerm(null); }}
                             >
-                                <div className="relative h-11 w-11">
-                                    <div className="absolute inset-0 rounded-2xl bg-linear-to-br from-emerald-500 via-cyan-500 to-blue-700 blur-[10px] opacity-80 group-hover:opacity-100 transition" />
-                                    <div className="relative flex h-full w-full items-center justify-center rounded-2xl border border-white/10 bg-slate-950/80 shadow-[0_10px_30px_rgba(16,185,129,0.25)]">
-                                        <Brain className="h-6 w-6 text-white drop-shadow-lg" />
-                                    </div>
-                                </div>
+                                <ThemeLogo
+                                    width={40}
+                                    height={40}
+                                    className="transition-transform duration-300 group-hover:scale-105"
+                                />
                                 <div>
-                                    <p className="text-[11px] uppercase tracking-[0.2em] text-emerald-200">Diccionario</p>
-                                    <h1 className="text-xl font-bold tracking-tight text-white leading-tight">
-                                        Dev Intelligence
+                                    <p className="text-[10px] uppercase tracking-[0.2em] text-indigo-600 dark:text-indigo-300 font-bold">Diccionario</p>
+                                    <h1 className="text-lg font-bold tracking-tight text-slate-900 dark:text-white leading-tight group-hover:text-indigo-600 dark:group-hover:text-indigo-100 transition-colors">
+                                        Dev
                                     </h1>
                                 </div>
                             </div>
 
-                            <div className="hidden md:flex items-center gap-2 rounded-full border border-slate-800 bg-slate-900/60 px-2 py-1 shadow-inner">
+                            <div className="hidden md:flex items-center gap-2 rounded-full border border-slate-900 dark:border-slate-800 bg-white dark:bg-slate-900/60 px-2 py-1 shadow-inner">
                                 {navLinks.map((link) => (
                                     <a
                                         key={link.href}
                                         href={link.href}
-                                        className="rounded-full px-3 py-1.5 text-[11px] font-semibold uppercase tracking-wide text-slate-300 transition-all hover:text-white hover:bg-slate-800"
+                                        className="rounded-full px-3 py-1.5 text-[11px] font-semibold uppercase tracking-wide text-slate-600 dark:text-slate-300 transition-all hover:text-slate-900 dark:hover:text-white hover:bg-slate-200 dark:hover:bg-slate-800"
                                     >
                                         {link.label}
                                     </a>
                                 ))}
                             </div>
 
-                            <AuthActions />
+                            <div className="flex items-center gap-2">
+                                <div className="hidden md:flex items-center gap-2">
+                                    <ThemeToggle />
+                                    <NotificationBell size="sm" />
+                                </div>
+                                {session && (
+                                    <>
+                                        <a
+                                            href="/admin/profile"
+                                            className="hidden md:inline-flex items-center gap-2 rounded-full border border-slate-900 dark:border-slate-800 bg-white dark:bg-slate-900/70 px-3 py-1.5 text-sm font-semibold text-slate-900 dark:text-slate-200 hover:border-emerald-500/40 hover:text-emerald-600 dark:hover:text-white transition"
+                                            title="Ver perfil"
+                                        >
+                                            <span className="relative h-8 w-8">
+                                                <span className="relative z-0 block h-full w-full overflow-hidden rounded-full border border-white/70 ring-2 ring-white/20 bg-slate-800">
+                                                    {avatarPreview || session.avatarUrl ? (
+                                                        // eslint-disable-next-line @next/next/no-img-element
+                                                        <img
+                                                            src={avatarPreview || session.avatarUrl || ""}
+                                                            alt={session.displayName || session.username}
+                                                            className="h-full w-full object-cover rounded-full"
+                                                        />
+                                                    ) : (
+                                                        <span className="flex h-full w-full items-center justify-center text-xs font-bold text-emerald-100">
+                                                            {(session.displayName || session.username).substring(0, 2).toUpperCase()}
+                                                        </span>
+                                                    )}
+                                                </span>
+                                                <span className="absolute bottom-0 right-0 z-20 h-2.5 w-2.5 rounded-full bg-emerald-500 ring-2 ring-slate-900" />
+                                            </span>
+                                            <span className="max-w-[120px] truncate">{session.displayName || session.username}</span>
+                                        </a>
+                                    </>
+                                )}
+                                <div className="hidden md:flex">
+                                    <AuthActions />
+                                </div>
+                                <button
+                                    className="md:hidden inline-flex h-10 w-10 items-center justify-center rounded-xl border border-slate-800 bg-slate-900/70 text-white"
+                                    onClick={() => setShowMobileMenu(true)}
+                                    aria-label="Abrir menú móvil"
+                                >
+                                    <Menu className="h-5 w-5" />
+                                </button>
+                            </div>
                         </div>
+
+                        {/* Perfil del usuario (solo si hay sesión) */}
+                        {session && (
+                            <section className="relative mt-4 sm:mt-6 rounded-2xl border border-slate-800 bg-slate-900/70 shadow-inner overflow-visible">
+                                <div className="relative z-0 h-28 sm:h-36 w-full overflow-hidden">
+                                    {!coverUrl && (
+                                        <div className="absolute inset-0 bg-linear-to-r from-emerald-600 via-cyan-600 to-blue-700" />
+                                    )}
+                                    {coverUrl && (
+                                        // eslint-disable-next-line @next/next/no-img-element
+                                        <img
+                                            src={coverUrl}
+                                            alt="Portada"
+                                            className="absolute inset-0 block h-full w-full object-cover"
+                                        />
+                                    )}
+                                    <button
+                                        onClick={() => coverInputRef.current?.click()}
+                                        className="absolute right-3 top-3 inline-flex h-12 w-12 items-center justify-center text-white/90 hover:text-white"
+                                        aria-label="Cambiar portada"
+                                    >
+                                        <Camera className="h-5 w-5 dark:drop-shadow-[0_2px_6px_rgba(0,0,0,0.55)]" />
+                                    </button>
+                                    <input
+                                        ref={coverInputRef}
+                                        type="file"
+                                        accept="image/*"
+                                        className="hidden"
+                                        onChange={handleCoverUpload}
+                                    />
+                                </div>
+                                <div className="relative z-10 px-4 sm:px-6 pb-4 -mt-14 sm:-mt-18 grid grid-cols-[auto_1fr] gap-3 sm:gap-4 items-center">
+                                    <a href="/admin/profile" className="relative z-30 h-16 w-16 sm:h-20 sm:w-20 rounded-full border-2 border-white/70 bg-slate-800 overflow-visible shadow-xl ring-2 ring-white/20 hover:scale-105 transition shrink-0">
+                                        {avatarPreview || session.avatarUrl ? (
+                                            // eslint-disable-next-line @next/next/no-img-element
+                                            <img src={avatarPreview || session.avatarUrl || ""} alt={session.displayName || session.username} className="h-full w-full object-cover rounded-full" />
+                                        ) : (
+                                            <div className="flex h-full w-full items-center justify-center bg-emerald-500/20 text-emerald-100 font-bold text-xl rounded-full">
+                                                {(session.displayName || session.username).substring(0, 2).toUpperCase()}
+                                            </div>
+                                        )}
+                                        <button
+                                            onClick={(e) => { e.preventDefault(); avatarInputRef.current?.click(); }}
+                                            className="absolute -bottom-2 -right-2 inline-flex h-9 w-9 items-center justify-center text-white/90 hover:text-white"
+                                            aria-label="Cambiar foto de perfil"
+                                        >
+                                            <Camera className="h-4 w-4 dark:drop-shadow-[0_2px_6px_rgba(0,0,0,0.55)]" />
+                                        </button>
+                                        <input
+                                            ref={avatarInputRef}
+                                            type="file"
+                                            accept="image/*"
+                                            className="hidden"
+                                            onChange={handleAvatarUpload}
+                                        />
+                                    </a>
+                                    <div className="space-y-1 min-w-0 w-full">
+                                        <a href="/admin/profile" className="block group">
+                                            <h3 className="text-lg sm:text-xl font-bold text-white leading-tight group-hover:text-emerald-200 transition-colors">
+                                                {session.displayName || session.username}
+                                            </h3>
+                                        </a>
+                                        <p className="text-sm text-slate-300">
+                                            {session.bio || "Completa tu bio para que otros sepan en qué estás trabajando."}
+                                        </p>
+                                    </div>
+                                </div>
+                            </section>
+                        )}
 
                         {/* Mobile nav */}
                         <div className="flex items-center gap-2 md:hidden overflow-x-auto pb-1">
@@ -1165,47 +1677,65 @@ export default function DiccionarioDevApp() {
 
                     {/* Context Selectors */}
                     <div className="mt-4 flex gap-2 overflow-x-auto pb-1">
-                        {[
-                            { id: "concept", label: "Concepto", icon: BookOpen, color: "text-emerald-400" },
-                            { id: "interview", label: "Entrevista", icon: MessageSquare, color: "text-amber-400" },
-                            { id: "debug", label: "Debug", icon: Bug, color: "text-red-400" },
-                            { id: "translate", label: "Traducción", icon: Globe, color: "text-blue-400" },
-                        ].map((ctx) => (
-                            <span
-                                key={ctx.id}
-                                className="group flex items-center gap-2 rounded-full border border-slate-800 bg-slate-900/50 px-4 py-1.5 text-sm font-medium transition-all"
-                            >
-                                <ctx.icon className={`h-4 w-4 ${ctx.color}`} />
-                                <span className="text-slate-300 group-hover:text-white">
-                                    {ctx.label}
-                                </span>
-                            </span>
-                        ))}
+                        {CONTEXT_OPTIONS.map((ctx) => {
+                            const isActive = searchContext === ctx.id;
+                            return (
+	                                <button
+	                                    key={ctx.id}
+	                                    type="button"
+	                                    onClick={() => handleContextSelect(ctx.id)}
+	                                    aria-pressed={isActive}
+	                                    className={`group flex items-center gap-2 rounded-full border px-4 py-1.5 text-sm font-medium transition-all ${isActive
+	                                        ? `${ctx.activeBg} text-white dark:shadow-[0_10px_30px_rgba(16,185,129,0.12)]`
+	                                        : "border-slate-800 bg-slate-900/50 text-slate-300 hover:border-slate-700 hover:bg-slate-800 hover:text-white"
+	                                        }`}
+	                                >
+                                    <ctx.icon className={`h-4 w-4 ${ctx.color} ${isActive ? "" : "opacity-90"}`} />
+                                    <span>{ctx.label}</span>
+                                    {isActive && (
+                                        <span className="rounded-full bg-white/5 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-slate-200">
+                                            Activo
+                                        </span>
+                                    )}
+                                </button>
+                            );
+                        })}
                     </div>
 
-                    {/* Search Bar Omnibox */}
-                    <div className="mt-6 relative group z-50">
-                        <div className="absolute inset-y-0 left-0 flex items-center pl-4 pointer-events-none">
+                    {activeContextOption && ActiveContextIcon && (
+                        <div className="mt-2 inline-flex items-center gap-2 rounded-full border border-slate-800 bg-slate-900/70 px-3 py-1 text-[12px] text-slate-200">
+                            <ActiveContextIcon className={`h-4 w-4 ${activeContextOption.color}`} />
+                            <span className="font-semibold text-white">Modo {activeContextOption.label}</span>
+                            <span className="text-slate-400">{activeContextOption.hint}</span>
+                        </div>
+                    )}
+
+	                    {/* Search Bar Omnibox */}
+	                    <div className="mt-6 relative group z-50">
+	                        {/* Glow Effect Background */}
+	                        <div className={`absolute -inset-0.5 hidden rounded-2xl bg-linear-to-r from-emerald-500 via-cyan-500 to-blue-600 opacity-20 blur transition duration-500 group-hover:opacity-40 dark:block ${searchTerm ? 'opacity-50' : ''}`}></div>
+
+                        <div className="absolute inset-y-0 left-0 flex items-center pl-5 pointer-events-none z-10">
                             {isCodeMode ? (
-                                <Code2 className="h-5 w-5 text-blue-400 animate-pulse" />
+                                <Code2 className="h-6 w-6 text-blue-400 animate-pulse" />
                             ) : (
-                                <Search className={`h-5 w-5 transition-colors ${loading ? "text-emerald-400 animate-pulse" : "text-slate-500 group-focus-within:text-emerald-400"}`} />
+                                <Search className={`h-6 w-6 transition-colors ${loading ? "text-emerald-400 animate-pulse" : "text-slate-400 group-focus-within:text-emerald-400"}`} />
                             )}
                         </div>
-                        <input
-                            ref={searchInputRef}
-                            type="text"
-                            placeholder={isCodeMode ? "Modo Código detectado..." : isListening ? "Escuchando..." : "Busca un término (ej. useState) o pega código..."}
-                            className={`w-full rounded-2xl border bg-slate-900/50 py-4 pl-12 pr-24 text-lg text-white placeholder-slate-500 shadow-inner backdrop-blur-sm transition-all focus:outline-none focus:ring-1 ${isCodeMode
-                                ? "border-blue-500/50 focus:border-blue-500 focus:ring-blue-500/50"
-                                : isListening
-                                    ? "border-red-500/50 focus:border-red-500 focus:ring-red-500/50 animate-pulse"
-                                    : "border-slate-800 focus:border-emerald-500/50 focus:bg-slate-900 focus:ring-emerald-500/50"
-                                }`}
-                            value={searchTerm}
-                            onChange={(e) => setSearchTerm(e.target.value)}
-                            onFocus={() => {
-                                if (!searchTerm) setShowHistory(true);
+	                        <input
+	                            ref={searchInputRef}
+	                            type="text"
+	                            placeholder={getPlaceholder()}
+	                            className={`relative w-full rounded-2xl border-2 py-5 pl-14 pr-24 text-xl font-medium text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-500 shadow-none dark:shadow-2xl backdrop-blur-xl transition-all focus:outline-none focus:ring-0 ${isCodeMode
+	                                ? "bg-slate-900/90 border-blue-500/50 focus:border-blue-500 dark:shadow-blue-500/20"
+	                                : isListening
+	                                    ? "bg-slate-900/90 border-red-500/50 focus:border-red-500 animate-pulse"
+	                                    : "bg-white border-2 border-slate-900 dark:border-slate-700 hover:border-black dark:hover:border-slate-600 focus:bg-white dark:focus:bg-slate-900 focus:border-emerald-600 dark:focus:border-emerald-500 dark:shadow-emerald-500/10"
+	                                }`}
+	                            value={searchTerm}
+	                            onChange={(e) => setSearchTerm(e.target.value)}
+	                            onFocus={() => {
+	                                if (!searchTerm) setShowHistory(true);
                             }}
                             onBlur={() => setTimeout(() => setShowHistory(false), 200)}
                             onKeyDown={handleKeyDown}
@@ -1281,11 +1811,11 @@ export default function DiccionarioDevApp() {
 
                         {/* Dropdown de Resultados Inteligente */}
                         {(results.length > 0 || (showHistory && recentSearches.length > 0) || (hasSearched && results.length === 0 && !loading && searchTerm) || loading) && (
-                            <div className="absolute top-full left-0 right-0 mt-2 rounded-xl border border-slate-800 bg-slate-900 shadow-2xl overflow-hidden max-h-[60vh] overflow-y-auto custom-scrollbar">
+                            <div className="absolute top-full left-0 right-0 mt-2 rounded-xl border-2 border-slate-900 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-lg dark:shadow-2xl overflow-hidden max-h-[60vh] overflow-y-auto custom-scrollbar">
 
-                                {/* Loading State */}
+                                {/* Loading State - Centrado Perfecto */}
                                 {loading && (
-                                    <div className="p-4">
+                                    <div className="flex flex-col items-center justify-center min-h-[350px] w-full p-8">
                                         <GeminiLoader term={searchTerm} />
                                     </div>
                                 )}
@@ -1293,17 +1823,17 @@ export default function DiccionarioDevApp() {
                                 {/* Historial */}
                                 {showHistory && !results.length && !searchTerm && !loading && (
                                     <div className="py-2">
-                                        <div className="px-4 py-2 text-xs font-bold uppercase tracking-wider text-slate-500 flex items-center gap-2">
+                                        <div className="px-4 py-2 text-xs font-bold uppercase tracking-wider text-slate-900 dark:text-slate-500 flex items-center gap-2">
                                             <History className="h-3 w-3" /> Recientes
                                         </div>
                                         {recentSearches.map((term) => (
                                             <button
                                                 key={term}
                                                 onMouseDown={() => { setSearchTerm(term); }}
-                                                className="w-full px-4 py-2 text-left flex items-center gap-3 hover:bg-slate-800 text-slate-300 hover:text-white transition-colors"
+                                                className="w-full px-4 py-2 text-left flex items-center gap-3 hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white transition-colors group"
                                             >
-                                                <History className="h-4 w-4 text-slate-600" />
-                                                {term}
+                                                <History className="h-4 w-4 text-slate-400 dark:text-slate-600 group-hover:text-slate-900 dark:group-hover:text-slate-400" />
+                                                <span className="font-medium">{term}</span>
                                             </button>
                                         ))}
                                     </div>
@@ -1320,17 +1850,17 @@ export default function DiccionarioDevApp() {
                                                 key={term.id}
                                                 id={`result-item-${idx}`}
                                                 onClick={() => selectTerm(term)}
-                                                className={`w-full px-4 py-3 text-left flex items-center justify-between transition-colors ${idx === selectedIndex ? 'bg-emerald-500/10 border-l-4 border-emerald-500' : 'hover:bg-slate-800 border-l-4 border-transparent'
+                                                className={`w-full px-4 py-3 text-left flex items-center justify-between transition-colors ${idx === selectedIndex ? 'bg-emerald-50 dark:bg-emerald-500/10 border-l-4 border-emerald-500' : 'hover:bg-slate-50 dark:hover:bg-slate-800 border-l-4 border-transparent'
                                                     }`}
                                             >
                                                 <div className="flex items-center gap-3">
-                                                    <div className={`h-8 w-8 rounded-lg flex items-center justify-center ${idx === selectedIndex ? 'bg-emerald-500/20 text-emerald-400' : 'bg-slate-800 text-slate-400'}`}>
+                                                    <div className={`h-8 w-8 rounded-lg flex items-center justify-center ${idx === selectedIndex ? 'bg-emerald-100 dark:bg-emerald-500/20 text-emerald-600 dark:text-emerald-400' : 'bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400'}`}>
                                                         {term.category === 'frontend' ? <Globe className="h-4 w-4" /> :
                                                             term.category === 'backend' ? <Terminal className="h-4 w-4" /> :
                                                                 <BookOpen className="h-4 w-4" />}
                                                     </div>
                                                     <div>
-                                                        <span className={`font-bold block ${idx === selectedIndex ? 'text-white' : 'text-slate-200'}`}>
+                                                        <span className={`font-bold block ${idx === selectedIndex ? 'text-slate-900 dark:text-white' : 'text-slate-700 dark:text-slate-200'}`}>
                                                             {highlightMatch(term.term, debouncedSearch)}
                                                         </span>
                                                         <span className="text-xs text-slate-500 line-clamp-1">{term.translation}</span>
@@ -1359,65 +1889,479 @@ export default function DiccionarioDevApp() {
                         {["#react", "#hooks", "#typescript", "#docker", "#aws"].map((tag) => (
                             <span
                                 key={tag}
-                                className="cursor-pointer rounded px-2 py-1 text-slate-500 hover:bg-slate-800 hover:text-emerald-400 transition-colors"
+                                className="cursor-pointer rounded px-2 py-1 text-slate-700 dark:text-slate-500 font-medium hover:bg-slate-200 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-emerald-400 transition-colors"
                                 onClick={() => setSearchTerm(tag.replace("#", ""))}
                             >
                                 {tag}
                             </span>
                         ))}
                     </div>
+
+                    {showEmptyMessage && (
+                        <div className="mt-4 text-center text-slate-700 dark:text-slate-500">
+                            <p className="mb-3 text-sm sm:text-base font-medium">Prueba buscando un término técnico para ver resultados.</p>
+                            {recentSearches.length > 0 && (
+                                <div className="inline-flex flex-wrap items-center justify-center gap-2 rounded-full border-2 border-slate-900 dark:border-slate-800 bg-white dark:bg-slate-900 px-3 py-2 text-xs sm:text-sm shadow-sm">
+                                    <History className="h-4 w-4 text-slate-900 dark:text-slate-500" />
+                                    <span className="text-slate-900 dark:text-slate-400 font-bold">Últimas búsquedas:</span>
+                                    {recentSearches.map((term) => (
+                                        <button
+                                            key={term}
+                                            onClick={() => setSearchTerm(term)}
+                                            className="rounded-full bg-slate-100 dark:bg-slate-800 border border-slate-300 dark:border-transparent px-2 py-1 text-slate-900 dark:text-slate-200 hover:bg-slate-200 dark:hover:bg-slate-700 hover:border-slate-900 dark:hover:border-slate-600 transition-all font-medium"
+                                        >
+                                            {term}
+                                        </button>
+                                    ))}
+                                </div>
+                            )}
+                        </div>
+                    )}
                 </div>
             </header>
 
+            {/* Menú móvil superpuesto */}
+            {/* Menú móvil superpuesto (Twitter Style) */}
+            <div
+                className={`fixed inset-0 z-120 md:hidden transition-opacity duration-300 ${showMobileMenu ? "opacity-100 pointer-events-auto" : "opacity-0 pointer-events-none"}`}
+                aria-hidden={!showMobileMenu}
+            >
+                {/* Overlay */}
+                <div
+                    className="absolute inset-0 bg-black/70 backdrop-blur-sm"
+                    onClick={() => setShowMobileMenu(false)}
+                />
+
+                {/* Drawer */}
+	                <div
+	                    className={`absolute top-2 bottom-2 left-0 w-[82vw] max-w-80 rounded-2xl border border-neo-border bg-linear-to-b from-neo-bg via-neo-bg/95 to-neo-surface shadow-2xl overflow-hidden transform transition-transform duration-300 ease-out ${showMobileMenu ? "translate-x-0" : "-translate-x-full"}`}
+	                    role="dialog"
+	                    aria-modal="true"
+	                    aria-label="Menú"
+	                >
+	                    <div className="flex h-full flex-col">
+                        <div className="flex items-center justify-between gap-3 border-b border-neo-border/70 px-4 py-3">
+                            <div className="flex items-center gap-3 min-w-0">
+                                <ThemeLogo width={34} height={34} className="shrink-0 rounded-xl" />
+                                <div className="flex flex-col min-w-0 justify-center leading-tight">
+                                    <p className="mb-0.5 text-[9px] font-bold uppercase tracking-[0.2em] text-neo-text-secondary truncate leading-none">Diccionario</p>
+                                    <h1 className="text-base font-bold tracking-tight text-neo-text-primary leading-none truncate">
+                                        Dev
+                                    </h1>
+                                </div>
+                            </div>
+                            <div className="flex items-center gap-2">
+                                <NotificationBell size="sm" align="left" />
+                                <ThemeToggle />
+                                <button
+                                    onClick={() => setShowMobileMenu(false)}
+                                    className="flex h-9 w-9 items-center justify-center rounded-full border border-neo-border bg-neo-surface text-neo-text-secondary transition hover:border-neo-primary/40 hover:text-neo-text-primary"
+                                    aria-label="Cerrar menú"
+                                >
+                                    <X className="h-5 w-5" />
+                                </button>
+                            </div>
+                        </div>
+
+	                        <div className="flex-1 overflow-y-auto p-4 space-y-4 no-scrollbar">
+	                            {session ? (
+	                                <a
+	                                    href="/admin/profile"
+                                    className="flex items-center gap-3 rounded-2xl border border-neo-border bg-neo-card/70 px-3 py-3 transition-colors hover:border-neo-primary/40 hover:bg-neo-card"
+                                    onClick={() => setShowMobileMenu(false)}
+                                >
+                                    <span className="relative h-10 w-10 shrink-0">
+                                        <span className="relative z-0 block h-full w-full overflow-hidden rounded-full border border-neo-border bg-neo-surface ring-2 ring-neo-primary/10">
+                                            {avatarPreview || session.avatarUrl ? (
+                                                // eslint-disable-next-line @next/next/no-img-element
+                                                <img
+                                                    src={avatarPreview || session.avatarUrl || ""}
+                                                    alt={session.displayName || session.username}
+                                                    className="h-full w-full rounded-full object-cover"
+                                                />
+                                            ) : (
+                                                <span className="flex h-full w-full items-center justify-center text-xs font-bold text-neo-text-primary">
+                                                    {(session.displayName || session.username).substring(0, 2).toUpperCase()}
+                                                </span>
+                                            )}
+                                        </span>
+                                        <span className="absolute bottom-0 right-0 z-20 h-2.5 w-2.5 rounded-full bg-emerald-500 ring-2 ring-neo-card" />
+                                    </span>
+                                    <div className="flex flex-col leading-tight min-w-0">
+                                        <span className="text-sm font-semibold text-neo-text-primary truncate">
+                                            {session.displayName || session.username}
+                                        </span>
+                                        <span className="text-[10px] text-neo-text-secondary truncate">@{session.username}</span>
+                                    </div>
+                                </a>
+                            ) : null}
+
+                            <div className="rounded-2xl border border-neo-border bg-neo-card/70 p-3 space-y-2">
+                                <div className="flex items-center justify-between">
+                                    <span className="text-[11px] font-semibold uppercase tracking-[0.18em] text-neo-text-secondary">
+                                        {session ? "Cuenta" : "Acceso"}
+                                    </span>
+                                    {session ? (
+                                        <span className="inline-flex items-center gap-1.5 rounded-full border border-neo-primary/30 bg-neo-primary/10 px-2 py-0.5 text-[10px] font-bold text-neo-primary">
+                                            <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
+                                            En línea
+                                        </span>
+                                    ) : null}
+                                </div>
+                                <AuthActions variant="compact" layout="stacked" />
+                            </div>
+
+                            <div className="flex items-center justify-between px-1 text-[11px] uppercase tracking-[0.2em] text-neo-text-secondary">
+                                <span>Navegación</span>
+                                <span className="flex-1 mx-3 h-px bg-neo-border/70" />
+                            </div>
+
+                            <div className="space-y-2">
+                                {navLinks.map((link) => {
+                                    const IconComp =
+                                        link.label === "Inicio"
+                                            ? Home
+                                            : link.label === "Buscar"
+                                                ? Search
+                                                : link.label === "Extensiones"
+                                                    ? Sparkles
+                                                    : link.label === "Panel"
+                                                        ? Settings
+                                                        : Code2;
+                                    const isPanel = link.href.startsWith("/");
+                                    return (
+                                        <a
+                                            key={link.href}
+                                            href={link.href}
+                                            onClick={() => setShowMobileMenu(false)}
+                                            className={`flex items-center justify-between gap-3 rounded-2xl border px-3 py-2.5 text-sm font-semibold transition-colors ${isPanel
+                                                ? "border-neo-primary/30 bg-neo-primary/10 text-neo-primary hover:border-neo-primary/50"
+                                                : "border-neo-border bg-neo-card/70 text-neo-text-primary hover:border-neo-primary/40 hover:bg-neo-card"
+                                                }`}
+                                        >
+                                            <span className="flex items-center gap-3 min-w-0">
+                                                <span className={`flex h-9 w-9 items-center justify-center rounded-xl ${isPanel
+                                                    ? "bg-neo-primary/15 text-neo-primary"
+                                                    : "bg-neo-surface text-neo-text-secondary"
+                                                    }`}
+                                                >
+                                                    <IconComp className="h-5 w-5" />
+                                                </span>
+                                                <span className="leading-tight truncate">{link.label}</span>
+                                            </span>
+                                            {isPanel ? <ArrowRight className="h-4 w-4 text-neo-primary" /> : null}
+                                        </a>
+                                    );
+                                })}
+                            </div>
+
+                            <div className="rounded-2xl border border-neo-border bg-neo-card/70 p-3 space-y-2">
+                                <div className="flex items-center justify-between">
+                                    <span className="text-[11px] font-semibold uppercase tracking-[0.18em] text-neo-text-secondary">Modo</span>
+                                    <span className="text-[10px] font-semibold text-neo-text-secondary">
+                                        {activeContextOption ? activeContextOption.label : "Auto"}
+                                    </span>
+                                </div>
+                                <div className="grid grid-cols-2 gap-2">
+                                    {CONTEXT_OPTIONS.map((ctx) => {
+                                        const isActive = searchContext === ctx.id;
+                                        return (
+                                            <button
+                                                key={ctx.id}
+                                                type="button"
+                                                onClick={() => { handleContextSelect(ctx.id); setShowMobileMenu(false); }}
+                                                aria-pressed={isActive}
+                                                className={`flex w-full items-center gap-2 rounded-xl border px-3 py-2 text-sm font-semibold transition-colors ${isActive
+                                                    ? `${ctx.activeBg} text-neo-text-primary shadow-sm`
+                                                    : "border-neo-border bg-neo-bg/60 text-neo-text-primary hover:border-neo-primary/40 hover:bg-neo-surface"
+                                                    }`}
+                                            >
+                                                <span className={`flex h-8 w-8 items-center justify-center rounded-lg ${isActive ? "bg-neo-primary/10" : "bg-neo-surface"}`}>
+                                                    <ctx.icon className={`h-4 w-4 ${ctx.color}`} />
+                                                </span>
+                                                <span className="leading-tight text-left">{ctx.label}</span>
+                                            </button>
+                                        );
+                                    })}
+	                                </div>
+	                            </div>
+	                        </div>
+
+	                        <div className="border-t border-neo-border/70 px-4 py-3">
+	                            <div className="flex items-center justify-between gap-3">
+	                                <span className="text-[11px] font-semibold uppercase tracking-[0.18em] text-neo-text-secondary">Redes</span>
+	                                <div className="flex items-center gap-2">
+	                                    <a
+	                                        href="https://github.com"
+	                                        aria-label="GitHub"
+	                                        className="flex h-10 w-10 items-center justify-center rounded-full border border-neo-border bg-neo-card/60 text-neo-text-secondary transition hover:-translate-y-0.5 hover:border-neo-primary/60 hover:text-neo-primary"
+	                                    >
+	                                        <Github className="h-5 w-5" />
+	                                    </a>
+	                                    <a
+	                                        href="https://twitter.com"
+	                                        aria-label="Twitter"
+	                                        className="flex h-10 w-10 items-center justify-center rounded-full border border-neo-border bg-neo-card/60 text-neo-text-secondary transition hover:-translate-y-0.5 hover:border-neo-primary/60 hover:text-neo-primary"
+	                                    >
+	                                        <Twitter className="h-5 w-5" />
+	                                    </a>
+	                                    <a
+	                                        href="https://linkedin.com"
+	                                        aria-label="LinkedIn"
+	                                        className="flex h-10 w-10 items-center justify-center rounded-full border border-neo-border bg-neo-card/60 text-neo-text-secondary transition hover:-translate-y-0.5 hover:border-neo-primary/60 hover:text-neo-primary"
+	                                    >
+	                                        <Linkedin className="h-5 w-5" />
+	                                    </a>
+	                                </div>
+	                            </div>
+	                        </div>
+	                    </div>
+	                </div>
+	            </div>
+
+            {/* Editor de portada */}
+            {coverEditorOpen && (
+                <div className="fixed inset-0 z-130 flex items-center justify-center px-4">
+                    <div className="absolute inset-0 bg-black/80 backdrop-blur-sm" onClick={() => setCoverEditorOpen(false)} />
+                    <div className="relative w-full max-w-3xl rounded-2xl border border-neo-border bg-neo-card shadow-2xl overflow-hidden">
+                        <div className="flex items-center justify-between border-b border-neo-border px-4 py-3">
+                            <div className="flex items-center gap-2">
+                                <Sparkles className="h-5 w-5 text-neo-primary" />
+                                <p className="text-sm font-semibold text-neo-text-primary">Ajustar portada</p>
+                            </div>
+                            <button
+                                onClick={() => setCoverEditorOpen(false)}
+                                className="h-9 w-9 rounded-xl border border-neo-border bg-neo-surface text-neo-text-secondary"
+                                aria-label="Cerrar editor"
+                            >
+                                <X className="h-5 w-5" />
+                            </button>
+                        </div>
+
+                        <div className="grid gap-4 p-4 lg:grid-cols-[2fr_1fr] items-start">
+                            <div className="rounded-2xl border border-neo-border bg-neo-surface p-3">
+                                <div
+                                    ref={coverPreviewRef}
+                                    className="relative w-full overflow-hidden rounded-lg border border-white/70 ring-2 ring-white/20 bg-neo-bg"
+                                    onMouseDown={(e) => startDragCover(e.clientX, e.clientY)}
+                                    onMouseMove={(e) => moveDragCover(e.clientX, e.clientY)}
+                                    onMouseUp={endDragCover}
+                                    onMouseLeave={endDragCover}
+                                    onTouchStart={(e) => {
+                                        const touch = e.touches[0];
+                                        if (touch) startDragCover(touch.clientX, touch.clientY);
+                                    }}
+                                    onTouchMove={(e) => {
+                                        const touch = e.touches[0];
+                                        if (touch) moveDragCover(touch.clientX, touch.clientY);
+                                    }}
+                                    onTouchEnd={endDragCover}
+                                >
+                                    <div
+                                        className={`h-48 sm:h-56 md:h-64 bg-slate-900 ${isDraggingCover ? "cursor-grabbing" : "cursor-grab"}`}
+                                        style={{
+                                            backgroundImage: `url(${coverDraftUrl || coverUrl || ""})`,
+                                            backgroundSize: `${coverBaseScale * coverZoom * 100}%`,
+                                            backgroundPosition: `${50 + coverOffsetX}% ${50 + coverOffsetY}%`,
+                                            backgroundRepeat: "no-repeat",
+                                        }}
+                                    />
+                                    <div className="pointer-events-none absolute inset-0 rounded-lg ring-1 ring-white/20" />
+                                </div>
+                                <p className="mt-2 text-xs text-neo-text-secondary">Arrastra para reubicar y ajusta el zoom (mismo flujo que Avatar).</p>
+                            </div>
+
+                            <div className="space-y-3">
+                                <div>
+                                    <label className="text-xs font-semibold text-neo-text-primary">Zoom</label>
+                                    <input
+                                        type="range"
+                                        min={1}
+                                        max={3}
+                                        step={0.05}
+                                        value={coverZoom}
+                                        onChange={(e) => setCoverZoom(parseFloat(e.target.value))}
+                                        className="w-full accent-neo-primary"
+                                    />
+                                </div>
+                                <div className="flex flex-wrap gap-2">
+                                    <button
+                                        onClick={() => {
+                                            setCoverZoom(1);
+                                            setCoverOffsetX(0);
+                                            setCoverOffsetY(0);
+                                        }}
+                                        className="rounded-lg border border-neo-border bg-neo-bg px-3 py-2 text-xs font-semibold text-neo-text-secondary hover:border-neo-primary/40 hover:text-neo-text-primary transition"
+                                    >
+                                        Reajustar
+                                    </button>
+                                    <button
+                                        onClick={() => setCoverEditorOpen(false)}
+                                        className="rounded-lg border border-neo-border bg-neo-card px-3 py-2 text-xs font-semibold text-neo-text-secondary hover:border-neo-text-secondary hover:text-neo-text-primary transition"
+                                    >
+                                        Cancelar
+                                    </button>
+                                    <button
+                                        onClick={applyCoverEdits}
+                                        className="flex-1 rounded-lg bg-neo-primary px-3 py-2 text-xs font-semibold text-white shadow-lg shadow-neo-primary/25 transition hover:brightness-110"
+                                    >
+                                        Guardar portada
+                                    </button>
+                                    <button
+                                        onClick={handleResetCover}
+                                        className="rounded-lg border border-neo-border bg-neo-bg px-3 py-2 text-xs font-semibold text-neo-text-secondary hover:border-neo-primary/40 hover:text-neo-text-primary transition"
+                                    >
+                                        Restablecer
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            )}
+            {/* Editor de avatar */}
+            {avatarEditorOpen && (
+                <div className="fixed inset-0 z-140 flex items-center justify-center px-4">
+                    <div className="absolute inset-0 bg-black/80 backdrop-blur-sm" onClick={() => setAvatarEditorOpen(false)} />
+                    <div className="relative w-full max-w-md overflow-hidden rounded-2xl border border-neo-border bg-neo-card shadow-2xl">
+                        <div className="flex items-center justify-between border-b border-neo-border px-4 py-3">
+                            <div className="flex items-center gap-2">
+                                <Sparkles className="h-5 w-5 text-neo-primary" />
+                                <p className="text-sm font-semibold text-neo-text-primary">Ajustar foto</p>
+                            </div>
+                            <button
+                                onClick={() => setAvatarEditorOpen(false)}
+                                className="h-9 w-9 rounded-xl border border-neo-border bg-neo-surface text-neo-text-secondary"
+                                aria-label="Cerrar editor"
+                            >
+                                <X className="h-5 w-5" />
+                            </button>
+                        </div>
+
+                        <div className="grid gap-4 p-4 items-start">
+                            <div className="rounded-2xl border border-neo-border bg-neo-surface p-3">
+                                <div
+                                    ref={avatarPreviewRef}
+                                    className="relative mx-auto h-48 w-48 overflow-hidden rounded-full border border-white/70 ring-2 ring-white/20 bg-neo-bg"
+                                    onMouseDown={(e) => startDragAvatar(e.clientX, e.clientY)}
+                                    onMouseMove={(e) => moveDragAvatar(e.clientX, e.clientY)}
+                                    onMouseUp={endDragAvatar}
+                                    onMouseLeave={endDragAvatar}
+                                    onTouchStart={(e) => {
+                                        const touch = e.touches[0];
+                                        if (touch) startDragAvatar(touch.clientX, touch.clientY);
+                                    }}
+                                    onTouchMove={(e) => {
+                                        const touch = e.touches[0];
+                                        if (touch) moveDragAvatar(touch.clientX, touch.clientY);
+                                    }}
+                                    onTouchEnd={endDragAvatar}
+                                >
+                                    <div
+                                        className={`absolute inset-0 bg-slate-900 ${isDraggingAvatar ? "cursor-grabbing" : "cursor-grab"}`}
+                                        style={{
+                                            backgroundImage: `url(${avatarDraftUrl || avatarPreview || session?.avatarUrl || ""})`,
+                                            backgroundSize: `${avatarBaseScale * avatarZoom * 100}%`,
+                                            backgroundPosition: `${50 + avatarOffsetX}% ${50 + avatarOffsetY}%`,
+                                            backgroundRepeat: "no-repeat",
+                                        }}
+                                    />
+                                    <div className="pointer-events-none absolute inset-0 rounded-full ring-1 ring-white/20" />
+                                </div>
+                                <p className="mt-2 text-xs text-neo-text-secondary">Arrastra para reubicar y ajusta el zoom (igual que en Admin).</p>
+                            </div>
+
+                            <div className="space-y-3">
+                                <div>
+                                    <label className="text-xs font-semibold text-neo-text-primary">Zoom</label>
+                                    <input
+                                        type="range"
+                                        min={1}
+                                        max={3}
+                                        step={0.05}
+                                        value={avatarZoom}
+                                        onChange={(e) => setAvatarZoom(parseFloat(e.target.value))}
+                                        className="w-full accent-neo-primary"
+                                    />
+                                </div>
+                                <div className="flex flex-wrap gap-2">
+                                    <button
+                                        onClick={() => {
+                                            setAvatarZoom(1);
+                                            setAvatarOffsetX(0);
+                                            setAvatarOffsetY(0);
+                                        }}
+                                        className="rounded-lg border border-neo-border bg-neo-bg px-3 py-2 text-xs font-semibold text-neo-text-secondary hover:border-neo-primary/40 hover:text-neo-text-primary transition-colors"
+                                    >
+                                        Reajustar
+                                    </button>
+                                    <button
+                                        onClick={() => setAvatarEditorOpen(false)}
+                                        className="rounded-lg border border-neo-border bg-neo-card px-3 py-2 text-xs font-semibold text-neo-text-secondary hover:border-neo-text-secondary hover:text-neo-text-primary transition-colors"
+                                    >
+                                        Cancelar
+                                    </button>
+                                    <button
+                                        onClick={applyAvatarEdits}
+                                        className="flex-1 rounded-lg bg-neo-primary px-3 py-2 text-xs font-semibold text-white shadow-lg shadow-neo-primary/25 transition-colors hover:brightness-110"
+                                    >
+                                        Guardar foto
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            )}
             {showSearchExplainer && (
                 <>
-                    {/* --- Search Explainer --- */}
-                    <section className="mx-auto w-full max-w-7xl px-4 lg:px-6 xl:px-8 mt-4">
-                        <div className="relative overflow-hidden rounded-2xl border border-slate-800 bg-slate-900/70 shadow-[0_25px_80px_rgba(0,0,0,0.55)] backdrop-blur-sm">
-                            <div className="absolute -left-24 -top-24 h-56 w-56 bg-emerald-500/20 blur-3xl" />
-                            <div className="absolute -right-12 -bottom-20 h-64 w-64 bg-blue-500/20 blur-3xl" />
-                            <div className="relative p-6 sm:p-8 space-y-6">
-                                <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-                                    <div className="space-y-2">
-                                        <span className="inline-flex items-center gap-2 rounded-full border border-emerald-500/40 bg-emerald-500/10 px-3 py-1 text-[11px] font-semibold uppercase tracking-wide text-emerald-200">
-                                            <Search className="h-4 w-4" />
-                                            Buscador inteligente
-                                        </span>
-                                        <h2 className="text-2xl md:text-3xl font-bold text-white leading-tight">
+	                    {/* --- Search Explainer --- */}
+	                    <section className="mx-auto w-full max-w-7xl 2xl:max-w-[1600px] px-4 lg:px-6 xl:px-8 2xl:px-12 mt-4">
+	                        <div className="relative overflow-hidden rounded-2xl border-2 border-slate-900 dark:border-slate-800 bg-white dark:bg-slate-900/70 shadow-none dark:shadow-[0_25px_80px_rgba(0,0,0,0.55)] backdrop-blur-xl">
+	                            <div className="absolute -left-24 -top-24 hidden h-56 w-56 bg-emerald-500/20 blur-3xl dark:block" />
+	                            <div className="absolute -right-12 -bottom-20 hidden h-64 w-64 bg-blue-500/20 blur-3xl dark:block" />
+	                            <div className="relative p-6 sm:p-8 space-y-6">
+	                                <div className="grid grid-cols-1 lg:grid-cols-[1fr_auto] gap-4 lg:gap-6 items-start lg:items-center">
+	                                    <div className="space-y-4 w-full min-w-0">
+	                                        <span className="inline-flex items-center gap-2 rounded-full border border-slate-900 dark:border-emerald-500/40 bg-white dark:bg-emerald-500/10 px-3 py-1 text-[11px] font-bold uppercase tracking-wide text-slate-900 dark:text-emerald-200">
+	                                            <Search className="h-4 w-4" />
+	                                            Buscador inteligente
+	                                        </span>
+                                        <h2 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-neo-text-primary dark:text-white leading-tight">
                                             Entiende lo que escribes y te devuelve la pieza exacta
                                         </h2>
-                                        <p className="text-sm text-slate-300 max-w-2xl">
+                                        <p className="text-sm sm:text-base text-slate-600 dark:text-slate-300 leading-relaxed font-medium">
                                             Detecta si estás buscando un concepto, una traducción o si pegaste código, para abrir la ficha técnica con ejemplos, previews y buenas prácticas listas para copiar.
                                         </p>
                                     </div>
-                                    <div className="flex items-center gap-3 rounded-xl border border-slate-700/60 bg-slate-800/70 px-4 py-3 text-left shadow-inner">
-                                        <div className="flex h-11 w-11 items-center justify-center rounded-lg bg-emerald-500/15 text-emerald-300">
-                                            <ArrowRight className="h-5 w-5" />
-                                        </div>
-                                        <div className="space-y-1">
-                                            <p className="text-sm font-semibold text-white">Tip rápido</p>
-                                            <p className="text-xs text-slate-400">Pega un snippet y el buscador detecta el concepto y abre la ficha adecuada.</p>
+	                                    <div className="flex items-center gap-4 rounded-2xl border border-slate-900 dark:border-slate-700/60 bg-white dark:bg-slate-800/70 px-5 py-4 text-left dark:shadow-inner w-full">
+	                                        <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-blue-600 text-white dark:bg-emerald-500/15 dark:text-emerald-300 shrink-0">
+	                                            <ArrowRight className="h-5 w-5" />
+	                                        </div>
+	                                        <div className="space-y-1 min-w-0 flex-1">
+	                                            <p className="text-sm font-semibold text-neo-text-primary dark:text-white">Tip rápido</p>
+                                            <p className="text-xs text-neo-text-secondary dark:text-slate-400">Pega un snippet y el buscador detecta el concepto y abre la ficha adecuada.</p>
                                         </div>
                                     </div>
                                 </div>
 
-                                <div className="grid gap-3 md:grid-cols-3">
-                                    <div className="rounded-xl border border-slate-800 bg-slate-900/80 p-4 shadow-lg shadow-emerald-500/5">
-                                        <div className="flex items-start gap-3">
-                                            <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-emerald-500/15 text-emerald-300">
-                                                <BookOpen className="h-5 w-5" />
-                                            </div>
-                                            <div className="space-y-1">
-                                                <p className="text-sm font-semibold text-white">Define y traduce</p>
-                                                <p className="text-xs text-slate-400">Términos técnicos en español e inglés con contexto, alias y significados claros.</p>
-                                                <div className="mt-2 flex flex-wrap gap-2 text-[11px] text-emerald-200">
-                                                    <span className="inline-flex items-center gap-1 rounded-full bg-emerald-500/10 px-2 py-1 border border-emerald-500/30">
+	                                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-4 gap-3 sm:gap-4 2xl:gap-6">
+	                                    <div className="rounded-xl border-2 border-slate-900 dark:border-slate-800 bg-white dark:bg-slate-900/80 p-4">
+	                                        <div className="flex items-start gap-3">
+	                                            <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-emerald-100 dark:bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 shrink-0 border border-emerald-200 dark:border-transparent">
+	                                                <BookOpen className="h-5 w-5" />
+	                                            </div>
+                                            <div className="space-y-1 min-w-0">
+                                                <p className="text-sm font-bold text-slate-900 dark:text-white">Define y traduce</p>
+                                                <p className="text-xs text-slate-700 dark:text-slate-400 font-medium">Términos técnicos en español e inglés con contexto, alias y significados claros.</p>
+                                                <div className="mt-2 flex flex-wrap gap-2 text-[11px] text-emerald-800 dark:text-emerald-200">
+                                                    <span className="inline-flex items-center gap-1 rounded-full bg-emerald-50 dark:bg-emerald-500/10 px-2 py-1 border border-emerald-200 dark:border-emerald-500/30 font-semibold">
                                                         <Check className="h-3 w-3" /> ES / EN
                                                     </span>
-                                                    <span className="inline-flex items-center gap-1 rounded-full bg-emerald-500/10 px-2 py-1 border border-emerald-500/30">
+                                                    <span className="inline-flex items-center gap-1 rounded-full bg-emerald-50 dark:bg-emerald-500/10 px-2 py-1 border border-emerald-200 dark:border-emerald-500/30 font-semibold">
                                                         <Check className="h-3 w-3" /> Alias y tags
                                                     </span>
-                                                    <span className="inline-flex items-center gap-1 rounded-full bg-emerald-500/10 px-2 py-1 border border-emerald-500/30">
+                                                    <span className="inline-flex items-center gap-1 rounded-full bg-emerald-50 dark:bg-emerald-500/10 px-2 py-1 border border-emerald-200 dark:border-emerald-500/30 font-semibold">
                                                         <Check className="h-3 w-3" /> Historial rápido
                                                     </span>
                                                 </div>
@@ -1425,22 +2369,22 @@ export default function DiccionarioDevApp() {
                                         </div>
                                     </div>
 
-                                    <div className="rounded-xl border border-slate-800 bg-slate-900/80 p-4 shadow-lg shadow-blue-500/5">
-                                        <div className="flex items-start gap-3">
-                                            <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-blue-500/15 text-blue-300">
-                                                <Code2 className="h-5 w-5" />
+	                                    <div className="rounded-xl border-2 border-slate-900 dark:border-slate-800 bg-white dark:bg-slate-900/80 p-4">
+	                                        <div className="flex items-start gap-3">
+	                                            <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-blue-100 dark:bg-blue-500/15 text-blue-700 dark:text-blue-300 shrink-0 border border-blue-200 dark:border-transparent">
+	                                                <Code2 className="h-5 w-5" />
                                             </div>
-                                            <div className="space-y-1">
-                                                <p className="text-sm font-semibold text-white">Entiende tu código</p>
-                                                <p className="text-xs text-slate-400">Detecta hooks, utilidades CSS o APIs pegando un fragmento y muestra el snippet correcto.</p>
-                                                <div className="mt-2 flex flex-wrap gap-2 text-[11px] text-blue-100">
-                                                    <span className="inline-flex items-center gap-1 rounded-full bg-blue-500/10 px-2 py-1 border border-blue-500/30">
+                                            <div className="space-y-1 min-w-0">
+                                                <p className="text-sm font-bold text-slate-900 dark:text-white">Entiende tu código</p>
+                                                <p className="text-xs text-slate-700 dark:text-slate-400 font-medium">Detecta hooks, utilidades CSS o APIs pegando un fragmento y muestra el snippet correcto.</p>
+                                                <div className="mt-2 flex flex-wrap gap-2 text-[11px] text-blue-800 dark:text-blue-100">
+                                                    <span className="inline-flex items-center gap-1 rounded-full bg-blue-50 dark:bg-blue-500/10 px-2 py-1 border border-blue-200 dark:border-blue-500/30 font-semibold">
                                                         <Check className="h-3 w-3" /> Modo código auto
                                                     </span>
-                                                    <span className="inline-flex items-center gap-1 rounded-full bg-blue-500/10 px-2 py-1 border border-blue-500/30">
+                                                    <span className="inline-flex items-center gap-1 rounded-full bg-blue-50 dark:bg-blue-500/10 px-2 py-1 border border-blue-200 dark:border-blue-500/30 font-semibold">
                                                         <Check className="h-3 w-3" /> Previews HTML/CSS
                                                     </span>
-                                                    <span className="inline-flex items-center gap-1 rounded-full bg-blue-500/10 px-2 py-1 border border-blue-500/30">
+                                                    <span className="inline-flex items-center gap-1 rounded-full bg-blue-50 dark:bg-blue-500/10 px-2 py-1 border border-blue-200 dark:border-blue-500/30 font-semibold">
                                                         <Check className="h-3 w-3" /> Atajos CMD+K
                                                     </span>
                                                 </div>
@@ -1448,14 +2392,14 @@ export default function DiccionarioDevApp() {
                                         </div>
                                     </div>
 
-                                    <div className="rounded-xl border border-slate-800 bg-slate-900/80 p-4 shadow-lg shadow-purple-500/5">
-                                        <div className="flex items-start gap-3">
-                                            <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-purple-500/15 text-purple-200">
-                                                <Mic className="h-5 w-5" />
-                                            </div>
-                                            <div className="space-y-1">
-                                                <p className="text-sm font-semibold text-white">Habla o escribe</p>
-                                                <p className="text-xs text-slate-400">Usa voz, atajos CMD+K o historial para saltar rápido a lo que necesitas.</p>
+	                                    <div className="rounded-xl border-2 border-slate-900 dark:border-slate-800 bg-white dark:bg-slate-900/80 p-4 sm:col-span-2 lg:col-span-1">
+	                                        <div className="flex items-start gap-3">
+	                                            <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-purple-100 dark:bg-purple-500/15 text-purple-700 dark:text-purple-200 shrink-0 border border-purple-200 dark:border-transparent">
+	                                                <Mic className="h-5 w-5" />
+	                                            </div>
+                                            <div className="space-y-1 min-w-0">
+                                                <p className="text-sm font-bold text-slate-900 dark:text-white">Habla o escribe</p>
+                                                <p className="text-xs text-slate-700 dark:text-slate-400 font-medium">Usa voz, atajos CMD+K o historial para saltar rápido a lo que necesitas.</p>
                                             </div>
                                         </div>
                                     </div>
@@ -1467,40 +2411,38 @@ export default function DiccionarioDevApp() {
             )}
 
             {/* --- Main Content --- */}
-            <main className="mx-auto w-full max-w-7xl px-4 lg:px-6 xl:px-8 py-8">
+            <main className="mx-auto w-full max-w-7xl 2xl:max-w-[1600px] px-4 lg:px-6 xl:px-8 2xl:px-12 py-8">
                 {activeTerm ? (
                     <div className="animate-in fade-in slide-in-from-bottom-4 duration-500 space-y-8">
-                        <div className="rounded-2xl border border-slate-800 bg-slate-900/60 p-6 shadow-2xl">
-                            <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
-                                <div>
-                                    <p className="text-xs uppercase text-emerald-400 font-bold">⭐ {activeTerm.term} — Guía Técnica Definitiva</p>
-                                    <h2 className="text-3xl md:text-4xl font-bold text-white tracking-tight mt-1">
-                                        {activeTerm.term} {activeTerm.translation ? <span className="text-slate-500 text-lg">({activeTerm.translation})</span> : null}
+                        <div className="rounded-2xl border-2 border-slate-900 dark:border-slate-800 bg-white dark:bg-slate-900/60 p-6 shadow-lg dark:shadow-2xl">
+                            <div className="grid grid-cols-1 lg:grid-cols-[1fr_auto] gap-4 lg:gap-6 items-start">
+                                <div className="min-w-0">
+                                    <p className="text-xs uppercase text-emerald-700 dark:text-emerald-400 font-bold tracking-wider">⭐ {activeTerm.term} — Guía Técnica Definitiva</p>
+                                    <h2 className="text-2xl sm:text-3xl lg:text-4xl xl:text-5xl font-bold text-slate-900 dark:text-white tracking-tight mt-1 break-words">
+                                        {activeTerm.term} {activeTerm.translation ? <span className="text-slate-500 font-medium text-base sm:text-lg lg:text-xl">({activeTerm.translation})</span> : null}
                                     </h2>
-                                    <div className="mt-2 flex gap-2 flex-wrap text-sm text-slate-400">
-                                        <span className="rounded-full border border-emerald-500/30 bg-emerald-500/10 px-3 py-1 text-xs font-semibold uppercase tracking-wider text-emerald-300">
+                                    <div className="mt-4 flex gap-2 flex-wrap text-sm text-slate-500 dark:text-slate-400">
+                                        <span className="rounded-full border border-emerald-200 dark:border-emerald-500/30 bg-emerald-100 dark:bg-emerald-500/10 px-3 py-1 text-xs font-bold uppercase tracking-wider text-emerald-800 dark:text-emerald-300">
                                             {activeTerm.category}
                                         </span>
                                         {activeTerm.tags?.map((tag) => (
-                                            <span key={tag} className="px-2 py-1 rounded-full bg-slate-800 text-slate-200">#{tag}</span>
+                                            <span key={tag} className="px-2.5 py-1 rounded-full border border-slate-200 dark:border-transparent bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-200 text-xs font-medium">#{tag}</span>
                                         ))}
                                         {activeTerm.aliases?.map((alias) => (
-                                            <span key={alias} className="italic text-slate-500">({alias})</span>
+                                            <span key={alias} className="italic text-slate-500 text-xs px-1">({alias})</span>
                                         ))}
                                     </div>
                                 </div>
-                                <div className="flex gap-2">
+                                <div className="flex flex-wrap gap-2 lg:flex-nowrap lg:flex-col xl:flex-row">
                                     <button
                                         onClick={() => handleCopy(window.location.href, setCopied)}
-                                        className="flex items-center gap-2 rounded-lg border border-slate-700 bg-slate-800 px-4 py-2 text-sm font-medium text-slate-300 hover:bg-slate-700 hover:text-white transition-colors"
-                                    >
+                                        className="flex items-center gap-2 rounded-lg border border-slate-700 bg-slate-800 px-4 py-2 text-sm font-medium text-slate-300 hover:bg-slate-700 hover:text-white transition-colors whitespace-nowrap">
                                         {copied ? <Check className="h-4 w-4 text-emerald-400" /> : <Share2 className="h-4 w-4" />}
                                         {copied ? "Copiado" : "Compartir"}
                                     </button>
                                     <button
                                         onClick={() => setShowCheatSheet(true)}
-                                        className="flex items-center gap-2 rounded-lg border border-indigo-500/30 bg-indigo-500/10 px-4 py-2 text-sm font-medium text-indigo-400 hover:bg-indigo-500/20 transition-colors"
-                                    >
+                                        className="flex items-center gap-2 rounded-lg border border-indigo-500/30 bg-indigo-500/10 px-4 py-2 text-sm font-medium text-indigo-400 hover:bg-indigo-500/20 transition-colors whitespace-nowrap">
                                         <FileText className="h-4 w-4" />
                                         Cheat Sheet
                                     </button>
@@ -1509,84 +2451,84 @@ export default function DiccionarioDevApp() {
                         </div>
 
                         {/* SECCIÓN 1: DEFINICIÓN */}
-                        <div className="rounded-2xl border border-slate-800 bg-slate-900/50 p-6 space-y-4">
-                            <div className="flex items-center gap-2 text-emerald-400">
+                        <div className="rounded-2xl border-2 border-slate-900 dark:border-slate-800 bg-white dark:bg-slate-900/50 p-6 space-y-4 shadow-sm">
+                            <div className="flex items-center gap-2 text-emerald-700 dark:text-emerald-400">
                                 <Brain className="h-5 w-5" />
                                 <h3 className="font-bold uppercase tracking-wide text-sm">1. Definición</h3>
                             </div>
                             <div className="space-y-2">
-                                <p className="text-base leading-relaxed text-slate-200">
+                                <p className="text-base leading-relaxed text-slate-900 dark:text-slate-200 font-medium">
                                     {activeTerm.meaningEs || activeTerm.meaning}
                                 </p>
-                                <p className="text-sm text-slate-400 italic">
+                                <p className="text-sm text-slate-700 dark:text-slate-400 italic">
                                     EN: {activeTerm.meaningEn || activeTerm.meaning}
                                 </p>
                             </div>
                         </div>
 
                         {/* SECCIÓN 2: PARA QUÉ SIRVE */}
-                        <div className="rounded-2xl border border-slate-800 bg-slate-900/50 p-6 space-y-4">
-                            <div className="flex items-center gap-2 text-blue-400">
+                        <div className="rounded-2xl border-2 border-slate-900 dark:border-slate-800 bg-white dark:bg-slate-900/50 p-6 space-y-4 shadow-sm">
+                            <div className="flex items-center gap-2 text-blue-700 dark:text-blue-400">
                                 <Rocket className="h-5 w-5" />
                                 <h3 className="font-bold uppercase tracking-wide text-sm">2. Para qué sirve</h3>
                             </div>
-                            <p className="text-base leading-relaxed text-slate-200">
+                            <p className="text-base leading-relaxed text-slate-900 dark:text-slate-200 font-medium">
                                 {activeTerm.whatEs || activeTerm.what}
                             </p>
                         </div>
 
                         {/* SECCIÓN 3: CÓMO FUNCIONA */}
                         <div className="space-y-4">
-                            <div className="rounded-2xl border border-amber-500/20 bg-linear-to-br from-amber-500/5 to-transparent p-6 space-y-4">
-                                <div className="flex items-center gap-2 text-amber-400">
+                            <div className="rounded-2xl border-2 border-amber-500/50 dark:border-amber-500/20 bg-amber-50 dark:bg-slate-900/50 dark:bg-gradient-to-br dark:from-amber-500/10 dark:to-transparent p-6 space-y-4 shadow-sm">
+                                <div className="flex items-center gap-2 text-amber-700 dark:text-amber-400">
                                     <Lightbulb className="h-5 w-5" />
                                     <h3 className="font-bold uppercase tracking-wide text-sm">4. Cómo funciona</h3>
                                 </div>
-                                <p className="text-base leading-relaxed text-slate-200">
+                                <p className="text-base leading-relaxed text-slate-900 dark:text-slate-200 font-medium">
                                     {activeTerm.howEs || activeTerm.how || "Sigue el flujo recomendado y aplica el patrón principal respetando su ciclo de vida."}
                                 </p>
                             </div>
-                            
+
                             {activeVariant?.snippet && (
                                 <>
                                     {/* HTML Preview: iframe (sólo para HTML/Tailwind/CSS) */}
                                     {allowLivePreview && (previewLanguage === 'html' || isHtmlActive) && !isCssActive && !cssPreview && (
-                                        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                                        <div className="grid grid-cols-1 xl:grid-cols-2 gap-4 lg:gap-6">
                                             {/* Código */}
-                                            <div className="rounded-2xl border border-slate-800 bg-slate-950 p-6 overflow-hidden">
+                                            <div className="rounded-2xl border-2 border-slate-900 dark:border-slate-800 bg-[#1e1e1e] dark:bg-slate-950 p-4 sm:p-6 overflow-hidden">
                                                 <div className="mb-4 flex items-center gap-2 text-emerald-400">
                                                     <Code2 className="h-5 w-5" />
                                                     <h4 className="font-bold uppercase tracking-wide text-sm">Ejemplo de Código</h4>
                                                 </div>
-                                                    <StyleAwareCode
-                                                        term={activeTerm}
-                                                        snippet={previewSnippet}
-                                                        language={previewLanguage}
-                                                    />
-                                                </div>
+                                                <StyleAwareCode
+                                                    term={activeTerm}
+                                                    snippet={previewSnippet}
+                                                    language={previewLanguage}
+                                                />
+                                            </div>
 
-                                                {/* Preview específico del lenguaje */}
-                                                <div className="rounded-2xl border border-slate-800 bg-slate-950 p-6 overflow-hidden flex flex-col">
+                                            {/* Preview específico del lenguaje */}
+                                            <div className="rounded-2xl border-2 border-slate-900 dark:border-slate-800 bg-[#1e1e1e] dark:bg-slate-950 p-4 sm:p-6 overflow-hidden flex flex-col shadow-lg">
                                                 <div className="mb-3 flex items-center gap-2 text-blue-400">
                                                     <Eye className="h-5 w-5" />
                                                     <h4 className="font-bold uppercase tracking-wide text-sm">Preview en Vivo</h4>
                                                 </div>
-                                                <div className="flex-1">
-                                                        <LivePreview
-                                                            code={previewSnippet}
-                                                            language="html"
-                                                            title={`Demo de ${activeTerm.term}`}
-                                                            height="450px"
-                                                        />
-                                                    </div>
+                                                <div className="flex-1 bg-white rounded-lg overflow-hidden">
+                                                    <LivePreview
+                                                        code={previewSnippet}
+                                                        language="html"
+                                                        title={`Demo de ${activeTerm.term}`}
+                                                        height="450px"
+                                                    />
                                                 </div>
+                                            </div>
                                         </div>
                                     )}
 
                                     {/* CSS / Tailwind: un solo bloque con código + preview integrado */}
                                     {(isCssActive || cssPreview) && (
-                                        <div className="rounded-2xl border border-slate-800 bg-slate-950 p-6 overflow-hidden">
-                                            <div className="mb-4 flex items-center gap-2 text-emerald-400">
+                                        <div className="rounded-2xl border-2 border-slate-900 dark:border-slate-800 bg-white dark:bg-slate-950 p-6 overflow-hidden shadow-sm">
+                                            <div className="mb-4 flex items-center gap-2 text-emerald-700 dark:text-emerald-400">
                                                 <Code2 className="h-5 w-5" />
                                                 <h4 className="font-bold uppercase tracking-wide text-sm">Ejemplo de Código + Preview</h4>
                                             </div>
@@ -1596,7 +2538,7 @@ export default function DiccionarioDevApp() {
 
                                     {/* Otros lenguajes sin preview dedicado */}
                                     {(!allowLivePreview || (!(previewLanguage === 'html' || isHtmlActive) && !isCssActive && !cssPreview)) && (
-                                        <div className="rounded-2xl border border-slate-800 bg-slate-950 p-6 overflow-hidden">
+                                        <div className="rounded-2xl border-2 border-slate-900 dark:border-slate-800 bg-[#1e1e1e] dark:bg-slate-950 p-6 overflow-hidden shadow-lg">
                                             <div className="mb-4 flex items-center gap-2 text-emerald-400">
                                                 <Code2 className="h-5 w-5" />
                                                 <h4 className="font-bold uppercase tracking-wide text-sm">Ejemplo de Código</h4>
@@ -1614,18 +2556,18 @@ export default function DiccionarioDevApp() {
 
                         {/* SECCIÓN 5: REGLAS IMPORTANTES */}
                         {activeTerm.examples && Array.isArray(activeTerm.examples) && activeTerm.examples.length > 0 && (
-                            <div className="rounded-2xl border border-slate-800 bg-slate-900/50 p-6 space-y-4">
-                                <div className="flex items-center gap-2 text-emerald-400">
+                            <div className="rounded-2xl border-2 border-slate-900 dark:border-slate-800 bg-white dark:bg-slate-900/50 p-6 space-y-4 shadow-sm">
+                                <div className="flex items-center gap-2 text-emerald-700 dark:text-emerald-400">
                                     <ThumbsUp className="h-5 w-5" />
                                     <h3 className="font-bold uppercase tracking-wide text-sm">5. Reglas importantes</h3>
                                 </div>
-                                <ul className="space-y-3 text-sm text-slate-200">
+                                <ul className="space-y-3 text-sm text-slate-900 dark:text-slate-200 font-medium">
                                     {getRulesList(activeTerm, displayLanguage).map((rule, idx) => (
-                                            <li key={idx} className="flex items-start gap-3">
-                                                <span className="mt-1 h-2 w-2 rounded-full bg-emerald-400 shrink-0"></span>
-                                                <span>{rule}</span>
-                                            </li>
-                                        ))
+                                        <li key={idx} className="flex items-start gap-3">
+                                            <span className="mt-1 h-2 w-2 rounded-full bg-emerald-500 dark:bg-emerald-400 shrink-0"></span>
+                                            <span>{rule}</span>
+                                        </li>
+                                    ))
                                     }
                                 </ul>
                             </div>
@@ -1634,11 +2576,11 @@ export default function DiccionarioDevApp() {
                         {/* Mostrar ejemplos adicionales de BD */}
                         {activeTerm.examples && activeTerm.examples.length > 1 && (
                             <div className="space-y-6">
-                                <h3 className="text-lg font-bold text-slate-100 flex items-center gap-2">
-                                    <Eye className="h-5 w-5 text-teal-400" />
+                                <h3 className="text-lg font-bold text-slate-900 dark:text-slate-100 flex items-center gap-2">
+                                    <Eye className="h-5 w-5 text-teal-600 dark:text-teal-400" />
                                     Ejemplos Adicionales
                                 </h3>
-                                
+
                                 {(activeTerm.examples as unknown[]).slice(1).map((ex, idx) => {
                                     const example: TermExampleDTO = typeof ex === 'string' ? { code: ex } : (ex as TermExampleDTO);
                                     return (
@@ -1646,8 +2588,8 @@ export default function DiccionarioDevApp() {
                                             <h4 className="font-bold uppercase tracking-wide text-sm text-emerald-400">
                                                 Ejemplo {idx + 2}: {example.title || ''}
                                             </h4>
-                                            
-                                            <div className="rounded-2xl border border-slate-800 bg-slate-950 p-6 overflow-hidden">
+
+                                            <div className="rounded-2xl border-2 border-slate-900 dark:border-slate-800 bg-[#1e1e1e] dark:bg-slate-950 p-6 overflow-hidden shadow-lg">
                                                 <StyleAwareCode
                                                     term={activeTerm}
                                                     snippet={example.code || String(ex)}
@@ -1662,25 +2604,24 @@ export default function DiccionarioDevApp() {
                         )}
 
                         {relatedTerms.length > 0 && (
-                            <div className="pt-8 border-t border-slate-800">
-                                <h3 className="text-lg font-bold text-white mb-4 flex items-center gap-2">
-                                    <ArrowRight className="h-5 w-5 text-emerald-400" />
+                            <div className="pt-8 border-t border-slate-200 dark:border-slate-800">
+                                <h3 className="text-lg font-bold text-slate-900 dark:text-white mb-4 flex items-center gap-2">
+                                    <ArrowRight className="h-5 w-5 text-emerald-600 dark:text-emerald-400" />
                                     Conceptos Relacionados
                                 </h3>
-                                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-3 sm:gap-4 2xl:gap-6">
                                     {relatedTerms.map(term => (
                                         <button
                                             key={term.term}
                                             onClick={() => selectTerm(term)}
-                                            className="rounded-xl border border-slate-800 bg-slate-900/50 p-4 text-left hover:border-emerald-500/40 hover:bg-slate-900 transition-colors"
-                                        >
-                                            <div className="flex items-center justify-between">
-                                                <span className="text-white font-semibold">{term.term}</span>
-                                                <span className="text-[10px] px-2 py-1 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 uppercase">
+                                            className="rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/50 p-4 text-left hover:border-slate-900 dark:hover:border-emerald-500/40 hover:bg-slate-100 dark:hover:bg-slate-900 transition-colors shadow-sm">
+                                            <div className="flex items-center justify-between gap-2">
+                                                <span className="text-slate-900 dark:text-white font-semibold truncate">{term.term}</span>
+                                                <span className="text-[10px] px-2 py-1 rounded-full bg-emerald-100 dark:bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-500/20 uppercase shrink-0">
                                                     {term.category}
                                                 </span>
                                             </div>
-                                            <p className="text-sm text-slate-400 mt-2 line-clamp-2">
+                                            <p className="text-sm text-slate-700 dark:text-slate-400 mt-2 line-clamp-2 font-medium">
                                                 {term.meaningEs || term.meaning}
                                             </p>
                                         </button>
@@ -1690,38 +2631,28 @@ export default function DiccionarioDevApp() {
                         )}
                     </div>
                 ) : (
-                    <div className="text-center text-slate-500">
-                        <p className="mb-4">Prueba buscando un término técnico para ver resultados.</p>
-                        {recentSearches.length > 0 && (
-                            <div className="inline-flex items-center gap-2 rounded-full border border-slate-800 bg-slate-900 px-4 py-2 text-sm">
-                                <History className="h-4 w-4 text-slate-500" />
-                                <span className="text-slate-400">Últimas búsquedas:</span>
-                                {recentSearches.map((term) => (
-                                    <button
-                                        key={term}
-                                        onClick={() => setSearchTerm(term)}
-                                        className="rounded-full bg-slate-800 px-2 py-1 text-slate-200 hover:bg-slate-700 transition-colors"
-                                    >
-                                        {term}
-                                    </button>
-                                ))}
-                            </div>
-                        )}
-                    </div>
+                    <div className="text-center text-slate-500" />
                 )}
             </main>
 
-            <div className="relative w-screen -ml-[50vw] left-1/2 right-1/2 mt-6 border-y border-slate-800 bg-slate-900/70 shadow-[0_25px_70px_rgba(0,0,0,0.45)]">
-                <TechStrip
-                    speedSeconds={110}
-                    className="py-6"
-                />
+            <div id="search-empty" className="relative mt-6 border-y-2 border-slate-900 dark:border-slate-800 bg-white dark:bg-slate-900/70 dark:shadow-[0_25px_70px_rgba(0,0,0,0.45)] rounded-none sm:rounded-xl overflow-hidden 2xl:mt-10">
+                <div className="mx-auto w-full max-w-7xl 2xl:max-w-[1600px] px-4 sm:px-6 2xl:px-12">
+                    <TechStrip
+                        speedSeconds={110}
+                        className="py-6"
+                    />
+                </div>
             </div>
 
-            <div className="mt-10">
+            <div className="mt-10 2xl:mt-16 px-4 sm:px-6 2xl:px-12 mx-auto max-w-7xl 2xl:max-w-[1600px]">
                 <ExtensionsShowcase variant="slate" />
             </div>
 
+            <div className="mt-6 2xl:mt-10 px-4 sm:px-6 2xl:px-12 mx-auto max-w-7xl 2xl:max-w-[1600px]">
+                <ExtensionsGuide />
+            </div>
+
+            <Footer variant="slate" />
         </div>
     );
 }

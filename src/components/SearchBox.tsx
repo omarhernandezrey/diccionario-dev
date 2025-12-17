@@ -362,16 +362,16 @@ export default function SearchBox({ variant = "dark" }: SearchBoxProps) {
         <div className="mt-2 space-y-6">
           {/* Results List Section */}
           <div className="space-y-4">
-            <header className="flex items-center justify-between gap-2">
+            <header className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 sm:gap-4">
               <h3 className={`text-lg font-semibold ${tone("text-neo-text-primary", "text-neo-text-primary")}`}>{t("search.results")}</h3>
               <span
-                className={`rounded-full px-3 py-1 text-xs ${tone("border border-neo-border text-neo-text-secondary", "border border-white/10 text-white/70")}`}
+                className={`rounded-full px-3 py-1 text-xs whitespace-nowrap ${tone("border border-neo-border text-neo-text-secondary", "border border-white/10 text-white/70")}`}
                 aria-live="polite"
               >
                 {statusMessage}
               </span>
             </header>
-            <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+            <div className="grid gap-3 sm:gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5">
               {status === "loading" ? (
                 <div className="col-span-full">
                   <GeminiLoader term={debounced} variant={variant} />
@@ -383,7 +383,7 @@ export default function SearchBox({ variant = "dark" }: SearchBoxProps) {
                     <button
                       key={term.id}
                       type="button"
-                      className={`rounded-2xl border px-4 py-3 text-left transition ${active
+                      className={`rounded-2xl border px-4 py-3 text-left transition-all w-full min-w-0 ${active
                         ? tone(
                           "border-neo-primary bg-neo-primary-light/80 shadow-lg shadow-neo-primary/30",
                           "border-neo-primary bg-neo-primary-light/20 shadow-glow-card",
@@ -396,16 +396,16 @@ export default function SearchBox({ variant = "dark" }: SearchBoxProps) {
                       onClick={() => setSelected(term)}
                       aria-pressed={active}
                     >
-                      <div className="space-y-2">
-                        <div className="flex items-start justify-between gap-2">
-                          <p className={`text-base font-semibold ${tone("text-neo-text-primary", "text-neo-text-primary")}`}>{term.term}</p>
+                      <div className="space-y-2 min-w-0">
+                        <div className="flex items-start justify-between gap-2 min-w-0">
+                          <p className={`text-base font-semibold truncate flex-1 min-w-0 ${tone("text-neo-text-primary", "text-neo-text-primary")}`}>{term.term}</p>
                           <span
-                            className={`rounded-full px-2 py-1 text-[10px] font-semibold uppercase ${tone("bg-neo-surface text-neo-text-secondary", "bg-neo-surface text-neo-text-secondary")}`}
+                            className={`rounded-full px-2 py-1 text-[10px] font-semibold uppercase shrink-0 ${tone("bg-neo-surface text-neo-text-secondary", "bg-neo-surface text-neo-text-secondary")}`}
                           >
                             {term.category}
                           </span>
                         </div>
-                        <p className={`text-xs uppercase tracking-wide ${tone("text-neo-text-secondary", "text-neo-text-secondary")}`}>
+                        <p className={`text-xs uppercase tracking-wide truncate ${tone("text-neo-text-secondary", "text-neo-text-secondary")}`}>
                           {term.translation}
                         </p>
                         {term.aliases?.length ? (
@@ -629,9 +629,9 @@ function ResultPreview({ term, activeContext, variant }: { term: TermDTO; active
             <span className="h-1.5 w-4 rounded-full bg-neo-primary shrink-0"></span>
             <p className="text-xs font-bold uppercase tracking-widest text-neo-primary">4. PREVIEW</p>
           </div>
-          <StyleAwareCode 
-            term={term} 
-            snippet={activeVariant.snippet || snippetCode} 
+          <StyleAwareCode
+            term={term}
+            snippet={activeVariant.snippet || snippetCode}
             language={activeVariant.language || 'css'}
           />
         </div>
@@ -1293,19 +1293,19 @@ function StyleAwareCode({ term, snippet, language }: { term: TermDTO; snippet: s
   }
 
   if (isTailwind && !snippet.includes("\n") && !snippet.includes(";")) {
-     // If it's a single line and looks like a class, try to render a box with that class
-     return (
+    // If it's a single line and looks like a class, try to render a box with that class
+    return (
       <div className="rounded-xl border border-neo-border bg-white overflow-hidden shadow-sm">
         <div className="bg-gray-50 px-4 py-2 border-b border-neo-border text-xs font-medium text-gray-500 uppercase tracking-wider">
           Visualización de Clase
         </div>
         <div className="p-8 flex justify-center items-center bg-white min-h-[120px]">
-           <div className={`p-4 bg-gray-100 rounded ${snippet}`}>
-              Ejemplo: {term.term}
-           </div>
+          <div className={`p-4 bg-gray-100 rounded ${snippet}`}>
+            Ejemplo: {term.term}
+          </div>
         </div>
       </div>
-     );
+    );
   }
 
   return (
@@ -1342,7 +1342,7 @@ function GeminiLoader({ term, variant }: { term: string; variant: SearchBoxVaria
   const tone = (light: string, dark: string) => (isLight ? light : dark);
 
   return (
-    <div className={`relative flex flex-col items-center justify-center overflow-hidden rounded-3xl border py-16 px-8 text-center backdrop-blur-xl transition-all duration-500 ${tone(
+    <div className={`relative flex flex-col items-center justify-center overflow-hidden rounded-3xl border py-12 sm:py-16 md:py-20 px-6 sm:px-8 md:px-12 text-center backdrop-blur-xl transition-all duration-500 w-full ${tone(
       "border-neo-border/60 bg-white/60 shadow-xl shadow-neo-primary/5",
       "border-white/10 bg-black/20 shadow-2xl shadow-black/20"
     )}`}>
@@ -1352,13 +1352,13 @@ function GeminiLoader({ term, variant }: { term: string; variant: SearchBoxVaria
         "from-emerald-500/10 via-transparent to-transparent"
       )}`} />
 
-      <div className="relative z-10 flex flex-col items-center gap-8">
+      <div className="relative z-10 flex flex-col items-center gap-6 sm:gap-8 w-full max-w-2xl mx-auto">
         {/* The Dots - Premium & Glowing */}
-        <div className="flex items-center gap-4">
+        <div className="flex items-center gap-3 sm:gap-4">
           {[0, 150, 300].map((delay) => (
             <div
               key={delay}
-              className={`h-4 w-4 rounded-full animate-bounce ${tone(
+              className={`h-3 w-3 sm:h-4 sm:w-4 rounded-full animate-bounce ${tone(
                 "bg-linear-to-br from-neo-primary to-neo-accent-purple shadow-[0_0_15px_rgba(77,154,255,0.4)]",
                 "bg-linear-to-br from-emerald-400 to-cyan-500 shadow-[0_0_20px_rgba(52,211,153,0.6)]"
               )}`}
@@ -1368,19 +1368,20 @@ function GeminiLoader({ term, variant }: { term: string; variant: SearchBoxVaria
         </div>
 
         {/* The Text - Modern & Clean */}
-        <div className="space-y-3">
-          <p className={`text-xl font-medium tracking-tight ${tone("text-neo-text-primary", "text-white/90")}`}>
-            Buscando <span className={`font-bold text-transparent bg-clip-text ${tone(
+        <div className="space-y-3 w-full">
+          <p className={`text-lg sm:text-xl md:text-2xl font-medium tracking-tight ${tone("text-neo-text-primary", "text-white/90")}`}>
+            Buscando <span className={`font-bold text-transparent bg-clip-text break-words ${tone(
               "bg-linear-to-r from-neo-primary to-neo-accent-purple",
               "bg-linear-to-r from-emerald-400 to-cyan-400"
             )}`}>&quot;{term}&quot;</span>
           </p>
-          <div className={`flex items-center justify-center gap-2 text-xs font-medium uppercase tracking-widest animate-pulse ${tone(
+          <div className={`flex items-center justify-center gap-2 text-xs sm:text-sm font-medium uppercase tracking-widest animate-pulse ${tone(
             "text-neo-text-secondary",
             "text-white/40"
           )}`}>
-            <TbSparkles className={`text-sm ${tone("text-neo-primary", "text-emerald-400")}`} />
-            <span>Procesando contexto semántico...</span>
+            <TbSparkles className={`text-sm sm:text-base ${tone("text-neo-primary", "text-emerald-400")}`} />
+            <span className="hidden sm:inline">Procesando contexto semántico...</span>
+            <span className="sm:hidden">Procesando...</span>
           </div>
         </div>
       </div>

@@ -23,7 +23,7 @@ export default function BarChartComponent({
   data,
   title,
   dataKey,
-  fill = "#80e0ff",
+  fill = "var(--chart-3)",
 }: BarChartProps) {
   return (
     <ChartCard title={title}>

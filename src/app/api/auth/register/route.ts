@@ -11,19 +11,6 @@ const registerSchema = z.object({
   role: z.enum(["admin", "user"]).optional(),
 });
 
-function guardAdmin(headers: Headers) {
-  try {
-    // If requireAdmin doesn't throw, user is admin — return null (no error)
-    requireAdmin(headers);
-    return null;
-  } catch (error) {
-    if (error instanceof Response) {
-      return error;
-    }
-    throw error;
-  }
-}
-
 export async function POST(req: NextRequest) {
   const body = await req.json().catch(() => ({}));
   const parsed = registerSchema.safeParse(body);
@@ -36,27 +23,19 @@ export async function POST(req: NextRequest) {
   const adminCount = await prisma.user.count({ where: { role: "admin" } });
   const bootstrap = adminCount === 0;
 
-  const ADMIN_TOKEN = process.env.ADMIN_TOKEN || process.env.JWT_SECRET || "";
+  const { username, password, email, role: desiredRole } = parsed.data;
 
-  if (!bootstrap) {
-    // If we're running in development and no ADMIN_TOKEN is configured, allow registration
-    // for convenience (this avoids locking dev environments). In production you must set
-    // ADMIN_TOKEN or authenticate as an admin to create users.
-    if (!ADMIN_TOKEN && process.env.NODE_ENV !== "production") {
-      /* allow */
-    } else {
-      const authError = guardAdmin(req.headers);
-      if (authError) {
-        // Allow registration when a valid ADMIN_TOKEN header is provided (x-admin-token or Bearer)
-        const maybeToken =
-          req.headers.get("x-admin-token") || req.headers.get("authorization")?.replace(/^Bearer\s+/i, "") || "";
-        if (!ADMIN_TOKEN || maybeToken !== ADMIN_TOKEN) return authError;
-        // otherwise allow (token matched)
-      }
+  // Seguridad: Solo permitir crear admins si es bootstrap o si quien pide es admin
+  if (desiredRole === "admin" && !bootstrap) {
+    try {
+      requireAdmin(req.headers);
+    } catch {
+      return NextResponse.json({ ok: false, error: "No autorizado para crear administradores" }, { status: 403 });
     }
   }
 
-  const { username, password, email, role: desiredRole } = parsed.data;
+  // Permitir registro público de usuarios normales (sin restricciones de admin)
+  
   const uniqueFilters: Array<{ username: string } | { email: string }> = [{ username }];
   if (email) {
     uniqueFilters.push({ email });
@@ -95,10 +74,10 @@ export async function POST(req: NextRequest) {
 
   await ensureContributorProfile(created.id, created.username);
 
+  // Generar token y cookie para auto-login inmediato tras registro
+  const token = signJwt({ id: created.id, username: created.username, role: created.role });
   const res = NextResponse.json({ ok: true, user: created }, { status: 201 });
-  if (bootstrap) {
-    const token = signJwt({ id: created.id, username: created.username, role: created.role });
-    res.headers.append("Set-Cookie", buildAuthCookie(token));
-  }
+  res.headers.append("Set-Cookie", buildAuthCookie(token));
+  
   return res;
 }

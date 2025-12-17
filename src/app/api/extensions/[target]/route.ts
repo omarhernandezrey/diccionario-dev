@@ -1,7 +1,6 @@
 import { NextResponse } from "next/server";
 import { createReadStream, statSync } from "node:fs";
 import { Readable } from "node:stream";
-import { ReadableStream as WebReadableStream } from "node:stream/web";
 import path from "node:path";
 
 type Target = "browser" | "vscode";
@@ -39,7 +38,8 @@ export async function GET(_request: Request, { params }: { params: { target: str
   }
 
   const nodeStream = createReadStream(artifact.file);
-  const stream = Readable.toWeb(nodeStream) as unknown as WebReadableStream;
+  // Convertimos el stream de Node a Web API que NextResponse espera
+  const stream = Readable.toWeb(nodeStream) as unknown as ReadableStream;
   return new NextResponse(stream, {
     headers: {
       "Content-Type": artifact.contentType,

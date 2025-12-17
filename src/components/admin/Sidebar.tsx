@@ -1,11 +1,12 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { usePathname } from "next/navigation";
 import { Icon } from "@/components/Icon";
 import { useSession } from "@/components/admin/SessionProvider";
+import { ThemeLogo } from "@/components/ThemeLogo";
 
 type NavSection = {
   href: string;
@@ -28,8 +29,32 @@ const sections: NavSection[] = [
 export default function Sidebar() {
   const pathname = usePathname();
   const currentPath = pathname || "";
-  const [collapsed, setCollapsed] = useState(false);
+  const [collapsed, setCollapsed] = useState(true);
   const { session, loading: sessionLoading } = useSession();
+  const [avatarOverride, setAvatarOverride] = useState<string | null>(null);
+  const avatarStorageKey = `user_avatar_override:${session?.username || "guest"}`;
+
+  useEffect(() => {
+    const readOverride = () => {
+      if (typeof window === "undefined") return;
+      try {
+        const stored = window.localStorage.getItem(avatarStorageKey);
+        setAvatarOverride(stored ? (JSON.parse(stored) as string) : null);
+      } catch {
+        setAvatarOverride(null);
+      }
+    };
+    readOverride();
+    const handler = (e: StorageEvent) => {
+      if (e.key === avatarStorageKey) readOverride();
+    };
+    window.addEventListener("storage", handler);
+    window.addEventListener("avatar-updated", readOverride as EventListener);
+    return () => {
+      window.removeEventListener("storage", handler);
+      window.removeEventListener("avatar-updated", readOverride as EventListener);
+    };
+  }, [avatarStorageKey]);
 
   const isActive = (href: string) => {
     if (href === "/admin") {
@@ -56,8 +81,10 @@ export default function Sidebar() {
       {/* Mobile overlay */}
       {!collapsed && (
         <button
+          type="button"
           onClick={() => setCollapsed(true)}
           className="fixed inset-0 z-30 bg-black/50 lg:hidden"
+          aria-label="Cerrar menú"
         />
       )}
 
@@ -68,19 +95,19 @@ export default function Sidebar() {
       >
         <div className="flex h-full flex-col">
           {/* Header */}
-          <div className="flex items-center justify-between border-b border-neo-border bg-neo-bg p-4">
+          <div className="flex items-center justify-between border-b border-neo-border bg-neo-bg/80 p-4">
             <div className="flex items-center gap-3">
-              <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-gradient-to-br from-neo-primary to-neo-accent-purple text-white">
-                <Icon library="lucide" name="BookOpen" className="h-6 w-6" />
-              </div>
-              <div className="hidden sm:block">
-                <div className="text-sm font-bold text-neo-text-primary">Diccionario</div>
-                <div className="text-xs text-neo-text-secondary">Admin Panel</div>
+              <ThemeLogo width={40} height={40} className="rounded-lg" />
+              <div className="hidden sm:block leading-tight">
+                <div className="text-[11px] uppercase tracking-[0.2em] text-indigo-400 font-bold">Diccionario</div>
+                <div className="text-sm font-bold text-neo-text-primary">Dev</div>
               </div>
             </div>
             <button
+              type="button"
               onClick={() => setCollapsed(true)}
               className="rounded p-1 text-neo-text-secondary hover:bg-neo-surface lg:hidden"
+              aria-label="Cerrar menú"
             >
               <Icon library="lucide" name="X" className="h-5 w-5" />
             </button>
@@ -101,12 +128,13 @@ export default function Sidebar() {
                   <Link
                     key={section.href}
                     href={section.href}
+                    onClick={() => setCollapsed(true)}
                     className={`group flex items-center gap-3 rounded-lg px-3 py-2.5 transition-all duration-200 ${active
-                      ? "bg-gradient-to-r from-neo-primary to-neo-accent-purple text-white shadow-lg shadow-neo-primary/30"
+                      ? "bg-linear-to-r from-neo-primary to-neo-accent-purple text-white shadow-lg shadow-neo-primary/30"
                       : "text-neo-text-secondary hover:bg-neo-surface hover:text-neo-text-primary"
                       }`}
                   >
-                    <Icon library="lucide" name={section.icon} className="h-5 w-5 flex-shrink-0" />
+                    <Icon library="lucide" name={section.icon} className="h-5 w-5 shrink-0" />
                     <span className="text-sm font-medium">{section.label}</span>
                     {active && <Icon library="lucide" name="ChevronRight" className="ml-auto h-4 w-4" />}
                   </Link>
@@ -123,55 +151,45 @@ export default function Sidebar() {
           <div className="border-t border-neo-border p-4 space-y-3">
             {session && (
               <div className="rounded-lg border border-neo-border bg-neo-surface p-3">
-                <div className="flex items-center gap-2 mb-2">
-                  <div className="relative h-8 w-8 flex-shrink-0">
-                    {session.avatarUrl ? (
+                <div className="flex items-center gap-3">
+                  <div className="relative h-10 w-10 shrink-0">
+                    {avatarOverride || session.avatarUrl ? (
                       <Image
-                        src={session.avatarUrl}
+                        src={avatarOverride || session.avatarUrl || ""}
                         alt={session.username}
-                        width={32}
-                        height={32}
-                        className="h-full w-full rounded-full object-cover border border-neo-border"
+                        width={40}
+                        height={40}
+                        className="h-full w-full rounded-full object-cover border border-white/70 ring-2 ring-white/20"
                       />
                     ) : (
-                      <div className="flex h-full w-full items-center justify-center rounded-full bg-gradient-to-br from-neo-primary to-neo-accent-purple text-xs font-bold text-white">
+                      <div className="flex h-full w-full items-center justify-center rounded-full bg-linear-to-br from-neo-primary to-neo-accent-purple text-sm font-bold text-white border border-white/70 ring-2 ring-white/20">
                         {session.username.substring(0, 2).toUpperCase()}
                       </div>
                     )}
-                    {/* Indicador "en línea" - bolita verde */}
-                    <span className="absolute bottom-0 right-0 h-2.5 w-2.5 rounded-full bg-[#10b981] ring-2 ring-neo-surface"></span>
-                  </div>
-                  <div className="flex-1 min-w-0 flex flex-col gap-1">
-                    <div className="flex items-center justify-between">
-                      <p className="text-xs font-semibold text-neo-text-primary truncate">{session.username}</p>
-                      <span className="text-[10px] text-[#10b981] font-medium uppercase">● {session.role}</span>
-                    </div>
-                    {session.bio && (
-                      <div className="rounded bg-neo-bg/50 px-1.5 py-0.5 border border-neo-border/50">
-                        <p className="text-[10px] text-neo-text-secondary line-clamp-2 leading-tight italic" title={session.bio}>
-                          {session.bio}
-                        </p>
-                      </div>
-                    )}
+	                    <span className="absolute bottom-0 right-0 h-2.5 w-2.5 rounded-full bg-accent-emerald ring-2 ring-neo-surface"></span>
+	                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-semibold text-neo-text-primary truncate">{session.displayName || session.username}</p>
+                    <p className="text-[11px] text-neo-text-secondary truncate">● {session.role}</p>
                   </div>
                 </div>
               </div>
             )}
-            <div className="rounded-lg border border-neo-border bg-neo-bg p-3 text-center text-xs text-neo-text-secondary">
-              <div>© {new Date().getFullYear()}</div>
-              <div className="font-semibold text-neo-text-primary">Diccionario Dev</div>
-            </div>
           </div>
         </div>
       </aside>
 
       {/* Mobile toggle button */}
-      <button
-        onClick={() => setCollapsed(false)}
-        className="fixed left-4 top-4 z-50 rounded-lg bg-neo-primary p-2 text-white shadow-lg shadow-neo-primary/30 lg:hidden"
-      >
-        <Icon library="lucide" name="Menu" className="h-5 w-5" />
-      </button>
+      {collapsed && (
+        <button
+          type="button"
+          onClick={() => setCollapsed(false)}
+          className="fixed left-4 top-4 z-50 rounded-lg bg-neo-primary p-2 text-white shadow-lg shadow-neo-primary/30 lg:hidden"
+          aria-label="Abrir menú"
+        >
+          <Icon library="lucide" name="Menu" className="h-5 w-5" />
+        </button>
+      )}
     </>
   );
 }

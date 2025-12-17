@@ -1,20 +1,44 @@
 "use client";
 
 import React, { useState } from "react";
-import { useRouter } from "next/navigation";
 import Image from "next/image";
+import { useRouter } from "next/navigation";
 import { Icon } from "@/components/Icon";
-import { useNotifications } from "@/components/admin/NotificationsProvider";
 import { useSession, notifySessionChange } from "@/components/admin/SessionProvider";
 import ThemeToggle from "@/components/ThemeToggle";
+import { NotificationBell } from "@/components/NotificationBell";
+import { ThemeLogo } from "@/components/ThemeLogo";
 
 export default function Topbar() {
   const router = useRouter();
   const [dropdownOpen, setDropdownOpen] = useState(false);
-  const [notificationsOpen, setNotificationsOpen] = useState(false);
   const [signingOut, setSigningOut] = useState(false);
   const { session, loading: sessionLoading } = useSession();
-  const { notifications, unreadCount, markAsRead, markAllRead, refresh, loading } = useNotifications();
+  const [avatarOverride, setAvatarOverride] = useState<string | null>(null);
+  const avatarStorageKey = `user_avatar_override:${session?.username || "guest"}`;
+
+  // Sync avatar override (localStorage) to keep parity with home uploads
+  React.useEffect(() => {
+    const readOverride = () => {
+      if (typeof window === "undefined") return;
+      try {
+        const stored = window.localStorage.getItem(avatarStorageKey);
+        setAvatarOverride(stored ? (JSON.parse(stored) as string) : null);
+      } catch {
+        setAvatarOverride(null);
+      }
+    };
+    readOverride();
+    const handler = (e: StorageEvent) => {
+      if (e.key === avatarStorageKey) readOverride();
+    };
+    window.addEventListener("storage", handler);
+    window.addEventListener("avatar-updated", readOverride as EventListener);
+    return () => {
+      window.removeEventListener("storage", handler);
+      window.removeEventListener("avatar-updated", readOverride as EventListener);
+    };
+  }, [avatarStorageKey]);
 
   const handleSignOut = async () => {
     if (signingOut) return;
@@ -32,99 +56,35 @@ export default function Topbar() {
 
   return (
     <header className="sticky top-0 z-30 border-b border-neo-border bg-neo-bg/80 backdrop-blur-md">
-      <div className="flex items-center justify-between px-6 py-3">
-        {/* Left side - Search */}
-        <div className="flex flex-1 items-center gap-4">
-          <div className="relative hidden md:block">
-            <Icon library="lucide" name="Search" className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-neo-text-secondary" />
-            <input
-              type="text"
-              placeholder="Buscar términos..."
-              className="rounded-lg border border-neo-border bg-neo-bg py-1.5 pl-10 pr-3 text-sm text-neo-text-primary placeholder:text-neo-text-secondary transition focus:border-neo-primary focus:outline-none focus:ring-2 focus:ring-neo-primary/20"
-            />
+      <div className="flex items-center justify-between px-4 py-2 sm:px-6 sm:py-3">
+        {/* Left side */}
+        <div className="flex flex-1 items-center gap-3">
+          <div className="hidden md:flex items-center gap-3">
+            <ThemeLogo width={36} height={36} className="rounded-lg" />
+            <div className="leading-tight">
+              <div className="text-[10px] uppercase tracking-[0.2em] text-indigo-400 font-bold">Diccionario</div>
+              <div className="text-sm font-bold text-neo-text-primary">Dev</div>
+            </div>
           </div>
         </div>
 
         {/* Right side - Actions */}
-        <div className="flex items-center gap-3">
-          <ThemeToggle />
-          {/* Notifications */}
-          <div className="relative">
-            <button
-              className="relative rounded-lg p-2 text-neo-text-secondary transition hover:bg-neo-surface hover:text-neo-text-primary"
-              onClick={() => setNotificationsOpen((open) => !open)}
-            >
-              <Icon library="lucide" name="Bell" className="h-5 w-5" />
-              {unreadCount ? (
-                <span className="absolute right-1 top-1 h-4 min-w-[1rem] rounded-full bg-accent-rose px-1 text-center text-[10px] font-bold leading-4 text-white">
-                  {unreadCount}
-                </span>
-              ) : null}
-            </button>
-
-            {notificationsOpen && (
-              <div className="absolute right-0 mt-2 w-80 rounded-2xl border border-neo-border bg-neo-card p-3 shadow-xl animate-slide-up">
-                <div className="flex items-center justify-between">
-                  <p className="text-sm font-semibold text-neo-text-primary">Notificaciones</p>
-                  <div className="flex items-center gap-2">
-                    <button className="text-xs text-neo-primary" type="button" onClick={() => { markAllRead(); setNotificationsOpen(false); }}>
-                      Marcar todo leído
-                    </button>
-                    <button className="inline-flex items-center gap-1 text-xs text-neo-text-secondary" type="button" onClick={refresh} aria-label="Sincronizar notificaciones">
-                      <Icon library="lucide" name="RotateCcw" className="h-3.5 w-3.5" />
-                      Sync
-                    </button>
-                  </div>
-                </div>
-                <ul className="mt-3 space-y-2">
-                  {loading ? (
-                    <li className="rounded-xl border border-neo-border bg-neo-bg px-3 py-4 text-center text-xs text-neo-text-secondary">
-                      Cargando notificaciones…
-                    </li>
-                  ) : notifications.length ? (
-                    notifications.map((notif) => (
-                      <li
-                        key={notif.id}
-                        className={`flex gap-3 rounded-xl border px-3 py-2 text-sm ${notif.read
-                          ? "border-neo-border bg-neo-surface text-neo-text-secondary"
-                          : "border-neo-primary bg-neo-primary-light/70 text-neo-text-primary"
-                          }`}
-                      >
-                        <button
-                          type="button"
-                          className="text-left flex-1"
-                          onClick={() => markAsRead(notif.id)}
-                        >
-                          <div className="flex items-center gap-2 text-xs uppercase tracking-wide">
-                            {notif.type === "alert" ? (
-                              <Icon library="lucide" name="AlertTriangle" className="h-3.5 w-3.5 text-accent-rose" />
-                            ) : (
-                              <Icon library="lucide" name="CheckCircle2" className="h-3.5 w-3.5 text-accent-emerald" />
-                            )}
-                            <span>{notif.title}</span>
-                          </div>
-                          <p className="mt-1 text-sm font-medium text-neo-text-primary">{notif.detail}</p>
-                          <p className="text-xs text-neo-text-secondary">{notif.timestamp}</p>
-                        </button>
-                      </li>
-                    ))
-                  ) : (
-                    <li className="rounded-xl border border-neo-border bg-neo-bg px-3 py-4 text-center text-xs text-neo-text-secondary">
-                      Todo en orden; no hay alertas.
-                    </li>
-                  )}
-                </ul>
-              </div>
-            )}
-          </div>
+        <div className="flex items-center gap-2 sm:gap-3">
+          <button
+            className="inline-flex items-center gap-2 rounded-full border border-neo-primary/50 bg-linear-to-r from-neo-primary/80 to-neo-accent-purple/80 px-3 py-2 text-sm font-semibold text-white shadow-lg shadow-neo-primary/30 transition hover:-translate-y-px hover:shadow-neo-primary/40 sm:px-4"
+            onClick={() => router.push("/")}
+            title="Ir al Home"
+            aria-label="Ir al Home"
+          >
+            <Icon library="lucide" name="Home" className="h-4 w-4" />
+            <span className="hidden sm:inline">Home</span>
+          </button>
+          <NotificationBell />
+          <ThemeToggle variant="admin" />
 
           {/* Settings */}
-          <button className="rounded-lg p-2 text-neo-text-secondary transition hover:bg-neo-surface hover:text-neo-text-primary" onClick={() => router.push("/admin/settings")}>
-            <Icon library="lucide" name="Settings" className="h-5 w-5" />
-          </button>
-
           {/* Divider */}
-          <div className="h-6 w-px bg-neo-border" />
+          <div className="hidden h-6 w-px bg-neo-border sm:block" />
 
           {/* User Menu */}
           <div className="relative">
@@ -139,21 +99,21 @@ export default function Topbar() {
                   onClick={() => setDropdownOpen(!dropdownOpen)}
                   className="flex items-center gap-2 rounded-lg px-3 py-1.5 text-sm font-medium text-neo-text-secondary transition hover:bg-neo-surface hover:text-neo-text-primary"
                 >
-                  <div className="relative h-9 w-9 overflow-hidden rounded-full border border-neo-border bg-gradient-to-br from-neo-primary to-neo-accent-purple text-xs font-bold text-white">
-                    {session.avatarUrl ? (
-                      <Image src={session.avatarUrl} alt={session.displayName || session.username} width={36} height={36} className="h-full w-full object-cover" />
-                    ) : (
-                      <span className="flex h-full w-full items-center justify-center">
-                        {session.displayName?.substring(0, 2).toUpperCase() || session.username.substring(0, 2).toUpperCase()}
-                      </span>
-                    )}
-                    {/* Indicador "en línea" - bolita verde */}
-                    <span className="absolute bottom-0 right-0 h-2.5 w-2.5 rounded-full bg-[#10b981] ring-2 ring-white dark:ring-neo-bg"></span>
-                  </div>
-                  <div className="hidden sm:flex flex-col leading-tight">
-                    <span className="text-sm font-semibold text-neo-text-primary">{session.displayName || session.username}</span>
-                    <span className="text-[10px] text-[#10b981] font-medium">● En línea</span>
-                  </div>
+                  <div className="relative h-9 w-9 overflow-hidden rounded-full border border-white/70 ring-2 ring-white/20 bg-linear-to-br from-neo-primary to-neo-accent-purple text-xs font-bold text-white">
+                    {avatarOverride || session.avatarUrl ? (
+                      <Image src={avatarOverride || session.avatarUrl || ""} alt={session.displayName || session.username} width={36} height={36} className="h-full w-full object-cover rounded-full" />
+	                    ) : (
+	                      <span className="flex h-full w-full items-center justify-center">
+	                        {session.displayName?.substring(0, 2).toUpperCase() || session.username.substring(0, 2).toUpperCase()}
+	                      </span>
+	                    )}
+	                    {/* Indicador "en línea" - bolita verde */}
+	                    <span className="absolute bottom-0 right-0 h-2.5 w-2.5 rounded-full bg-accent-emerald ring-2 ring-white dark:ring-neo-bg"></span>
+	                  </div>
+	                  <div className="hidden sm:flex lg:hidden flex-col leading-tight">
+	                    <span className="text-sm font-semibold text-neo-text-primary">{session.displayName || session.username}</span>
+	                    <span className="text-[10px] text-accent-emerald font-medium">● En línea</span>
+	                  </div>
                   <Icon
                     library="lucide"
                     name="ChevronDown"

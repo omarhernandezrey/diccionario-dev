@@ -100,7 +100,7 @@ function getColorExample(className: string) {
 
 function getSizingExample(className: string) {
   return `<div class="bg-slate-50 p-8 rounded-lg border border-slate-200 overflow-hidden">
-  <div class="${className} bg-indigo-500 text-white rounded shadow flex items-center justify-center p-2 min-h-[3rem] min-w-[3rem]">
+  <div class="${className} bg-indigo-500 text-white rounded shadow flex items-center justify-center p-2 min-h-12 min-w-12">
     <span class="text-xs">${className}</span>
   </div>
 </div>`;
@@ -213,7 +213,7 @@ function getLayoutMiscExample(term: string) {
   }
 
   if (term.includes('cursor-')) {
-    return `<div class="${term} bg-indigo-50 p-8 rounded-lg border border-indigo-100 flex items-center justify-center text-indigo-700 font-medium hover:bg-indigo-100 transition-colors">
+    return `<div class="${term} bg-indigo-50 p-8 rounded-lg border border-indigo-100 flex items-center justify-center text-indigo-700 font-medium hover:bg-indigo-100 transition-colors min-h-12 min-w-12">
       Pasa el mouse aquí (${term})
     </div>`;
   }

@@ -5,8 +5,8 @@ import { ensureContributorProfile } from "@/lib/contributors";
 
 const MAX_BIO_LENGTH = 500;
 const MAX_NAME_LENGTH = 80;
-// Permitimos data URLs pequeñas o links externos razonables (~1MB)
-const MAX_AVATAR_LENGTH = 1_000_000;
+// Aumentamos límite a 5MB para evitar problemas con Base64
+const MAX_AVATAR_LENGTH = 5_000_000;
 
 function serializeProfile(profile: { displayName: string; bio: string | null; avatarUrl: string | null }, username: string) {
   return {
@@ -64,7 +64,8 @@ export async function PUT(req: NextRequest) {
       return NextResponse.json({ ok: false, error: "La biografía supera el límite" }, { status: 400 });
     }
     if (avatarUrl && avatarUrl.length > MAX_AVATAR_LENGTH) {
-      return NextResponse.json({ ok: false, error: "La imagen es demasiado pesada" }, { status: 400 });
+      console.error(`Avatar too large: ${avatarUrl.length} bytes`);
+      return NextResponse.json({ ok: false, error: "La imagen es demasiado pesada (máx 5MB)" }, { status: 400 });
     }
 
     const profile = await ensureContributorProfile(auth.id, auth.username);

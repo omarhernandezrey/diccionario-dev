@@ -23,7 +23,7 @@ export default function LineChartComponent({
   data,
   title,
   dataKey,
-  stroke = "#6c63ff",
+  stroke = "var(--chart-1)",
 }: LineChartProps) {
   return (
     <ChartCard title={title}>

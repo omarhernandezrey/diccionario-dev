@@ -1,30 +1,18 @@
 import type { Metadata } from "next";
-import { Inter, JetBrains_Mono, Space_Grotesk } from "next/font/google";
+import { JetBrains_Mono } from "next/font/google";
 import "./globals.css";
 import AppProviders from "@/components/AppProviders";
 
 export const metadata: Metadata = {
-  title: "Diccionario Técnico Web",
+  title: "Diccionario Dev",
   description:
-    "Buscador de términos técnicos en español para estudiantes de desarrollo web.",
+    "IA semántica para shipping serio. Buscador de términos técnicos y snippets para desarrolladores.",
 };
-
-const inter = Inter({
-  subsets: ["latin"],
-  display: "swap",
-  variable: "--font-ui",
-});
-
-const spaceGrotesk = Space_Grotesk({
-  subsets: ["latin"],
-  display: "swap",
-  variable: "--font-heading",
-});
 
 const jetbrains = JetBrains_Mono({
   subsets: ["latin"],
   display: "swap",
-  variable: "--font-jetbrains",
+  variable: "--font-ui",
 });
 
 export default function RootLayout({
@@ -35,7 +23,7 @@ export default function RootLayout({
   return (
     <html lang="es" suppressHydrationWarning>
       <body
-        className={`${inter.variable} ${spaceGrotesk.variable} ${jetbrains.variable} bg-neo-bg text-neo-text-primary antialiased`}
+        className={`${jetbrains.variable} bg-neo-bg text-neo-text-primary antialiased`}
       >
         <AppProviders>{children}</AppProviders>
       </body>

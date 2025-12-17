@@ -1,6 +1,5 @@
-import type { Config } from "tailwindcss";
-
-const config: Config = {
+/** @type {import('tailwindcss').Config} */
+module.exports = {
   darkMode: "class",
   content: [
     "./src/app/**/*.{ts,tsx}",
@@ -26,15 +25,19 @@ const config: Config = {
           "accent-cyan": "var(--neo-accent-cyan)",
           "accent-lime": "var(--neo-accent-lime)",
           "accent-orange": "var(--neo-accent-orange)",
+          success: "var(--neo-success)",
+          warning: "var(--neo-warning)",
+          danger: "var(--neo-danger)",
+          info: "var(--neo-info)",
         },
         accent: {
-          primary: "#6c63ff",
-          secondary: "#80e0ff",
-          emerald: "#5ce9b9",
-          danger: "#ff7d9d",
-          cyan: "#06b6d4",
-          amber: "#f59e0b",
-          rose: "#f43f5e",
+          primary: "var(--accent-primary)",
+          secondary: "var(--accent-secondary)",
+          emerald: "var(--accent-emerald)",
+          danger: "var(--accent-danger)",
+          cyan: "var(--accent-cyan)",
+          amber: "var(--accent-amber)",
+          rose: "var(--accent-rose)",
         },
       },
       spacing: {
@@ -48,8 +51,8 @@ const config: Config = {
         "4xl": "var(--space-4xl)",
       },
       fontFamily: {
-        sans: ["Inter", "system-ui", "sans-serif"],
-        mono: ["JetBrains Mono", "SFMono-Regular", "Menlo", "monospace"],
+        sans: ['var(--font-ui, "JetBrains Mono")', "ui-monospace", "SFMono-Regular", "Menlo", "Monaco", "Consolas", "Liberation Mono", "Courier New", "monospace"],
+        mono: ['var(--font-ui, "JetBrains Mono")', "ui-monospace", "SFMono-Regular", "Menlo", "Monaco", "Consolas", "Liberation Mono", "Courier New", "monospace"],
       },
       boxShadow: {
         xs: "0 1px 2px rgba(0,0,0,0.05)",
@@ -65,7 +68,6 @@ const config: Config = {
         "lg-light": "0 10px 15px -3px rgba(0,0,0,0.1)",
         "xl-card": "0 20px 25px -5px rgba(0,0,0,0.2)",
       },
-
       keyframes: {
         float: {
           "0%, 100%": { transform: "translateY(0px)" },
@@ -84,8 +86,8 @@ const config: Config = {
           "50%": { transform: "translateY(-4px)" },
         },
         marquee: {
-          "0%": { transform: "translateX(0)" },
-          "100%": { transform: "translateX(-50%)" },
+          "0%": { transform: "translate3d(0, 0, 0)" },
+          "100%": { transform: "translate3d(-50%, 0, 0)" },
         },
       },
       animation: {
@@ -106,5 +108,3 @@ const config: Config = {
   },
   plugins: [],
 };
-
-export default config;

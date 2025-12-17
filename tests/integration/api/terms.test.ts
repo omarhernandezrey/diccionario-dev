@@ -1,7 +1,9 @@
 import { describe, it, expect, beforeAll, afterAll, vi } from 'vitest';
-import { testApiHandler } from 'next-test-api-route-handler';
+import { testApiHandler, type NtarhInitAppRouter } from 'next-test-api-route-handler';
 import * as termsRoute from '@/app/api/terms/route';
 import { prisma, resetPrismaMock } from './prisma-mock';
+
+const appHandler = termsRoute as unknown as NtarhInitAppRouter['appHandler'];
 
 vi.mock('@/lib/prisma', () => import('./prisma-mock'));
 
@@ -49,7 +51,7 @@ describe('GET /api/terms', () => {
 
     it('should return paginated results with default pageSize=10', async () => {
         await testApiHandler({
-            appHandler: termsRoute as any,
+            appHandler,
             test: async ({ fetch }) => {
                 const response = await fetch({ method: 'GET' });
                 const data = await response.json();
@@ -67,7 +69,7 @@ describe('GET /api/terms', () => {
 
     it('should filter by category', async () => {
         await testApiHandler({
-            appHandler: termsRoute as any,
+            appHandler,
             test: async ({ fetch }) => {
                 const response = await (fetch as (options: unknown) => Promise<Response>)({
                     method: 'GET',
@@ -86,7 +88,7 @@ describe('GET /api/terms', () => {
 
     it('should search by query', async () => {
         await testApiHandler({
-            appHandler: termsRoute as any,
+            appHandler,
             test: async ({ fetch }) => {
                 const response = await (fetch as (options: unknown) => Promise<Response>)({
                     method: 'GET',
@@ -103,7 +105,7 @@ describe('GET /api/terms', () => {
 
     it('should return partial selection (only exercise IDs)', async () => {
         await testApiHandler({
-            appHandler: termsRoute as any,
+            appHandler,
             test: async ({ fetch }) => {
                 const response = await fetch({ method: 'GET' });
                 const data = await response.json();
@@ -125,7 +127,7 @@ describe('GET /api/terms', () => {
 
     it('should respect custom pageSize parameter', async () => {
         await testApiHandler({
-            appHandler: termsRoute as any,
+            appHandler,
             test: async ({ fetch }) => {
                 const response = await (fetch as (options: unknown) => Promise<Response>)({
                     method: 'GET',
@@ -145,7 +147,7 @@ describe('GET /api/terms', () => {
 describe('POST /api/terms', () => {
     it('should require authentication', async () => {
         await testApiHandler({
-            appHandler: termsRoute as any,
+            appHandler,
             test: async ({ fetch }) => {
                 const response = await (fetch as (options: unknown) => Promise<Response>)({
                     method: 'POST',
