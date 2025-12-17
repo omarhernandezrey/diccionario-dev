@@ -801,30 +801,34 @@ export default function DiccionarioDevApp() {
         };
     }, [showMobileMenu]);
 
-    const coverStorageKey = `user_cover:${userStorageKey}`;
-    const avatarStorageKey = `user_avatar_override:${userStorageKey}`;
-    const [coverUrl, setCoverUrl] = useLocalStorage<string>(coverStorageKey, "");
-    const [coverEditorOpen, setCoverEditorOpen] = useState(false);
-    const [coverDraftUrl, setCoverDraftUrl] = useState<string>("");
-    const [coverZoom, setCoverZoom] = useState(1);
-    const [coverOffsetX, setCoverOffsetX] = useState(0);
-    const [coverOffsetY, setCoverOffsetY] = useState(0);
-    const [coverBaseScale, setCoverBaseScale] = useState(1);
-    const [isDraggingCover, setIsDraggingCover] = useState(false);
-    const dragStartRef = useRef<{ x: number; y: number; offsetX: number; offsetY: number } | null>(null);
-    const coverPreviewRef = useRef<HTMLDivElement | null>(null);
-    const coverInputRef = useRef<HTMLInputElement>(null);
-    const avatarInputRef = useRef<HTMLInputElement>(null);
-    const [avatarPreview, setAvatarPreview] = useState<string | null>(null);
-    const [avatarEditorOpen, setAvatarEditorOpen] = useState(false);
-    const [avatarDraftUrl, setAvatarDraftUrl] = useState<string>("");
-    const [avatarZoom, setAvatarZoom] = useState(1);
-    const [avatarOffsetX, setAvatarOffsetX] = useState(0);
-    const [avatarOffsetY, setAvatarOffsetY] = useState(0);
-    const [avatarBaseScale, setAvatarBaseScale] = useState(1);
-    const avatarPreviewRef = useRef<HTMLDivElement | null>(null);
-    const [isDraggingAvatar, setIsDraggingAvatar] = useState(false);
-    const dragAvatarRef = useRef<{ x: number; y: number; offsetX: number; offsetY: number } | null>(null);
+	    const coverStorageKey = `user_cover:${userStorageKey}`;
+	    const avatarStorageKey = `user_avatar_override:${userStorageKey}`;
+	    const [coverUrl, setCoverUrl] = useLocalStorage<string>(coverStorageKey, "");
+	    const [coverEditorOpen, setCoverEditorOpen] = useState(false);
+	    const [coverDraftUrl, setCoverDraftUrl] = useState<string>("");
+	    const [coverZoom, setCoverZoom] = useState(1);
+	    const [coverOffsetX, setCoverOffsetX] = useState(0); // -1..1 (proporción del máximo permitido)
+	    const [coverOffsetY, setCoverOffsetY] = useState(0); // -1..1 (proporción del máximo permitido)
+	    const [coverNaturalSize, setCoverNaturalSize] = useState<{ width: number; height: number } | null>(null);
+	    const [coverPreviewSize, setCoverPreviewSize] = useState<{ width: number; height: number } | null>(null);
+	    const [coverAspectRatio, setCoverAspectRatio] = useState<number | null>(null);
+	    const [isDraggingCover, setIsDraggingCover] = useState(false);
+	    const dragStartRef = useRef<{ x: number; y: number; offsetPxX: number; offsetPxY: number } | null>(null);
+	    const coverPreviewRef = useRef<HTMLDivElement | null>(null);
+	    const coverDisplayRef = useRef<HTMLDivElement | null>(null);
+	    const coverInputRef = useRef<HTMLInputElement>(null);
+	    const avatarInputRef = useRef<HTMLInputElement>(null);
+	    const [avatarPreview, setAvatarPreview] = useState<string | null>(null);
+	    const [avatarEditorOpen, setAvatarEditorOpen] = useState(false);
+	    const [avatarDraftUrl, setAvatarDraftUrl] = useState<string>("");
+	    const [avatarZoom, setAvatarZoom] = useState(1);
+	    const [avatarOffsetX, setAvatarOffsetX] = useState(0); // -1..1 (proporción del máximo permitido)
+	    const [avatarOffsetY, setAvatarOffsetY] = useState(0); // -1..1 (proporción del máximo permitido)
+	    const [avatarNaturalSize, setAvatarNaturalSize] = useState<{ width: number; height: number } | null>(null);
+	    const [avatarPreviewSize, setAvatarPreviewSize] = useState<{ width: number; height: number } | null>(null);
+	    const avatarPreviewRef = useRef<HTMLDivElement | null>(null);
+	    const [isDraggingAvatar, setIsDraggingAvatar] = useState(false);
+	    const dragAvatarRef = useRef<{ x: number; y: number; offsetPxX: number; offsetPxY: number } | null>(null);
     const navLinks = [
         { label: "Inicio", href: "#inicio" },
         { label: "Buscar", href: "#buscar" },
@@ -834,14 +838,76 @@ export default function DiccionarioDevApp() {
         navLinks.push({ label: "Panel", href: "/admin" });
     }
 
-    // Reset editores y previews cuando cambia de usuario
-    useEffect(() => {
-        setAvatarPreview(null);
-        setAvatarDraftUrl("");
-        setAvatarEditorOpen(false);
-        setCoverDraftUrl("");
-        setCoverEditorOpen(false);
-    }, [userStorageKey]);
+	    // Reset editores y previews cuando cambia de usuario
+		    useEffect(() => {
+		        setAvatarPreview(null);
+		        setAvatarDraftUrl("");
+		        setAvatarEditorOpen(false);
+	        setAvatarZoom(1);
+	        setAvatarOffsetX(0);
+	        setAvatarOffsetY(0);
+	        setAvatarNaturalSize(null);
+	        setAvatarPreviewSize(null);
+	        setCoverDraftUrl("");
+	        setCoverEditorOpen(false);
+	        setCoverZoom(1);
+	        setCoverOffsetX(0);
+		        setCoverOffsetY(0);
+		        setCoverNaturalSize(null);
+		        setCoverPreviewSize(null);
+		        setCoverAspectRatio(null);
+		    }, [userStorageKey]);
+
+	    // Cargar avatar guardado en localStorage (para que persista aunque la sesión tarde en refrescar)
+	    useEffect(() => {
+	        if (typeof window === "undefined") return;
+	        try {
+	            const raw = window.localStorage.getItem(avatarStorageKey);
+	            if (!raw) return;
+	            const parsed = JSON.parse(raw);
+	            if (typeof parsed === "string") setAvatarPreview(parsed);
+	        } catch {
+	            // ignore
+	        }
+	    }, [avatarStorageKey]);
+
+	    // Medir previews para que el guardado sea WYSIWYG (misma lógica en preview y export)
+		    useEffect(() => {
+		        if (!coverEditorOpen) return;
+		        const update = () => {
+		            const displayRect = coverDisplayRef.current?.getBoundingClientRect();
+		            if (displayRect?.width && displayRect.height) {
+		                setCoverAspectRatio(displayRect.width / displayRect.height);
+		            }
+		            const rect = coverPreviewRef.current?.getBoundingClientRect();
+		            if (!rect) return;
+		            setCoverPreviewSize({ width: rect.width, height: rect.height });
+		        };
+		        const raf = window.requestAnimationFrame(() => {
+		            update();
+		            window.requestAnimationFrame(update);
+		        });
+		        window.addEventListener("resize", update);
+		        return () => {
+		            window.cancelAnimationFrame(raf);
+		            window.removeEventListener("resize", update);
+		        };
+		    }, [coverEditorOpen]);
+
+	    useEffect(() => {
+	        if (!avatarEditorOpen) return;
+	        const update = () => {
+	            const rect = avatarPreviewRef.current?.getBoundingClientRect();
+	            if (!rect) return;
+	            setAvatarPreviewSize({ width: rect.width, height: rect.height });
+	        };
+	        const raf = window.requestAnimationFrame(update);
+	        window.addEventListener("resize", update);
+	        return () => {
+	            window.cancelAnimationFrame(raf);
+	            window.removeEventListener("resize", update);
+	        };
+	    }, [avatarEditorOpen]);
 
     const handleContextSelect = (contextId: SearchContext) => {
         setSearchContext((prev) => (prev === contextId ? null : contextId));
@@ -856,124 +922,216 @@ export default function DiccionarioDevApp() {
         return "Busca un término (ej. useState) o pega código...";
     };
 
-    const handleCoverUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-        const file = e.target.files?.[0];
-        if (!file) return;
-        if (!file.type.startsWith("image/")) {
-            alert("Selecciona una imagen válida.");
+	    const handleCoverUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+	        const file = e.target.files?.[0];
+	        if (!file) return;
+	        if (!file.type.startsWith("image/")) {
+	            alert("Selecciona una imagen válida.");
             return;
         }
-        if (file.size > 3 * 1024 * 1024) {
-            alert("La imagen es demasiado grande. Máximo 3MB.");
-            return;
-        }
-        const reader = new FileReader();
-        reader.onload = () => {
-            const src = reader.result as string;
-            const img = new window.Image();
-            img.onload = () => {
-                const base = Math.max(1600 / img.width, 480 / img.height); // cubrir completo sin recortar en render
-                setCoverBaseScale(base);
-                setCoverDraftUrl(src);
-                setCoverUrl(src); // se aplica de inmediato con calidad original
-                setCoverEditorOpen(true);
-                setCoverZoom(1);
-                setCoverOffsetX(0);
-                setCoverOffsetY(0);
-            };
+	        if (file.size > 5 * 1024 * 1024) {
+	            alert("La imagen es demasiado grande. Máximo 5MB.");
+	            return;
+	        }
+	        const reader = new FileReader();
+		        reader.onload = () => {
+		            const src = reader.result as string;
+		            const img = new window.Image();
+		            img.onload = () => {
+		                const displayRect = coverDisplayRef.current?.getBoundingClientRect();
+		                if (displayRect?.width && displayRect.height) {
+		                    setCoverAspectRatio(displayRect.width / displayRect.height);
+		                } else {
+		                    setCoverAspectRatio(null);
+		                }
+		                setCoverNaturalSize({ width: img.width, height: img.height });
+		                setCoverDraftUrl(src);
+		                setCoverEditorOpen(true);
+		                setCoverZoom(1);
+		                setCoverOffsetX(0);
+		                setCoverOffsetY(0);
+	            };
             img.src = src;
         };
         reader.readAsDataURL(file);
         e.target.value = "";
     };
 
-    const handleAvatarUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-        const file = e.target.files?.[0];
-        if (!file) return;
-        if (!file.type.startsWith("image/")) {
-            alert("Selecciona una imagen válida.");
+	    const handleAvatarUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+	        const file = e.target.files?.[0];
+	        if (!file) return;
+	        if (!file.type.startsWith("image/")) {
+	            alert("Selecciona una imagen válida.");
             return;
         }
         if (file.size > 5 * 1024 * 1024) {
             alert("La imagen es demasiado grande. Máximo 5MB.");
             return;
         }
-        const reader = new FileReader();
-        reader.onload = () => {
-            const src = reader.result as string;
-            const img = new window.Image();
-            img.onload = () => {
-                const base = Math.max(400 / img.width, 400 / img.height);
-                setAvatarBaseScale(base);
-                setAvatarDraftUrl(src);
-                setAvatarEditorOpen(true);
-                setAvatarZoom(1);
-                setAvatarOffsetX(0);
+	        const reader = new FileReader();
+	        reader.onload = () => {
+	            const src = reader.result as string;
+	            const img = new window.Image();
+	            img.onload = () => {
+	                setAvatarNaturalSize({ width: img.width, height: img.height });
+	                setAvatarDraftUrl(src);
+	                setAvatarEditorOpen(true);
+	                setAvatarZoom(1);
+	                setAvatarOffsetX(0);
                 setAvatarOffsetY(0);
             };
             img.src = src;
         };
-        reader.readAsDataURL(file);
-        e.target.value = "";
-    };
+	        reader.readAsDataURL(file);
+	        e.target.value = "";
+	    };
 
-    const handleResetCover = () => {
-        setCoverUrl("");
-        setCoverDraftUrl("");
-        setCoverEditorOpen(false);
-        setCoverZoom(1);
-        setCoverOffsetX(0);
-        setCoverOffsetY(0);
-        setCoverBaseScale(1);
-    };
+		    const cancelCoverEdit = () => {
+		        setCoverEditorOpen(false);
+		        setCoverDraftUrl("");
+		        setCoverZoom(1);
+		        setCoverOffsetX(0);
+		        setCoverOffsetY(0);
+		        setCoverNaturalSize(null);
+		        setCoverPreviewSize(null);
+		        setCoverAspectRatio(null);
+		        endDragCover();
+		    };
 
-    const clamp = (value: number, min: number, max: number) => Math.min(Math.max(value, min), max);
+	    const cancelAvatarEdit = () => {
+	        setAvatarEditorOpen(false);
+	        setAvatarDraftUrl("");
+	        setAvatarZoom(1);
+	        setAvatarOffsetX(0);
+	        setAvatarOffsetY(0);
+	        setAvatarNaturalSize(null);
+	        setAvatarPreviewSize(null);
+	        endDragAvatar();
+	    };
 
-    const startDragCover = (clientX: number, clientY: number) => {
-        dragStartRef.current = { x: clientX, y: clientY, offsetX: coverOffsetX, offsetY: coverOffsetY };
-        setIsDraggingCover(true);
-    };
+		    const handleResetCover = () => {
+		        setCoverUrl("");
+		        setCoverDraftUrl("");
+		        setCoverEditorOpen(false);
+		        setCoverZoom(1);
+		        setCoverOffsetX(0);
+		        setCoverOffsetY(0);
+		        setCoverNaturalSize(null);
+		        setCoverPreviewSize(null);
+		        setCoverAspectRatio(null);
+		    };
 
-    const moveDragCover = (clientX: number, clientY: number) => {
-        if (!isDraggingCover || !dragStartRef.current || !coverPreviewRef.current) return;
-        const rect = coverPreviewRef.current.getBoundingClientRect();
-        const dxPx = clientX - dragStartRef.current.x;
-        const dyPx = clientY - dragStartRef.current.y;
+	    const clamp = (value: number, min: number, max: number) => Math.min(Math.max(value, min), max);
 
-        const deltaXPercent = (dxPx / rect.width) * 100;
-        const deltaYPercent = (dyPx / rect.height) * 100;
+	    type BoxSize = { width: number; height: number };
 
-        setCoverOffsetX(clamp(dragStartRef.current.offsetX + deltaXPercent, -100, 100));
-        setCoverOffsetY(clamp(dragStartRef.current.offsetY + deltaYPercent, -100, 100));
-    };
+	    const computeTransform = (
+	        container: BoxSize,
+	        natural: BoxSize,
+	        zoom: number,
+	        offsetX: number,
+	        offsetY: number,
+	    ) => {
+	        const baseScale = Math.max(container.width / natural.width, container.height / natural.height);
+	        const scale = baseScale * zoom;
+	        const scaledW = natural.width * scale;
+	        const scaledH = natural.height * scale;
+	        const maxX = Math.max(0, (scaledW - container.width) / 2);
+	        const maxY = Math.max(0, (scaledH - container.height) / 2);
+	        const safeOffsetX = clamp(offsetX, -1, 1);
+	        const safeOffsetY = clamp(offsetY, -1, 1);
+	        return {
+	            scale,
+	            maxX,
+	            maxY,
+	            offsetPxX: safeOffsetX * maxX,
+	            offsetPxY: safeOffsetY * maxY,
+	        };
+	    };
+
+	    const startDragCover = (clientX: number, clientY: number) => {
+	        if (!coverPreviewRef.current || !coverNaturalSize) return;
+	        const rect = coverPreviewRef.current.getBoundingClientRect();
+	        const { offsetPxX, offsetPxY } = computeTransform(
+	            { width: rect.width, height: rect.height },
+	            coverNaturalSize,
+	            coverZoom,
+	            coverOffsetX,
+	            coverOffsetY,
+	        );
+	        dragStartRef.current = { x: clientX, y: clientY, offsetPxX, offsetPxY };
+	        setIsDraggingCover(true);
+	    };
+
+	    const moveDragCover = (clientX: number, clientY: number) => {
+	        if (!isDraggingCover || !dragStartRef.current || !coverPreviewRef.current || !coverNaturalSize) return;
+	        const rect = coverPreviewRef.current.getBoundingClientRect();
+	        const dxPx = clientX - dragStartRef.current.x;
+	        const dyPx = clientY - dragStartRef.current.y;
+	        const { maxX, maxY } = computeTransform(
+	            { width: rect.width, height: rect.height },
+	            coverNaturalSize,
+	            coverZoom,
+	            0,
+	            0,
+	        );
+	        const nextOffsetPxX = clamp(dragStartRef.current.offsetPxX + dxPx, -maxX, maxX);
+	        const nextOffsetPxY = clamp(dragStartRef.current.offsetPxY + dyPx, -maxY, maxY);
+	        setCoverOffsetX(maxX ? nextOffsetPxX / maxX : 0);
+	        setCoverOffsetY(maxY ? nextOffsetPxY / maxY : 0);
+	    };
 
     const endDragCover = () => {
         setIsDraggingCover(false);
         dragStartRef.current = null;
     };
 
-    const startDragAvatar = (clientX: number, clientY: number) => {
-        dragAvatarRef.current = { x: clientX, y: clientY, offsetX: avatarOffsetX, offsetY: avatarOffsetY };
-        setIsDraggingAvatar(true);
-    };
+	    const startDragAvatar = (clientX: number, clientY: number) => {
+	        if (!avatarPreviewRef.current || !avatarNaturalSize) return;
+	        const rect = avatarPreviewRef.current.getBoundingClientRect();
+	        const { offsetPxX, offsetPxY } = computeTransform(
+	            { width: rect.width, height: rect.height },
+	            avatarNaturalSize,
+	            avatarZoom,
+	            avatarOffsetX,
+	            avatarOffsetY,
+	        );
+	        dragAvatarRef.current = { x: clientX, y: clientY, offsetPxX, offsetPxY };
+	        setIsDraggingAvatar(true);
+	    };
 
-    const moveDragAvatar = (clientX: number, clientY: number) => {
-        if (!isDraggingAvatar || !dragAvatarRef.current || !avatarPreviewRef.current) return;
-        const rect = avatarPreviewRef.current.getBoundingClientRect();
-        const dxPx = clientX - dragAvatarRef.current.x;
-        const dyPx = clientY - dragAvatarRef.current.y;
+	    const moveDragAvatar = (clientX: number, clientY: number) => {
+	        if (!isDraggingAvatar || !dragAvatarRef.current || !avatarPreviewRef.current || !avatarNaturalSize) return;
+	        const rect = avatarPreviewRef.current.getBoundingClientRect();
+	        const dxPx = clientX - dragAvatarRef.current.x;
+	        const dyPx = clientY - dragAvatarRef.current.y;
+	        const { maxX, maxY } = computeTransform(
+	            { width: rect.width, height: rect.height },
+	            avatarNaturalSize,
+	            avatarZoom,
+	            0,
+	            0,
+	        );
+	        const nextOffsetPxX = clamp(dragAvatarRef.current.offsetPxX + dxPx, -maxX, maxX);
+	        const nextOffsetPxY = clamp(dragAvatarRef.current.offsetPxY + dyPx, -maxY, maxY);
+	        setAvatarOffsetX(maxX ? nextOffsetPxX / maxX : 0);
+	        setAvatarOffsetY(maxY ? nextOffsetPxY / maxY : 0);
+	    };
 
-        const deltaXPercent = (dxPx / rect.width) * 100;
-        const deltaYPercent = (dyPx / rect.height) * 100;
+	    const endDragAvatar = () => {
+	        setIsDraggingAvatar(false);
+	        dragAvatarRef.current = null;
+	    };
 
-        setAvatarOffsetX(clamp(dragAvatarRef.current.offsetX + deltaXPercent, -100, 100));
-        setAvatarOffsetY(clamp(dragAvatarRef.current.offsetY + deltaYPercent, -100, 100));
-    };
+	    const coverPreviewTransform =
+	        coverPreviewSize && coverNaturalSize
+	            ? computeTransform(coverPreviewSize, coverNaturalSize, coverZoom, coverOffsetX, coverOffsetY)
+	            : null;
 
-    const endDragAvatar = () => {
-        setIsDraggingAvatar(false);
-        dragAvatarRef.current = null;
-    };
+	    const avatarPreviewTransform =
+	        avatarPreviewSize && avatarNaturalSize
+	            ? computeTransform(avatarPreviewSize, avatarNaturalSize, avatarZoom, avatarOffsetX, avatarOffsetY)
+	            : null;
 
     const saveAvatar = async (dataUrl: string) => {
         try {
@@ -1005,11 +1163,11 @@ export default function DiccionarioDevApp() {
         }
     };
 
-    const applyAvatarEdits = async () => {
-        if (!avatarDraftUrl) return;
-        const img = new window.Image();
-        img.src = avatarDraftUrl;
-        await new Promise((resolve) => {
+	    const applyAvatarEdits = async () => {
+	        if (!avatarDraftUrl) return;
+	        const img = new window.Image();
+	        img.src = avatarDraftUrl;
+	        await new Promise((resolve) => {
             img.onload = resolve;
         });
 
@@ -1020,69 +1178,82 @@ export default function DiccionarioDevApp() {
         const ctx = canvas.getContext("2d");
         if (!ctx) return;
         ctx.imageSmoothingEnabled = true;
-        ctx.imageSmoothingQuality = "high";
+	        ctx.imageSmoothingQuality = "high";
 
-        const baseScale = Math.max(target / img.width, target / img.height);
-        const scale = baseScale * avatarZoom;
-        const scaledW = img.width * scale;
-        const scaledH = img.height * scale;
-        const offsetXPx = (avatarOffsetX / 100) * (target / 2);
-        const offsetYPx = (avatarOffsetY / 100) * (target / 2);
-        const dx = (target - scaledW) / 2 + offsetXPx;
-        const dy = (target - scaledH) / 2 + offsetYPx;
+	        const baseScale = Math.max(target / img.width, target / img.height);
+	        const scale = baseScale * avatarZoom;
+	        const scaledW = img.width * scale;
+	        const scaledH = img.height * scale;
+	        const maxX = Math.max(0, (scaledW - target) / 2);
+	        const maxY = Math.max(0, (scaledH - target) / 2);
+	        const offsetXPx = clamp(avatarOffsetX, -1, 1) * maxX;
+	        const offsetYPx = clamp(avatarOffsetY, -1, 1) * maxY;
+	        const dx = (target - scaledW) / 2 + offsetXPx;
+	        const dy = (target - scaledH) / 2 + offsetYPx;
 
-        ctx.save();
-        ctx.beginPath();
-        ctx.arc(target / 2, target / 2, target / 2, 0, Math.PI * 2);
-        ctx.closePath();
-        ctx.clip();
-        ctx.drawImage(img, dx, dy, scaledW, scaledH);
-        ctx.restore();
+	        ctx.drawImage(img, dx, dy, scaledW, scaledH);
+	
+		        const dataUrl = canvas.toDataURL("image/jpeg", 0.85);
+	        await saveAvatar(dataUrl);
+	        setAvatarEditorOpen(false);
+	        setAvatarDraftUrl("");
+	        setAvatarNaturalSize(null);
+	        setAvatarPreviewSize(null);
+	        setAvatarZoom(1);
+	        setAvatarOffsetX(0);
+	        setAvatarOffsetY(0);
+	    };
 
-        const dataUrl = canvas.toDataURL("image/jpeg", 0.95);
-        await saveAvatar(dataUrl);
-        setAvatarEditorOpen(false);
-        setAvatarDraftUrl("");
-    };
-
-    const applyCoverEdits = async () => {
-        if (!coverDraftUrl) return;
-        const img = new window.Image();
-        img.src = coverDraftUrl;
-        await new Promise((resolve) => {
+	    const applyCoverEdits = async () => {
+	        if (!coverDraftUrl) return;
+	        const img = new window.Image();
+	        img.src = coverDraftUrl;
+	        await new Promise((resolve) => {
             img.onload = resolve;
         });
 
-        const targetW = 2400;
-        const targetH = 720;
-        const canvas = document.createElement("canvas");
-        canvas.width = targetW;
-        canvas.height = targetH;
-        const ctx = canvas.getContext("2d");
-        if (!ctx) return;
+	        const targetW = 2400;
+	        const displayRect = coverDisplayRef.current?.getBoundingClientRect();
+	        const ratio = displayRect
+	            ? displayRect.width / displayRect.height
+	            : (coverPreviewSize ? coverPreviewSize.width / coverPreviewSize.height : (2400 / 720));
+	        const targetH = Math.max(1, Math.round(targetW / Math.max(0.1, ratio)));
+	        const canvas = document.createElement("canvas");
+	        canvas.width = targetW;
+	        canvas.height = targetH;
+	        const ctx = canvas.getContext("2d");
+	        if (!ctx) return;
         ctx.imageSmoothingEnabled = true;
         ctx.imageSmoothingQuality = "high";
 
-        const baseScale = Math.max(targetW / img.width, targetH / img.height);
-        const scale = baseScale * coverZoom;
-        const scaledW = img.width * scale;
-        const scaledH = img.height * scale;
+	        const baseScale = Math.max(targetW / img.width, targetH / img.height);
+	        const scale = baseScale * coverZoom;
+	        const scaledW = img.width * scale;
+	        const scaledH = img.height * scale;
 
-        const offsetXPx = (coverOffsetX / 100) * (targetW / 2);
-        const offsetYPx = (coverOffsetY / 100) * (targetH / 2);
+	        const maxX = Math.max(0, (scaledW - targetW) / 2);
+	        const maxY = Math.max(0, (scaledH - targetH) / 2);
+	        const offsetXPx = clamp(coverOffsetX, -1, 1) * maxX;
+	        const offsetYPx = clamp(coverOffsetY, -1, 1) * maxY;
 
-        const dx = (targetW - scaledW) / 2 + offsetXPx;
-        const dy = (targetH - scaledH) / 2 + offsetYPx;
+	        const dx = (targetW - scaledW) / 2 + offsetXPx;
+	        const dy = (targetH - scaledH) / 2 + offsetYPx;
 
         ctx.fillStyle = "#0f172a";
         ctx.fillRect(0, 0, targetW, targetH);
         ctx.drawImage(img, dx, dy, scaledW, scaledH);
 
-        const dataUrl = canvas.toDataURL("image/jpeg", 0.95);
-        setCoverUrl(dataUrl);
-        setCoverEditorOpen(false);
-        setCoverDraftUrl("");
-    };
+	        const dataUrl = canvas.toDataURL("image/jpeg", 0.95);
+		        setCoverUrl(dataUrl);
+		        setCoverEditorOpen(false);
+		        setCoverDraftUrl("");
+		        setCoverNaturalSize(null);
+		        setCoverPreviewSize(null);
+		        setCoverZoom(1);
+		        setCoverOffsetX(0);
+		        setCoverOffsetY(0);
+		        setCoverAspectRatio(null);
+		    };
 
     type SpeechRecognitionLike = {
         abort?: () => void;
@@ -1593,73 +1764,85 @@ export default function DiccionarioDevApp() {
                         </div>
 
                         {/* Perfil del usuario (solo si hay sesión) */}
-                        {session && (
-                            <section className="relative mt-4 sm:mt-6 rounded-2xl border border-slate-800 bg-slate-900/70 shadow-inner overflow-visible">
-                                <div className="relative z-0 h-28 sm:h-36 w-full overflow-hidden">
-                                    {!coverUrl && (
-                                        <div className="absolute inset-0 bg-linear-to-r from-emerald-600 via-cyan-600 to-blue-700" />
-                                    )}
-                                    {coverUrl && (
-                                        // eslint-disable-next-line @next/next/no-img-element
-                                        <img
-                                            src={coverUrl}
-                                            alt="Portada"
-                                            className="absolute inset-0 block h-full w-full object-cover"
-                                        />
-                                    )}
-                                    <button
-                                        onClick={() => coverInputRef.current?.click()}
-                                        className="absolute right-3 top-3 inline-flex h-12 w-12 items-center justify-center text-white/90 hover:text-white"
-                                        aria-label="Cambiar portada"
-                                    >
-                                        <Camera className="h-5 w-5 dark:drop-shadow-[0_2px_6px_rgba(0,0,0,0.55)]" />
-                                    </button>
-                                    <input
-                                        ref={coverInputRef}
-                                        type="file"
-                                        accept="image/*"
-                                        className="hidden"
-                                        onChange={handleCoverUpload}
-                                    />
-                                </div>
-                                <div className="relative z-10 px-4 sm:px-6 pb-4 -mt-14 sm:-mt-18 grid grid-cols-[auto_1fr] gap-3 sm:gap-4 items-center">
-                                    <a href="/admin/profile" className="relative z-30 h-16 w-16 sm:h-20 sm:w-20 rounded-full border-2 border-white/70 bg-slate-800 overflow-visible shadow-xl ring-2 ring-white/20 hover:scale-105 transition shrink-0">
-                                        {avatarPreview || session.avatarUrl ? (
-                                            // eslint-disable-next-line @next/next/no-img-element
-                                            <img src={avatarPreview || session.avatarUrl || ""} alt={session.displayName || session.username} className="h-full w-full object-cover rounded-full" />
-                                        ) : (
-                                            <div className="flex h-full w-full items-center justify-center bg-emerald-500/20 text-emerald-100 font-bold text-xl rounded-full">
-                                                {(session.displayName || session.username).substring(0, 2).toUpperCase()}
-                                            </div>
-                                        )}
-                                        <button
-                                            onClick={(e) => { e.preventDefault(); avatarInputRef.current?.click(); }}
-                                            className="absolute -bottom-2 -right-2 inline-flex h-9 w-9 items-center justify-center text-white/90 hover:text-white"
-                                            aria-label="Cambiar foto de perfil"
-                                        >
-                                            <Camera className="h-4 w-4 dark:drop-shadow-[0_2px_6px_rgba(0,0,0,0.55)]" />
-                                        </button>
-                                        <input
-                                            ref={avatarInputRef}
-                                            type="file"
-                                            accept="image/*"
-                                            className="hidden"
-                                            onChange={handleAvatarUpload}
-                                        />
-                                    </a>
-                                    <div className="space-y-1 min-w-0 w-full">
-                                        <a href="/admin/profile" className="block group">
-                                            <h3 className="text-lg sm:text-xl font-bold text-white leading-tight group-hover:text-emerald-200 transition-colors">
-                                                {session.displayName || session.username}
-                                            </h3>
-                                        </a>
-                                        <p className="text-sm text-slate-300">
-                                            {session.bio || "Completa tu bio para que otros sepan en qué estás trabajando."}
-                                        </p>
-                                    </div>
-                                </div>
-                            </section>
-                        )}
+				                        {session && (
+				                            <section className="relative mt-4 sm:mt-6 rounded-2xl border border-slate-800 bg-slate-900/70 shadow-inner overflow-visible">
+					                                <div className="relative">
+				                                    <div ref={coverDisplayRef} className="relative h-28 sm:h-36 w-full rounded-t-2xl overflow-visible">
+				                                        <div className="absolute inset-0 overflow-hidden rounded-t-2xl">
+				                                            {!coverUrl && (
+				                                                <div className="absolute inset-0 bg-linear-to-r from-emerald-600 via-cyan-600 to-blue-700" />
+				                                            )}
+				                                            {coverUrl && (
+				                                                // eslint-disable-next-line @next/next/no-img-element
+				                                                <img src={coverUrl} alt="Portada" className="absolute inset-0 block h-full w-full object-cover" />
+				                                            )}
+				                                        </div>
+					                                        <button
+					                                            onClick={() => coverInputRef.current?.click()}
+					                                            className="absolute right-3 top-3 inline-flex h-11 w-11 items-center justify-center rounded-full text-white/90 transition hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/70"
+					                                            aria-label="Cambiar portada"
+					                                        >
+					                                            <Camera className="h-5 w-5 drop-shadow-[0_2px_8px_rgba(0,0,0,0.7)]" />
+					                                        </button>
+				                                        <input
+				                                            ref={coverInputRef}
+				                                            type="file"
+				                                            accept="image/*"
+				                                            className="hidden"
+				                                            onChange={handleCoverUpload}
+				                                        />
+					                                        <a
+					                                            href="/admin/profile"
+					                                            className="absolute left-1/2 bottom-0 z-30 -translate-x-1/2 translate-y-1/2 sm:left-6 sm:translate-x-0"
+					                                        >
+				                                            <div className="relative h-16 w-16 sm:h-20 sm:w-20 rounded-full border-2 border-white/70 bg-slate-800 overflow-visible shadow-xl ring-2 ring-white/20 hover:scale-105 transition shrink-0">
+				                                                {avatarPreview || session.avatarUrl ? (
+				                                                    // eslint-disable-next-line @next/next/no-img-element
+				                                                    <img
+				                                                        src={avatarPreview || session.avatarUrl || ""}
+				                                                        alt={session.displayName || session.username}
+				                                                        className="h-full w-full object-cover rounded-full"
+				                                                    />
+				                                                ) : (
+				                                                    <div className="flex h-full w-full items-center justify-center bg-emerald-500/20 text-emerald-100 font-bold text-xl rounded-full">
+				                                                        {(session.displayName || session.username).substring(0, 2).toUpperCase()}
+				                                                    </div>
+				                                                )}
+					                                                <button
+					                                                    onClick={(e) => {
+					                                                        e.preventDefault();
+					                                                        avatarInputRef.current?.click();
+					                                                    }}
+					                                                    className="absolute -bottom-2 -right-2 inline-flex h-9 w-9 items-center justify-center rounded-full text-white/90 transition hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/70"
+					                                                    aria-label="Cambiar foto de perfil"
+					                                                >
+					                                                    <Camera className="h-4 w-4 drop-shadow-[0_2px_8px_rgba(0,0,0,0.7)]" />
+					                                                </button>
+				                                                <input
+				                                                    ref={avatarInputRef}
+				                                                    type="file"
+				                                                    accept="image/*"
+				                                                    className="hidden"
+				                                                    onChange={handleAvatarUpload}
+				                                                />
+				                                            </div>
+				                                        </a>
+				                                    </div>
+				                                </div>
+							                                <div className="relative z-10 rounded-b-2xl bg-black/55 px-4 sm:px-6 pb-4 pt-14 sm:pt-4 backdrop-blur-md border-t border-white/10">
+				                                    <div className="flex flex-col items-center gap-1 text-center sm:items-start sm:gap-2 sm:text-left sm:pl-24">
+				                                        <a href="/admin/profile" className="block group">
+					                                            <h3 className="text-lg sm:text-xl font-bold text-emerald-400 leading-tight drop-shadow-[0_2px_10px_rgba(0,0,0,0.65)] transition-colors group-hover:text-emerald-300">
+					                                                {session.displayName || session.username}
+				                                            </h3>
+			                                        </a>
+			                                        <p className="text-sm text-slate-200/90 line-clamp-2">
+			                                            {session.bio || "Completa tu bio para que otros sepan en qué estás trabajando."}
+				                                        </p>
+				                                    </div>
+				                                </div>
+				                            </section>
+				                        )}
 
                         {/* Mobile nav */}
                         <div className="flex items-center gap-2 md:hidden overflow-x-auto pb-1">
@@ -2119,59 +2302,69 @@ export default function DiccionarioDevApp() {
 	                </div>
 	            </div>
 
-            {/* Editor de portada */}
-            {coverEditorOpen && (
-                <div className="fixed inset-0 z-130 flex items-center justify-center px-4">
-                    <div className="absolute inset-0 bg-black/80 backdrop-blur-sm" onClick={() => setCoverEditorOpen(false)} />
-                    <div className="relative w-full max-w-3xl rounded-2xl border border-neo-border bg-neo-card shadow-2xl overflow-hidden">
-                        <div className="flex items-center justify-between border-b border-neo-border px-4 py-3">
-                            <div className="flex items-center gap-2">
-                                <Sparkles className="h-5 w-5 text-neo-primary" />
-                                <p className="text-sm font-semibold text-neo-text-primary">Ajustar portada</p>
-                            </div>
-                            <button
-                                onClick={() => setCoverEditorOpen(false)}
-                                className="h-9 w-9 rounded-xl border border-neo-border bg-neo-surface text-neo-text-secondary"
-                                aria-label="Cerrar editor"
-                            >
-                                <X className="h-5 w-5" />
-                            </button>
-                        </div>
+		            {/* Editor de portada */}
+		            {coverEditorOpen && (
+		                <div className="fixed inset-0 z-130 flex items-center justify-center px-4">
+		                    <div className="absolute inset-0 bg-black/80 backdrop-blur-sm" onClick={cancelCoverEdit} />
+			                    <div className="relative flex max-h-[90vh] w-full max-w-7xl flex-col overflow-hidden rounded-2xl border border-neo-border bg-neo-card shadow-2xl 2xl:max-w-[1600px]">
+		                        <div className="flex items-center justify-between border-b border-neo-border px-4 py-3">
+		                            <div className="flex items-center gap-2">
+		                                <Sparkles className="h-5 w-5 text-neo-primary" />
+		                                <p className="text-sm font-semibold text-neo-text-primary">Ajustar portada</p>
+		                            </div>
+		                            <button
+		                                onClick={cancelCoverEdit}
+		                                className="h-9 w-9 rounded-xl border border-neo-border bg-neo-surface text-neo-text-secondary"
+		                                aria-label="Cerrar editor"
+		                            >
+		                                <X className="h-5 w-5" />
+	                            </button>
+	                        </div>
 
-                        <div className="grid gap-4 p-4 lg:grid-cols-[2fr_1fr] items-start">
-                            <div className="rounded-2xl border border-neo-border bg-neo-surface p-3">
-                                <div
-                                    ref={coverPreviewRef}
-                                    className="relative w-full overflow-hidden rounded-lg border border-white/70 ring-2 ring-white/20 bg-neo-bg"
-                                    onMouseDown={(e) => startDragCover(e.clientX, e.clientY)}
-                                    onMouseMove={(e) => moveDragCover(e.clientX, e.clientY)}
-                                    onMouseUp={endDragCover}
-                                    onMouseLeave={endDragCover}
-                                    onTouchStart={(e) => {
-                                        const touch = e.touches[0];
-                                        if (touch) startDragCover(touch.clientX, touch.clientY);
-                                    }}
-                                    onTouchMove={(e) => {
-                                        const touch = e.touches[0];
-                                        if (touch) moveDragCover(touch.clientX, touch.clientY);
-                                    }}
-                                    onTouchEnd={endDragCover}
-                                >
-                                    <div
-                                        className={`h-48 sm:h-56 md:h-64 bg-slate-900 ${isDraggingCover ? "cursor-grabbing" : "cursor-grab"}`}
-                                        style={{
-                                            backgroundImage: `url(${coverDraftUrl || coverUrl || ""})`,
-                                            backgroundSize: `${coverBaseScale * coverZoom * 100}%`,
-                                            backgroundPosition: `${50 + coverOffsetX}% ${50 + coverOffsetY}%`,
-                                            backgroundRepeat: "no-repeat",
-                                        }}
-                                    />
-                                    <div className="pointer-events-none absolute inset-0 rounded-lg ring-1 ring-white/20" />
-                                </div>
-                                <p className="mt-2 text-xs text-neo-text-secondary">Arrastra para reubicar y ajusta el zoom (mismo flujo que Avatar).</p>
-                            </div>
+		                        <div className="flex-1 overflow-y-auto">
+		                            <div className="grid gap-4 p-4">
+			                            <div className="rounded-2xl border border-neo-border bg-neo-surface p-3">
+			                                <div
+			                                    ref={coverPreviewRef}
+			                                    className={`relative w-full touch-none overflow-hidden rounded-lg border border-white/70 bg-slate-900 ring-2 ring-white/20 ${isDraggingCover ? "cursor-grabbing" : "cursor-grab"}`}
+			                                    style={coverAspectRatio ? { aspectRatio: String(coverAspectRatio) } : undefined}
+			                                    onMouseDown={(e) => startDragCover(e.clientX, e.clientY)}
+			                                    onMouseMove={(e) => moveDragCover(e.clientX, e.clientY)}
+			                                    onMouseUp={endDragCover}
+			                                    onMouseLeave={endDragCover}
+			                                    onTouchStart={(e) => {
+		                                        const touch = e.touches[0];
+		                                        if (touch) startDragCover(touch.clientX, touch.clientY);
+		                                    }}
+		                                    onTouchMove={(e) => {
+		                                        e.preventDefault();
+		                                        const touch = e.touches[0];
+		                                        if (touch) moveDragCover(touch.clientX, touch.clientY);
+		                                    }}
+		                                    onTouchEnd={endDragCover}
+		                                >
+		                                    {coverDraftUrl && coverPreviewTransform ? (
+		                                        // eslint-disable-next-line @next/next/no-img-element
+		                                        <img
+		                                            src={coverDraftUrl}
+		                                            alt="Portada"
+		                                            draggable={false}
+		                                            className="absolute left-1/2 top-1/2 max-w-none select-none"
+		                                            style={{
+		                                                transform: `translate(-50%, -50%) translate(${coverPreviewTransform.offsetPxX}px, ${coverPreviewTransform.offsetPxY}px) scale(${coverPreviewTransform.scale})`,
+		                                                willChange: "transform",
+		                                            }}
+		                                        />
+		                                    ) : coverDraftUrl ? (
+		                                        // eslint-disable-next-line @next/next/no-img-element
+		                                        <img src={coverDraftUrl} alt="Portada" className="absolute inset-0 h-full w-full object-cover" />
+		                                    ) : null}
+		                                    <div className="pointer-events-none absolute inset-0 rounded-lg ring-1 ring-white/20" />
+		                                </div>
+	                                <p className="mt-2 text-xs text-neo-text-secondary">Arrastra para reubicar y ajusta el zoom (mismo flujo que Avatar).</p>
+	                            </div>
 
-                            <div className="space-y-3">
+		                            <div className="rounded-2xl border border-neo-border bg-neo-surface p-3 space-y-3">
                                 <div>
                                     <label className="text-xs font-semibold text-neo-text-primary">Zoom</label>
                                     <input
@@ -2195,12 +2388,12 @@ export default function DiccionarioDevApp() {
                                     >
                                         Reajustar
                                     </button>
-                                    <button
-                                        onClick={() => setCoverEditorOpen(false)}
-                                        className="rounded-lg border border-neo-border bg-neo-card px-3 py-2 text-xs font-semibold text-neo-text-secondary hover:border-neo-text-secondary hover:text-neo-text-primary transition"
-                                    >
-                                        Cancelar
-                                    </button>
+	                                    <button
+	                                        onClick={cancelCoverEdit}
+	                                        className="rounded-lg border border-neo-border bg-neo-card px-3 py-2 text-xs font-semibold text-neo-text-secondary hover:border-neo-text-secondary hover:text-neo-text-primary transition"
+	                                    >
+	                                        Cancelar
+	                                    </button>
                                     <button
                                         onClick={applyCoverEdits}
                                         className="flex-1 rounded-lg bg-neo-primary px-3 py-2 text-xs font-semibold text-white shadow-lg shadow-neo-primary/25 transition hover:brightness-110"
@@ -2214,64 +2407,74 @@ export default function DiccionarioDevApp() {
                                         Restablecer
                                     </button>
                                 </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            )}
-            {/* Editor de avatar */}
-            {avatarEditorOpen && (
-                <div className="fixed inset-0 z-140 flex items-center justify-center px-4">
-                    <div className="absolute inset-0 bg-black/80 backdrop-blur-sm" onClick={() => setAvatarEditorOpen(false)} />
-                    <div className="relative w-full max-w-md overflow-hidden rounded-2xl border border-neo-border bg-neo-card shadow-2xl">
-                        <div className="flex items-center justify-between border-b border-neo-border px-4 py-3">
-                            <div className="flex items-center gap-2">
-                                <Sparkles className="h-5 w-5 text-neo-primary" />
-                                <p className="text-sm font-semibold text-neo-text-primary">Ajustar foto</p>
-                            </div>
-                            <button
-                                onClick={() => setAvatarEditorOpen(false)}
-                                className="h-9 w-9 rounded-xl border border-neo-border bg-neo-surface text-neo-text-secondary"
-                                aria-label="Cerrar editor"
-                            >
-                                <X className="h-5 w-5" />
-                            </button>
-                        </div>
+	                            </div>
+	                            </div>
+	                        </div>
+	                    </div>
+	                </div>
+	            )}
+		            {/* Editor de avatar */}
+		            {avatarEditorOpen && (
+		                <div className="fixed inset-0 z-140 flex items-center justify-center px-4">
+		                    <div className="absolute inset-0 bg-black/80 backdrop-blur-sm" onClick={cancelAvatarEdit} />
+			                    <div className="relative flex max-h-[90vh] w-full max-w-7xl flex-col overflow-hidden rounded-2xl border border-neo-border bg-neo-card shadow-2xl 2xl:max-w-[1600px]">
+		                        <div className="flex items-center justify-between border-b border-neo-border px-4 py-3">
+		                            <div className="flex items-center gap-2">
+		                                <Sparkles className="h-5 w-5 text-neo-primary" />
+		                                <p className="text-sm font-semibold text-neo-text-primary">Ajustar foto</p>
+		                            </div>
+		                            <button
+		                                onClick={cancelAvatarEdit}
+		                                className="h-9 w-9 rounded-xl border border-neo-border bg-neo-surface text-neo-text-secondary"
+		                                aria-label="Cerrar editor"
+		                            >
+		                                <X className="h-5 w-5" />
+	                            </button>
+		                        </div>
 
-                        <div className="grid gap-4 p-4 items-start">
-                            <div className="rounded-2xl border border-neo-border bg-neo-surface p-3">
-                                <div
-                                    ref={avatarPreviewRef}
-                                    className="relative mx-auto h-48 w-48 overflow-hidden rounded-full border border-white/70 ring-2 ring-white/20 bg-neo-bg"
-                                    onMouseDown={(e) => startDragAvatar(e.clientX, e.clientY)}
-                                    onMouseMove={(e) => moveDragAvatar(e.clientX, e.clientY)}
-                                    onMouseUp={endDragAvatar}
-                                    onMouseLeave={endDragAvatar}
-                                    onTouchStart={(e) => {
-                                        const touch = e.touches[0];
-                                        if (touch) startDragAvatar(touch.clientX, touch.clientY);
-                                    }}
-                                    onTouchMove={(e) => {
-                                        const touch = e.touches[0];
-                                        if (touch) moveDragAvatar(touch.clientX, touch.clientY);
-                                    }}
-                                    onTouchEnd={endDragAvatar}
-                                >
-                                    <div
-                                        className={`absolute inset-0 bg-slate-900 ${isDraggingAvatar ? "cursor-grabbing" : "cursor-grab"}`}
-                                        style={{
-                                            backgroundImage: `url(${avatarDraftUrl || avatarPreview || session?.avatarUrl || ""})`,
-                                            backgroundSize: `${avatarBaseScale * avatarZoom * 100}%`,
-                                            backgroundPosition: `${50 + avatarOffsetX}% ${50 + avatarOffsetY}%`,
-                                            backgroundRepeat: "no-repeat",
-                                        }}
-                                    />
-                                    <div className="pointer-events-none absolute inset-0 rounded-full ring-1 ring-white/20" />
-                                </div>
+			                        <div className="flex-1 overflow-y-auto">
+			                            <div className="grid gap-4 p-4">
+			                            <div className="rounded-2xl border border-neo-border bg-neo-surface p-3">
+		                                <div
+		                                    ref={avatarPreviewRef}
+		                                    className={`relative mx-auto h-56 w-56 touch-none overflow-hidden rounded-full border border-white/70 bg-slate-900 ring-2 ring-white/20 sm:h-64 sm:w-64 ${isDraggingAvatar ? "cursor-grabbing" : "cursor-grab"}`}
+		                                    onMouseDown={(e) => startDragAvatar(e.clientX, e.clientY)}
+		                                    onMouseMove={(e) => moveDragAvatar(e.clientX, e.clientY)}
+		                                    onMouseUp={endDragAvatar}
+		                                    onMouseLeave={endDragAvatar}
+		                                    onTouchStart={(e) => {
+		                                        const touch = e.touches[0];
+		                                        if (touch) startDragAvatar(touch.clientX, touch.clientY);
+		                                    }}
+		                                    onTouchMove={(e) => {
+		                                        e.preventDefault();
+		                                        const touch = e.touches[0];
+		                                        if (touch) moveDragAvatar(touch.clientX, touch.clientY);
+		                                    }}
+		                                    onTouchEnd={endDragAvatar}
+		                                >
+		                                    {avatarDraftUrl && avatarPreviewTransform ? (
+		                                        // eslint-disable-next-line @next/next/no-img-element
+		                                        <img
+		                                            src={avatarDraftUrl}
+		                                            alt="Avatar"
+		                                            draggable={false}
+		                                            className="absolute left-1/2 top-1/2 max-w-none select-none"
+		                                            style={{
+		                                                transform: `translate(-50%, -50%) translate(${avatarPreviewTransform.offsetPxX}px, ${avatarPreviewTransform.offsetPxY}px) scale(${avatarPreviewTransform.scale})`,
+		                                                willChange: "transform",
+		                                            }}
+		                                        />
+		                                    ) : avatarDraftUrl ? (
+		                                        // eslint-disable-next-line @next/next/no-img-element
+		                                        <img src={avatarDraftUrl} alt="Avatar" className="absolute inset-0 h-full w-full object-cover" />
+		                                    ) : null}
+		                                    <div className="pointer-events-none absolute inset-0 rounded-full ring-1 ring-white/20" />
+		                                </div>
                                 <p className="mt-2 text-xs text-neo-text-secondary">Arrastra para reubicar y ajusta el zoom (igual que en Admin).</p>
                             </div>
 
-                            <div className="space-y-3">
+		                            <div className="rounded-2xl border border-neo-border bg-neo-surface p-3 space-y-3">
                                 <div>
                                     <label className="text-xs font-semibold text-neo-text-primary">Zoom</label>
                                     <input
@@ -2295,12 +2498,12 @@ export default function DiccionarioDevApp() {
                                     >
                                         Reajustar
                                     </button>
-                                    <button
-                                        onClick={() => setAvatarEditorOpen(false)}
-                                        className="rounded-lg border border-neo-border bg-neo-card px-3 py-2 text-xs font-semibold text-neo-text-secondary hover:border-neo-text-secondary hover:text-neo-text-primary transition-colors"
-                                    >
-                                        Cancelar
-                                    </button>
+	                                    <button
+	                                        onClick={cancelAvatarEdit}
+	                                        className="rounded-lg border border-neo-border bg-neo-card px-3 py-2 text-xs font-semibold text-neo-text-secondary hover:border-neo-text-secondary hover:text-neo-text-primary transition-colors"
+	                                    >
+	                                        Cancelar
+	                                    </button>
                                     <button
                                         onClick={applyAvatarEdits}
                                         className="flex-1 rounded-lg bg-neo-primary px-3 py-2 text-xs font-semibold text-white shadow-lg shadow-neo-primary/25 transition-colors hover:brightness-110"
@@ -2308,11 +2511,12 @@ export default function DiccionarioDevApp() {
                                         Guardar foto
                                     </button>
                                 </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            )}
+	                            </div>
+	                            </div>
+	                        </div>
+	                    </div>
+	                </div>
+	            )}
             {showSearchExplainer && (
                 <>
 	                    {/* --- Search Explainer --- */}

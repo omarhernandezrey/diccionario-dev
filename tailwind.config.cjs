@@ -104,6 +104,13 @@ module.exports = {
         "gradient-primary": "linear-gradient(135deg, #6c63ff 0%, #8b5cf6 100%)",
         "gradient-accent": "linear-gradient(135deg, #06b6d4 0%, #80e0ff 100%)",
       },
+      zIndex: {
+        100: "100",
+        120: "120",
+        130: "130",
+        140: "140",
+        999: "999",
+      },
     },
   },
   plugins: [],
