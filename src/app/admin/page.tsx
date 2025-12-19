@@ -1615,7 +1615,7 @@ function TermsTable({
 
       {/* Desktop / Tablet table */}
       <div className="hidden overflow-x-auto rounded-3xl border border-neo-border bg-neo-surface md:block">
-        <table className="min-w-[860px] divide-y divide-neo-border text-sm">
+        <table className="w-full min-w-[700px] divide-y divide-neo-border text-sm">
           <thead className="bg-neo-card text-left text-xs uppercase tracking-wide text-neo-text-secondary">
             <tr>
               <th className="px-4 py-3">
