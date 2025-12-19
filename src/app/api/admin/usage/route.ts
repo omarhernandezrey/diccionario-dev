@@ -29,8 +29,8 @@ function adminOrResponse(headers: Headers): AuthTokenPayload | Response {
 }
 
 export async function GET(req: NextRequest) {
-  const admin = adminOrResponse(req.headers);
-  if (admin instanceof Response) return admin;
+  const auth = adminOrResponse(req.headers);
+  if (auth instanceof Response) return auth;
 
   const url = new URL(req.url);
   const limit = Math.min(Math.max(Number(url.searchParams.get("limit") ?? 12), 1), 50);
@@ -54,33 +54,29 @@ export async function GET(req: NextRequest) {
           EXTRACT(HOUR FROM "createdAt") AS hour,
           COUNT(*) AS count
         FROM "SearchLog"
-        WHERE "context" = 'usage'
-          AND "mode" IN (${ACTIONS[0]}, ${ACTIONS[1]}, ${ACTIONS[2]})
+        WHERE "mode" IN (${ACTIONS[0]}, ${ACTIONS[1]}, ${ACTIONS[2]})
           AND "createdAt" >= ${since}
         GROUP BY dow, hour;
       `,
     ]);
 
-    const terms = stats
-      .map((entry): UsageTerm => {
-        const views = entry.views ?? 0;
-        const favorites = entry.favorites ?? 0;
-        const copies = entry.copyActions ?? 0;
-        return {
-          id: entry.termId,
-          term: entry.term?.term ?? "Desconocido",
-          translation: entry.term?.translation ?? "",
-          category: entry.term?.category ?? "general",
-          views,
-          favorites,
-          copies,
-          total: views + favorites + copies,
-        };
-      })
-      .sort((a, b) => b.total - a.total)
-      .slice(0, limit);
+    const mappedTerms = stats.map((entry): UsageTerm => {
+      const views = entry.views ?? 0;
+      const favorites = entry.favorites ?? 0;
+      const copies = entry.copyActions ?? 0;
+      return {
+        id: entry.termId,
+        term: entry.term?.term ?? "Desconocido",
+        translation: entry.term?.translation ?? "",
+        category: entry.term?.category ?? "general",
+        views,
+        favorites,
+        copies,
+        total: views + favorites + copies,
+      };
+    });
 
-    const totals = terms.reduce(
+    const totals = mappedTerms.reduce(
       (acc, term) => {
         acc.views += term.views;
         acc.favorites += term.favorites;
@@ -89,6 +85,8 @@ export async function GET(req: NextRequest) {
       },
       { views: 0, favorites: 0, copies: 0 },
     );
+
+    const terms = mappedTerms.sort((a, b) => b.total - a.total).slice(0, limit);
 
     const days = ["Dom", "Lun", "Mar", "Mie", "Jue", "Vie", "Sab"];
     const hours = Array.from({ length: 24 }, (_, idx) => idx);

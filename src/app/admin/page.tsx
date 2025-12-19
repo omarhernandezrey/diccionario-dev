@@ -1713,11 +1713,11 @@ function TermsTable({
       </div>
 
       {/* Desktop / Tablet table */}
-      <div className="hidden max-w-full overflow-x-auto rounded-3xl border border-neo-border bg-neo-surface md:block">
-        <table className="w-full min-w-[700px] divide-y divide-neo-border text-sm">
+      <div className="hidden rounded-3xl border border-neo-border bg-neo-surface md:block">
+        <table className="w-full table-fixed divide-y divide-neo-border text-sm">
           <thead className="bg-neo-card text-left text-xs uppercase tracking-wide text-neo-text-secondary">
             <tr>
-              <th className="px-4 py-3">
+              <th className="w-10 px-2 py-3 lg:px-4">
                 <input
                   type="checkbox"
                   aria-label="Seleccionar todos los términos visibles"
@@ -1727,28 +1727,50 @@ function TermsTable({
                   className="h-4 w-4 rounded border-neo-border bg-transparent"
                 />
               </th>
-              <th className="px-4 py-3">#</th>
-              <th className="px-4 py-3">Traducción</th>
-              <th className="px-4 py-3">Término</th>
-              <th className="px-4 py-3">Ejercicios</th>
-              <th className="px-4 py-3">Calidad</th>
-              <th className="px-4 py-3">Estado</th>
-              <th className="px-4 py-3">Categoría</th>
-              <th className="px-4 py-3">Acciones</th>
+              <th className="hidden w-16 px-2 py-3 lg:table-cell lg:px-4">#</th>
+              <th className="px-2 py-3 lg:px-4">Traducción</th>
+              <th className="hidden px-2 py-3 xl:table-cell lg:px-4">Término</th>
+              <th className="hidden w-20 px-2 py-3 lg:table-cell lg:px-4">Ejer.</th>
+              <th className="w-20 px-2 py-3 lg:w-24 lg:px-4">Calidad</th>
+              <th className="w-20 px-2 py-3 lg:w-24 lg:px-4">Estado</th>
+              <th className="hidden w-24 px-2 py-3 xl:table-cell lg:px-4">Categoría</th>
+              <th className="w-28 px-2 py-3 lg:w-32 lg:px-4">Acciones</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-neo-border">
             {loading ? (
               Array.from({ length: 6 }).map((_, index) => (
                 <tr key={`skeleton-${index}`} className="animate-pulse">
-                  <td className="px-4 py-3">
+                  <td className="px-2 py-3 lg:px-4">
                     <div className="h-4 w-4 rounded border border-neo-border bg-neo-card" />
                   </td>
-                  {Array.from({ length: 8 }).map((__, cellIdx) => (
-                    <td key={cellIdx} className="px-4 py-3">
-                      <div className="h-4 w-full rounded bg-neo-card" />
-                    </td>
-                  ))}
+                  <td className="hidden px-2 py-3 lg:table-cell lg:px-4">
+                    <div className="h-4 w-12 rounded bg-neo-card" />
+                  </td>
+                  <td className="px-2 py-3 lg:px-4">
+                    <div className="h-4 w-full rounded bg-neo-card" />
+                  </td>
+                  <td className="hidden px-2 py-3 xl:table-cell lg:px-4">
+                    <div className="h-4 w-full rounded bg-neo-card" />
+                  </td>
+                  <td className="hidden px-2 py-3 lg:table-cell lg:px-4">
+                    <div className="h-4 w-8 rounded bg-neo-card" />
+                  </td>
+                  <td className="px-2 py-3 lg:px-4">
+                    <div className="h-5 w-12 rounded-full bg-neo-card" />
+                  </td>
+                  <td className="px-2 py-3 lg:px-4">
+                    <div className="h-5 w-16 rounded-full bg-neo-card" />
+                  </td>
+                  <td className="hidden px-2 py-3 xl:table-cell lg:px-4">
+                    <div className="h-5 w-16 rounded-full bg-neo-card" />
+                  </td>
+                  <td className="px-2 py-3 lg:px-4">
+                    <div className="flex gap-1">
+                      <div className="h-7 w-12 rounded bg-neo-card lg:w-16" />
+                      <div className="h-7 w-12 rounded bg-neo-card lg:w-16" />
+                    </div>
+                  </td>
                 </tr>
               ))
             ) : error ? (
@@ -1774,7 +1796,7 @@ function TermsTable({
                 const quality = computeQualityScore(item);
                 return (
                 <tr key={item.id} className="bg-neo-surface hover:bg-neo-card transition-colors">
-                  <td className="px-4 py-3">
+                  <td className="px-2 py-3 lg:px-4">
                     <input
                       type="checkbox"
                       aria-label={`Seleccionar término ${item.term}`}
@@ -1784,10 +1806,17 @@ function TermsTable({
                       className="h-4 w-4 rounded border-neo-border bg-transparent"
                     />
                   </td>
-                  <td className="px-4 py-3 text-neo-text-secondary">{item.id}</td>
-                  <td className="px-4 py-3 font-semibold text-neo-text-primary">{item.translation}</td>
-                  <td className="px-4 py-3 text-neo-text-secondary">{item.term}</td>
-                  <td className="px-4 py-3">
+                  <td className="hidden px-2 py-3 text-neo-text-secondary lg:table-cell lg:px-4">{item.id}</td>
+                  <td className="px-2 py-3 lg:px-4">
+                    <div className="min-w-0">
+                      <p className="truncate font-semibold text-neo-text-primary">{item.translation}</p>
+                      <p className="truncate text-xs text-neo-text-secondary xl:hidden">{item.term}</p>
+                    </div>
+                  </td>
+                  <td className="hidden px-2 py-3 xl:table-cell lg:px-4">
+                    <span className="truncate text-neo-text-secondary">{item.term}</span>
+                  </td>
+                  <td className="hidden px-2 py-3 lg:table-cell lg:px-4">
                     {item.exerciseCount && item.exerciseCount > 0 ? (
                       <span className="inline-flex items-center rounded-full bg-accent-secondary/10 px-2 py-1 text-xs font-medium text-accent-secondary">
                         {item.exerciseCount}
@@ -1800,33 +1829,33 @@ function TermsTable({
                       <span className="text-xs text-neo-text-secondary">-</span>
                     )}
                   </td>
-                  <td className="px-4 py-3">
-                    <div className="flex flex-col gap-1">
-                      <span className={`inline-flex w-fit items-center rounded-full px-2 py-1 text-xs font-semibold ${qualityBadgeClass(quality.score)}`}>
+                  <td className="px-2 py-3 lg:px-4">
+                    <div className="flex flex-col gap-0.5">
+                      <span className={`inline-flex w-fit items-center rounded-full px-1.5 py-0.5 text-[10px] font-semibold lg:px-2 lg:py-1 lg:text-xs ${qualityBadgeClass(quality.score)}`}>
                         {quality.score}%
                       </span>
-                      {quality.missing.length ? (
-                        <span className="text-[11px] text-neo-text-secondary">Falta: {quality.missing.join(", ")}</span>
-                      ) : (
-                        <span className="text-[11px] text-accent-emerald">Completo</span>
-                      )}
+                      <span className={`hidden text-[10px] lg:block ${quality.missing.length ? "text-neo-text-secondary" : "text-accent-emerald"}`}>
+                        {quality.missing.length ? "Incompleto" : "OK"}
+                      </span>
                     </div>
                   </td>
-                  <td className="px-4 py-3">
-                    <span className={`rounded-full px-2 py-1 text-xs font-semibold ${statusBadgeClass(item.status)}`}>
+                  <td className="px-2 py-3 lg:px-4">
+                    <span className={`rounded-full px-1.5 py-0.5 text-[10px] font-semibold lg:px-2 lg:py-1 lg:text-xs ${statusBadgeClass(item.status)}`}>
                       {item.status}
                     </span>
                   </td>
-                  <td className="px-4 py-3">
-                    <span className="rounded-full bg-neo-card px-2 py-1 text-xs capitalize text-neo-text-secondary">{item.category}</span>
+                  <td className="hidden px-2 py-3 xl:table-cell lg:px-4">
+                    <span className="truncate rounded-full bg-neo-card px-2 py-1 text-xs capitalize text-neo-text-secondary">{item.category}</span>
                   </td>
-                  <td className="px-4 py-3">
-                    <div className="flex flex-wrap gap-2">
-                      <button className="btn-ghost" type="button" onClick={() => onEdit(item.id)} disabled={!canEdit}>
-                        Editar
+                  <td className="px-2 py-3 lg:px-4">
+                    <div className="flex gap-1">
+                      <button className="btn-ghost px-2 py-1 text-xs" type="button" onClick={() => onEdit(item.id)} disabled={!canEdit}>
+                        <span className="hidden lg:inline">Editar</span>
+                        <Icon library="lucide" name="Pencil" className="h-3.5 w-3.5 lg:hidden" />
                       </button>
-                      <button className="btn-ghost" type="button" onClick={() => onDelete(item.id)} disabled={!canEdit}>
-                        Eliminar
+                      <button className="btn-ghost px-2 py-1 text-xs" type="button" onClick={() => onDelete(item.id)} disabled={!canEdit}>
+                        <span className="hidden lg:inline">Eliminar</span>
+                        <Icon library="lucide" name="Trash2" className="h-3.5 w-3.5 lg:hidden" />
                       </button>
                     </div>
                   </td>

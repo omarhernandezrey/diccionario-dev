@@ -8,6 +8,11 @@ export const dynamic = "force-dynamic";
 const noStoreHeaders = { "Cache-Control": "no-store" } as const;
 const RATE_LIMIT_PREFIX = "insights:usage";
 const ACTIONS = new Set(["view", "copy", "favorite"]);
+const TRUTHY = new Set(["1", "true", "yes", "on"]);
+const searchLogWritesDisabled = (() => {
+  const raw = process.env.DISABLE_SEARCH_LOGS;
+  return raw ? TRUTHY.has(raw.trim().toLowerCase()) : false;
+})();
 
 function getClientIp(req: NextRequest) {
   const xForwarded = req.headers.get("x-forwarded-for");
@@ -72,17 +77,19 @@ export async function POST(req: NextRequest) {
       update: increments,
     });
 
-    await prisma.searchLog.create({
-      data: {
-        termId,
-        query: action,
-        language,
-        context,
-        mode: action,
-        resultCount: 1,
-        hadResults: true,
-      },
-    });
+    if (!searchLogWritesDisabled) {
+      await prisma.searchLog.create({
+        data: {
+          termId,
+          query: action,
+          language,
+          context,
+          mode: action,
+          resultCount: 1,
+          hadResults: true,
+        },
+      });
+    }
 
     return NextResponse.json({ ok: true }, { headers: noStoreHeaders });
   } catch (error) {
