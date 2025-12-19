@@ -189,20 +189,20 @@ export function AuthModal({ open, onClose, defaultMode = "login" }: { open: bool
     <div
       className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm animate-fade-in"
       onClick={(e) => e.target === e.currentTarget && onClose()}
-      style={{ fontFamily: "var(--font-ui, system-ui, sans-serif)" }}
+      style={{ fontFamily: "ui-sans-serif, system-ui, sans-serif" }}
     >
       <div
         role="dialog"
         aria-modal="true"
         aria-label={mode === "login" ? "Iniciar sesión" : "Crear cuenta"}
-        className="relative w-full max-w-[420px] overflow-hidden rounded-3xl border border-neo-border bg-neo-card shadow-2xl shadow-black/40 animate-slide-up"
+        className="dd-auth-modal relative w-full max-w-[420px] overflow-hidden rounded-3xl border border-neo-border bg-neo-card font-sans shadow-2xl shadow-black/40 animate-slide-up"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}
         <div className="flex items-center justify-between border-b border-neo-border px-6 py-4">
           <div>
             <p className="mb-0.5 text-[10px] font-semibold uppercase tracking-widest text-neo-text-secondary">Acceso</p>
-            <h2 className="text-xl font-bold text-neo-text-primary">{mode === "login" ? "Iniciar sesión" : "Crear cuenta"}</h2>
+            <h2 className="text-xl lg:text-2xl font-bold text-neo-text-primary">{mode === "login" ? "Iniciar sesión" : "Crear cuenta"}</h2>
           </div>
           <button
             type="button"
@@ -219,7 +219,7 @@ export function AuthModal({ open, onClose, defaultMode = "login" }: { open: bool
             <button
               type="button"
               onClick={() => setMode("login")}
-              className={`flex-1 rounded-lg py-2.5 text-sm font-semibold transition-all ${
+              className={`flex-1 rounded-lg py-2.5 text-sm lg:text-base font-semibold transition-all ${
                 mode === "login" 
                   ? "bg-neo-primary text-white shadow-sm" 
                   : "text-neo-text-secondary hover:text-neo-text-primary"
@@ -230,7 +230,7 @@ export function AuthModal({ open, onClose, defaultMode = "login" }: { open: bool
             <button
               type="button"
               onClick={() => setMode("register")}
-              className={`flex-1 rounded-lg py-2.5 text-sm font-semibold transition-all ${
+              className={`flex-1 rounded-lg py-2.5 text-sm lg:text-base font-semibold transition-all ${
                 mode === "register" 
                   ? "bg-neo-primary text-white shadow-sm" 
                   : "text-neo-text-secondary hover:text-neo-text-primary"
@@ -244,13 +244,13 @@ export function AuthModal({ open, onClose, defaultMode = "login" }: { open: bool
         {/* Form */}
         <form onSubmit={handleSubmit} className="px-6 py-5 space-y-4">
           <div>
-            <label className="mb-2 block text-xs font-semibold text-neo-text-secondary">Usuario</label>
+            <label className="mb-2 block text-xs lg:text-sm font-semibold text-neo-text-secondary">Usuario</label>
             <div className="flex items-center gap-3 rounded-2xl border border-neo-border bg-neo-surface px-4 py-3">
-              <User className="h-4 w-4 shrink-0 text-neo-text-secondary" />
+              <User className="h-4 w-4 lg:h-5 lg:w-5 shrink-0 text-neo-text-secondary" />
               <input
                 value={username}
                 onChange={(e) => setUsername(e.target.value)}
-                className="flex-1 bg-transparent text-sm text-neo-text-primary placeholder:text-neo-text-secondary/70 focus:outline-none"
+                className="flex-1 bg-transparent text-sm lg:text-base text-neo-text-primary placeholder:text-neo-text-secondary/70 focus:outline-none"
                 placeholder="tu_usuario"
                 required
                 autoComplete="username"
@@ -259,14 +259,14 @@ export function AuthModal({ open, onClose, defaultMode = "login" }: { open: bool
           </div>
 
           <div>
-            <label className="mb-2 block text-xs font-semibold text-neo-text-secondary">Contraseña</label>
+            <label className="mb-2 block text-xs lg:text-sm font-semibold text-neo-text-secondary">Contraseña</label>
             <div className="flex items-center gap-3 rounded-2xl border border-neo-border bg-neo-surface px-4 py-3">
-              <Lock className="h-4 w-4 shrink-0 text-neo-text-secondary" />
+              <Lock className="h-4 w-4 lg:h-5 lg:w-5 shrink-0 text-neo-text-secondary" />
               <input
                 type="password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                className="flex-1 bg-transparent text-sm text-neo-text-primary placeholder:text-neo-text-secondary/70 focus:outline-none"
+                className="flex-1 bg-transparent text-sm lg:text-base text-neo-text-primary placeholder:text-neo-text-secondary/70 focus:outline-none"
                 placeholder="••••••••"
                 required
                 autoComplete={mode === "login" ? "current-password" : "new-password"}
@@ -277,14 +277,14 @@ export function AuthModal({ open, onClose, defaultMode = "login" }: { open: bool
           {mode === "register" && (
             <>
               <div>
-                <label className="mb-2 block text-xs font-semibold text-neo-text-secondary">Correo (opcional)</label>
+                <label className="mb-2 block text-xs lg:text-sm font-semibold text-neo-text-secondary">Correo (opcional)</label>
                 <div className="flex items-center gap-3 rounded-2xl border border-neo-border bg-neo-surface px-4 py-3">
-                  <AtSign className="h-4 w-4 shrink-0 text-neo-text-secondary" />
+                  <AtSign className="h-4 w-4 lg:h-5 lg:w-5 shrink-0 text-neo-text-secondary" />
                   <input
                     type="email"
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
-                    className="flex-1 bg-transparent text-sm text-neo-text-primary placeholder:text-neo-text-secondary/70 focus:outline-none"
+                    className="flex-1 bg-transparent text-sm lg:text-base text-neo-text-primary placeholder:text-neo-text-secondary/70 focus:outline-none"
                     placeholder="tu@email.com"
                     autoComplete="email"
                   />
@@ -292,13 +292,13 @@ export function AuthModal({ open, onClose, defaultMode = "login" }: { open: bool
               </div>
 
               <div>
-                <label className="mb-2 block text-xs font-semibold text-neo-text-secondary">Admin token (opcional)</label>
+                <label className="mb-2 block text-xs lg:text-sm font-semibold text-neo-text-secondary">Admin token (opcional)</label>
                 <div className="flex items-center gap-3 rounded-2xl border border-neo-border bg-neo-surface px-4 py-3">
-                  <Shield className="h-4 w-4 shrink-0 text-neo-text-secondary" />
+                  <Shield className="h-4 w-4 lg:h-5 lg:w-5 shrink-0 text-neo-text-secondary" />
                   <input
                     value={adminToken}
                     onChange={(e) => setAdminToken(e.target.value)}
-                    className="flex-1 bg-transparent text-sm text-neo-text-primary placeholder:text-neo-text-secondary/70 focus:outline-none"
+                    className="flex-1 bg-transparent text-sm lg:text-base text-neo-text-primary placeholder:text-neo-text-secondary/70 focus:outline-none"
                     placeholder="Si existe otro admin"
                   />
                 </div>
@@ -308,22 +308,22 @@ export function AuthModal({ open, onClose, defaultMode = "login" }: { open: bool
 
           {error && (
             <div className="rounded-2xl border border-accent-danger/40 bg-accent-danger/10 px-4 py-3">
-              <p className="text-sm font-semibold text-accent-danger">{error}</p>
+              <p className="text-sm lg:text-base font-semibold text-accent-danger">{error}</p>
             </div>
           )}
           
           {success && (
             <div className="rounded-2xl border border-emerald-500/30 bg-emerald-500/10 px-4 py-3">
-              <p className="text-sm font-semibold text-emerald-600 dark:text-emerald-300">{success}</p>
+              <p className="text-sm lg:text-base font-semibold text-emerald-600 dark:text-emerald-300">{success}</p>
             </div>
           )}
 
           <button
             type="submit"
             disabled={loading}
-            className="mt-2 flex w-full items-center justify-center gap-2 rounded-2xl bg-neo-primary px-4 py-3.5 text-sm font-bold text-white transition-all hover:bg-neo-primary-dark disabled:cursor-not-allowed disabled:opacity-50"
+            className="mt-2 flex w-full items-center justify-center gap-2 rounded-2xl bg-neo-primary px-4 py-3.5 text-sm lg:text-base font-bold text-white transition-all hover:bg-neo-primary-dark disabled:cursor-not-allowed disabled:opacity-50"
           >
-            {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Lock className="h-4 w-4" />}
+            {loading ? <Loader2 className="h-4 w-4 lg:h-5 lg:w-5 animate-spin" /> : <Lock className="h-4 w-4 lg:h-5 lg:w-5" />}
             {mode === "login" ? "Entrar" : "Crear cuenta"}
           </button>
 
@@ -331,18 +331,18 @@ export function AuthModal({ open, onClose, defaultMode = "login" }: { open: bool
             <div className="pt-2">
               <div className="relative flex items-center py-2">
                 <div className="flex-1 border-t border-neo-border"></div>
-                <span className="px-3 text-xs font-semibold text-neo-text-secondary">o continúa con</span>
+                <span className="px-3 text-xs lg:text-sm font-semibold text-neo-text-secondary">o continúa con</span>
                 <div className="flex-1 border-t border-neo-border"></div>
               </div>
               <div className="flex justify-center rounded-2xl border border-neo-border bg-neo-surface p-3">
                 <div ref={googleButtonRef} className="flex justify-center" />
               </div>
               {!googleReady && (
-                <p className="mt-2 text-center text-[11px] font-medium text-neo-text-secondary">Cargando Google…</p>
+                <p className="mt-2 text-center text-[11px] lg:text-xs font-medium text-neo-text-secondary">Cargando Google…</p>
               )}
             </div>
           ) : (
-            <p className="pt-2 text-center text-[11px] font-medium text-neo-text-secondary">
+            <p className="pt-2 text-center text-[11px] lg:text-xs font-medium text-neo-text-secondary">
               Configura NEXT_PUBLIC_GOOGLE_CLIENT_ID para habilitar Google.
             </p>
           )}

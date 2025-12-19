@@ -146,13 +146,13 @@ export default function AdminDashboard() {
 
       {/* Top Terms Table */}
       <ChartCard title="Términos principales" description="Los 10 términos más buscados">
-        <div className="overflow-x-auto">
-          <table className="w-full text-sm">
+        <div className="w-full overflow-hidden">
+          <table className="w-full table-fixed text-sm">
             <thead className="border-b border-neo-border">
               <tr className="text-neo-text-secondary">
-                <th className="px-4 py-2 text-left font-semibold">#</th>
+                <th className="w-10 px-4 py-2 text-left font-semibold">#</th>
                 <th className="px-4 py-2 text-left font-semibold">Término</th>
-                <th className="px-4 py-2 text-right font-semibold">Búsquedas</th>
+                <th className="w-28 px-4 py-2 text-right font-semibold">Búsquedas</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-neo-border">
@@ -161,11 +161,11 @@ export default function AdminDashboard() {
                   key={term.termId}
                   className="hover:bg-neo-surface transition-colors"
                 >
-                  <td className="px-4 py-3 text-neo-text-secondary">{idx + 1}</td>
-                  <td className="px-4 py-3 font-medium text-neo-text-primary">
+                  <td className="w-10 px-4 py-3 text-neo-text-secondary">{idx + 1}</td>
+                  <td className="px-4 py-3 font-medium text-neo-text-primary break-words">
                     {term.term}
                   </td>
-                  <td className="px-4 py-3 text-right">
+                  <td className="w-28 px-4 py-3 text-right">
                     <span className="inline-flex items-center gap-2 rounded-lg bg-neo-primary/20 px-2.5 py-1 text-neo-primary">
                       {term.hits}
                     </span>

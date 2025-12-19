@@ -28,7 +28,7 @@ export function NotificationBell({ size = "md", align = "center", className }: N
 
   const badge =
     unreadCount > 0 ? (
-      <span className="absolute -top-1 -right-1 min-w-[18px] rounded-full bg-emerald-500 px-1 text-[11px] font-bold text-emerald-950">
+      <span className="absolute -top-1 -right-1 min-w-[18px] rounded-full bg-emerald-500 px-1 text-[11px] lg:text-xs font-bold text-emerald-950">
         {unreadCount}
       </span>
     ) : null;
@@ -103,14 +103,14 @@ export function NotificationBell({ size = "md", align = "center", className }: N
                   onClick={() => setOpen(false)}
                   aria-label="Cerrar notificaciones"
                 />
-                <div className="relative w-[92vw] max-w-sm rounded-2xl border border-neo-border/80 bg-neo-card/95 backdrop-blur-xl shadow-2xl shadow-black/40">
+                <div className="dd-notifications-modal relative w-[92vw] max-w-sm overflow-hidden rounded-2xl border border-neo-border/80 bg-neo-card/95 font-sans backdrop-blur-xl shadow-2xl shadow-black/40">
                   <div className="flex items-center justify-between border-b border-neo-border px-4 py-2">
-                    <span className="text-sm font-semibold text-neo-text-primary">Notificaciones</span>
+                    <span className="text-sm lg:text-base font-semibold text-neo-text-primary">Notificaciones</span>
                     <div className="flex items-center gap-2">
                       {!requireLogin && notifications.length > 0 ? (
                         <button
                           type="button"
-                          className="text-[11px] text-neo-primary hover:underline"
+                          className="text-[11px] lg:text-xs text-neo-primary hover:underline"
                           onClick={() => {
                             markAllRead();
                           }}
@@ -120,7 +120,7 @@ export function NotificationBell({ size = "md", align = "center", className }: N
                       ) : null}
                       <button
                         type="button"
-                        className="inline-flex items-center gap-1 rounded-lg border border-neo-border bg-neo-surface px-3 py-1 text-[11px] font-semibold text-neo-text-primary transition hover:border-neo-primary/50 hover:text-neo-primary"
+                        className="inline-flex items-center gap-1 rounded-lg border border-neo-border bg-neo-surface px-3 py-1 text-[11px] lg:text-xs font-semibold text-neo-text-primary transition hover:border-neo-primary/50 hover:text-neo-primary"
                         onClick={() => setOpen(false)}
                         aria-label="Cerrar panel de notificaciones"
                       >
@@ -131,19 +131,19 @@ export function NotificationBell({ size = "md", align = "center", className }: N
 
                   <div className="max-h-80 overflow-y-auto p-3 space-y-2">
                     {loading ? (
-                      <div className="flex items-center justify-center gap-2 rounded-xl border border-neo-border bg-neo-surface px-3 py-4 text-sm text-neo-text-secondary">
-                        <Loader2 className="h-4 w-4 animate-spin" /> Cargando…
+                      <div className="flex items-center justify-center gap-2 rounded-xl border border-neo-border bg-neo-surface px-3 py-4 text-sm lg:text-base text-neo-text-secondary">
+                        <Loader2 className="h-4 w-4 lg:h-5 lg:w-5 animate-spin" /> Cargando…
                       </div>
                     ) : requireLogin || !session ? (
-                      <div className="flex items-center gap-3 rounded-xl border border-neo-border bg-neo-surface px-3 py-3 text-sm text-neo-text-secondary">
-                        <LogIn className="h-4 w-4 text-neo-primary" />
+                      <div className="flex items-center gap-3 rounded-xl border border-neo-border bg-neo-surface px-3 py-3 text-sm lg:text-base text-neo-text-secondary">
+                        <LogIn className="h-4 w-4 lg:h-5 lg:w-5 text-neo-primary" />
                         <div>
-                          <p className="font-semibold text-neo-text-primary text-sm">Inicia sesión</p>
-                          <p className="text-xs">Accede para ver tus notificaciones.</p>
+                          <p className="font-semibold text-neo-text-primary text-sm lg:text-base">Inicia sesión</p>
+                          <p className="text-xs lg:text-sm">Accede para ver tus notificaciones.</p>
                         </div>
                       </div>
                     ) : notifications.length === 0 ? (
-                      <div className="rounded-xl border border-neo-border bg-neo-surface px-3 py-4 text-sm text-neo-text-secondary text-center">
+                      <div className="rounded-xl border border-neo-border bg-neo-surface px-3 py-4 text-sm lg:text-base text-neo-text-secondary text-center">
                         No hay notificaciones.
                       </div>
                     ) : (
@@ -154,7 +154,7 @@ export function NotificationBell({ size = "md", align = "center", className }: N
                             markAsRead(notif.id);
                             setOpen(false);
                           }}
-                          className={`flex w-full items-start gap-3 rounded-xl border px-3 py-2 text-left text-sm transition ${
+                          className={`flex w-full items-start gap-3 rounded-xl border px-3 py-2 text-left text-sm lg:text-base transition ${
                             notif.read
                               ? "border-neo-border bg-neo-surface text-neo-text-secondary"
                               : "border-neo-primary/50 bg-neo-primary/5 text-neo-text-primary"
@@ -162,15 +162,15 @@ export function NotificationBell({ size = "md", align = "center", className }: N
                         >
                           <span className="mt-1">
                             {notif.type === "alert" ? (
-                              <AlertTriangle className="h-4 w-4 text-accent-rose" />
+                              <AlertTriangle className="h-4 w-4 lg:h-5 lg:w-5 text-accent-rose" />
                             ) : (
-                              <CheckCircle2 className="h-4 w-4 text-emerald-400" />
+                              <CheckCircle2 className="h-4 w-4 lg:h-5 lg:w-5 text-emerald-400" />
                             )}
                           </span>
-                          <span className="flex-1">
+                          <span className="flex-1 min-w-0">
                             <div className="font-semibold">{notif.title}</div>
-                            <div className="text-xs text-neo-text-secondary leading-snug">{notif.detail}</div>
-                            <div className="text-[11px] text-neo-text-secondary/80 mt-1">{new Date(notif.timestamp).toLocaleString()}</div>
+                            <div className="text-xs lg:text-sm text-neo-text-secondary leading-snug">{notif.detail}</div>
+                            <div className="text-[11px] lg:text-xs text-neo-text-secondary/80 mt-1">{new Date(notif.timestamp).toLocaleString()}</div>
                           </span>
                         </button>
                       ))
@@ -180,16 +180,16 @@ export function NotificationBell({ size = "md", align = "center", className }: N
               </div>
             ) : (
               <div
-                className="fixed z-999 rounded-2xl border border-neo-border/80 bg-neo-card/95 backdrop-blur-xl shadow-xl shadow-black/40"
+                className="dd-notifications-modal fixed z-999 overflow-hidden rounded-2xl border border-neo-border/80 bg-neo-card/95 font-sans backdrop-blur-xl shadow-xl shadow-black/40"
                 style={{ top: position.top, left: position.left, width: position.width, maxWidth: "90vw" }}
               >
                 <div className="flex items-center justify-between border-b border-neo-border px-4 py-2">
-                  <span className="text-sm font-semibold text-neo-text-primary">Notificaciones</span>
+                  <span className="text-sm lg:text-base font-semibold text-neo-text-primary">Notificaciones</span>
                   <div className="flex items-center gap-2">
                     {!requireLogin && notifications.length > 0 ? (
                       <button
                         type="button"
-                        className="text-[11px] text-neo-primary hover:underline"
+                        className="text-[11px] lg:text-xs text-neo-primary hover:underline"
                         onClick={() => {
                           markAllRead();
                         }}
@@ -199,7 +199,7 @@ export function NotificationBell({ size = "md", align = "center", className }: N
                     ) : null}
                     <button
                       type="button"
-                      className="inline-flex items-center gap-1 rounded-lg border border-neo-border bg-neo-surface px-3 py-1 text-[11px] font-semibold text-neo-text-primary transition hover:border-neo-primary/50 hover:text-neo-primary"
+                      className="inline-flex items-center gap-1 rounded-lg border border-neo-border bg-neo-surface px-3 py-1 text-[11px] lg:text-xs font-semibold text-neo-text-primary transition hover:border-neo-primary/50 hover:text-neo-primary"
                       onClick={() => setOpen(false)}
                       aria-label="Cerrar panel de notificaciones"
                     >
@@ -210,19 +210,19 @@ export function NotificationBell({ size = "md", align = "center", className }: N
 
                 <div className="max-h-80 overflow-y-auto p-3 space-y-2">
                   {loading ? (
-                    <div className="flex items-center justify-center gap-2 rounded-xl border border-neo-border bg-neo-surface px-3 py-4 text-sm text-neo-text-secondary">
-                      <Loader2 className="h-4 w-4 animate-spin" /> Cargando…
+                    <div className="flex items-center justify-center gap-2 rounded-xl border border-neo-border bg-neo-surface px-3 py-4 text-sm lg:text-base text-neo-text-secondary">
+                      <Loader2 className="h-4 w-4 lg:h-5 lg:w-5 animate-spin" /> Cargando…
                     </div>
                   ) : requireLogin || !session ? (
-                    <div className="flex items-center gap-3 rounded-xl border border-neo-border bg-neo-surface px-3 py-3 text-sm text-neo-text-secondary">
-                      <LogIn className="h-4 w-4 text-neo-primary" />
+                    <div className="flex items-center gap-3 rounded-xl border border-neo-border bg-neo-surface px-3 py-3 text-sm lg:text-base text-neo-text-secondary">
+                      <LogIn className="h-4 w-4 lg:h-5 lg:w-5 text-neo-primary" />
                       <div>
-                        <p className="font-semibold text-neo-text-primary text-sm">Inicia sesión</p>
-                        <p className="text-xs">Accede para ver tus notificaciones.</p>
+                        <p className="font-semibold text-neo-text-primary text-sm lg:text-base">Inicia sesión</p>
+                        <p className="text-xs lg:text-sm">Accede para ver tus notificaciones.</p>
                       </div>
                     </div>
                   ) : notifications.length === 0 ? (
-                    <div className="rounded-xl border border-neo-border bg-neo-surface px-3 py-4 text-sm text-neo-text-secondary text-center">
+                    <div className="rounded-xl border border-neo-border bg-neo-surface px-3 py-4 text-sm lg:text-base text-neo-text-secondary text-center">
                       No hay notificaciones.
                     </div>
                   ) : (
@@ -233,7 +233,7 @@ export function NotificationBell({ size = "md", align = "center", className }: N
                           markAsRead(notif.id);
                           setOpen(false);
                         }}
-                        className={`flex w-full items-start gap-3 rounded-xl border px-3 py-2 text-left text-sm transition ${
+                        className={`flex w-full items-start gap-3 rounded-xl border px-3 py-2 text-left text-sm lg:text-base transition ${
                           notif.read
                             ? "border-neo-border bg-neo-surface text-neo-text-secondary"
                             : "border-neo-primary/50 bg-neo-primary/5 text-neo-text-primary"
@@ -241,15 +241,15 @@ export function NotificationBell({ size = "md", align = "center", className }: N
                       >
                         <span className="mt-1">
                           {notif.type === "alert" ? (
-                            <AlertTriangle className="h-4 w-4 text-accent-rose" />
+                            <AlertTriangle className="h-4 w-4 lg:h-5 lg:w-5 text-accent-rose" />
                           ) : (
-                            <CheckCircle2 className="h-4 w-4 text-emerald-400" />
+                            <CheckCircle2 className="h-4 w-4 lg:h-5 lg:w-5 text-emerald-400" />
                           )}
                         </span>
-                        <span className="flex-1">
+                        <span className="flex-1 min-w-0">
                           <div className="font-semibold">{notif.title}</div>
-                          <div className="text-xs text-neo-text-secondary leading-snug">{notif.detail}</div>
-                          <div className="text-[11px] text-neo-text-secondary/80 mt-1">{new Date(notif.timestamp).toLocaleString()}</div>
+                          <div className="text-xs lg:text-sm text-neo-text-secondary leading-snug">{notif.detail}</div>
+                          <div className="text-[11px] lg:text-xs text-neo-text-secondary/80 mt-1">{new Date(notif.timestamp).toLocaleString()}</div>
                         </span>
                       </button>
                     ))

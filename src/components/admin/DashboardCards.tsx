@@ -25,7 +25,7 @@ function StatCard({
 }: StatCardProps) {
   return (
     <div
-      className={`group relative overflow-hidden rounded-xl border border-neo-border bg-neo-card px-5 py-6 shadow-lg transition-all duration-300 hover:shadow-glow-card hover:-translate-y-1 ${colorMap[color]}`}
+      className={`group relative overflow-hidden rounded-xl border border-neo-border bg-neo-card px-4 py-5 shadow-lg transition-all duration-300 hover:shadow-glow-card hover:-translate-y-1 sm:px-5 sm:py-6 ${colorMap[color]}`}
     >
       {/* Background gradient effect */}
       <div className="absolute inset-0 opacity-0 transition-opacity duration-300 group-hover:opacity-100 bg-gradient-to-br from-white/5 to-transparent" />
@@ -33,7 +33,7 @@ function StatCard({
       <div className="relative flex items-start justify-between">
         <div className="flex-1">
           <div className="text-sm font-medium text-neo-text-secondary mb-2">{label}</div>
-          <div className="text-3xl font-bold text-neo-text-primary">{value}</div>
+          <div className="text-2xl font-bold text-neo-text-primary sm:text-3xl">{value}</div>
           {trend && (
             <div
               className={`mt-2 flex items-center gap-1 text-xs font-semibold ${trend.direction === "up"
@@ -52,7 +52,7 @@ function StatCard({
           )}
         </div>
         {icon && (
-          <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-neo-primary/20 text-neo-primary group-hover:bg-neo-primary/30 transition-colors">
+          <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-neo-primary/20 text-neo-primary transition-colors group-hover:bg-neo-primary/30 sm:h-12 sm:w-12">
             {icon}
           </div>
         )}

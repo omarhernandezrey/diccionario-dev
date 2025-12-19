@@ -156,11 +156,11 @@ function PageNav() {
       <nav className="sticky top-4 z-30 px-4 animate-slide-down">
         <div className="mx-auto flex max-w-6xl items-center justify-between gap-4 rounded-full border border-neo-border/60 bg-neo-bg/90 px-4 py-3 shadow-[0_8px_30px_rgb(0,0,0,0.12)] backdrop-blur-xl md:px-6">
         {/* Logo */}
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-3 lg:gap-4">
           <ThemeLogo 
-            width={36} 
-            height={36} 
-            className="transition-transform duration-300 hover:scale-105" 
+            width={56} 
+            height={56} 
+            className="h-9 w-9 shrink-0 md:h-10 md:w-10 lg:h-12 lg:w-12 xl:h-14 xl:w-14 transition-transform duration-300 hover:scale-105" 
           />
 	            <div className="flex flex-col justify-center">
 	              <p className="text-[9px] uppercase tracking-[0.2em] text-indigo-400 font-bold leading-none mb-0.5">Diccionario</p>

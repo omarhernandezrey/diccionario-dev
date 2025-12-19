@@ -155,7 +155,7 @@ function AdminAccessPageInner() {
             <span>{authLoading ? "Verificando sesión…" : session ? `Activo: ${session.username} (${session.role})` : "Sin sesión activa"}</span>
           </div>
         </div>
-        <p className="mt-4 max-w-3xl text-sm text-neo-text-secondary">
+        <p className="mt-4 w-full text-sm text-neo-text-secondary">
           Centraliza la creación de cuentas, el inicio de sesión y la auditoría de accesos administrativos. Esta vista funciona incluso si el resto del panel no está disponible.
         </p>
         <div className="mt-6 grid gap-4 sm:grid-cols-3">

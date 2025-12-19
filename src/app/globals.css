@@ -317,6 +317,93 @@ select:focus-visible {
   .scroll-silent::-webkit-scrollbar {
     display: none;
   }
+
+  /* App: legibilidad en móviles (evita overflow de texto y wraps feos). */
+  @media (max-width: 768px) {
+    .dd-app,
+    .dd-app * {
+      overflow-wrap: anywhere;
+      text-wrap: pretty;
+    }
+
+    .dd-app p,
+    .dd-app li {
+      line-height: 1.65;
+      hyphens: auto;
+    }
+
+    .dd-app pre,
+    .dd-app code {
+      overflow-wrap: anywhere;
+      white-space: pre-wrap;
+      overflow-x: hidden;
+      max-width: 100%;
+      hyphens: none;
+    }
+
+    .dd-app .truncate {
+      white-space: normal;
+    }
+  }
+
+  .dd-admin {
+    --admin-chart-font-size: 12px;
+  }
+
+  /* Admin: tipografía/iconos en desktop (más legible sin tocar cada componente). */
+  @media (min-width: 1024px) {
+    .dd-admin {
+      --admin-chart-font-size: 13px;
+    }
+
+    .dd-admin .btn-ghost {
+      font-size: 1rem;
+    }
+
+    .dd-admin :where(.text-xs) {
+      font-size: 0.875rem;
+      line-height: 1.25rem;
+    }
+
+    .dd-admin :where(.text-sm) {
+      font-size: 1rem;
+      line-height: 1.5rem;
+    }
+
+    .dd-admin :where(.text-\[10px\]) {
+      font-size: 0.8125rem;
+      line-height: 1.125rem;
+    }
+
+    .dd-admin :where(.text-\[11px\]) {
+      font-size: 0.875rem;
+      line-height: 1.25rem;
+    }
+
+    .dd-admin svg:where(.h-3) {
+      height: 1rem;
+    }
+
+    .dd-admin svg:where(.w-3) {
+      width: 1rem;
+    }
+
+    .dd-admin svg:where(.h-4) {
+      height: 1.25rem;
+    }
+
+    .dd-admin svg:where(.w-4) {
+      width: 1.25rem;
+    }
+
+    .dd-admin svg:where(.h-5) {
+      height: 1.5rem;
+    }
+
+    .dd-admin svg:where(.w-5) {
+      width: 1.5rem;
+    }
+  }
 }
 
 @keyframes fadeUp {

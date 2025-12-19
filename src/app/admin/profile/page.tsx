@@ -523,55 +523,64 @@ export default function AdminProfilePage() {
       {/* Vista previa estilo home (una sola) */}
       {session && (
         <section className="relative overflow-visible rounded-3xl border border-neo-border bg-neo-card shadow-glow-card">
-          <div ref={coverDisplayRef} className="relative h-32 sm:h-40 w-full overflow-hidden rounded-t-3xl">
-            {coverUrl ? (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img src={coverUrl} alt="Portada" className="absolute inset-0 h-full w-full object-cover" />
-            ) : (
-              <div className="absolute inset-0 bg-linear-to-r from-neo-primary/20 via-neo-primary/10 to-transparent" />
-            )}
-            <button
-              onClick={() => coverInputRef.current?.click()}
-              className="absolute right-4 top-4 inline-flex h-10 w-10 items-center justify-center text-white/90 hover:text-white"
-              title="Cambiar portada"
-            >
-              <Icon library="lucide" name="Camera" className="h-5 w-5 drop-shadow-[0_2px_6px_rgba(0,0,0,0.55)]" />
-            </button>
-            <input
-              ref={coverInputRef}
-              type="file"
-              accept="image/*"
-              className="hidden"
-              onChange={handleCoverUpload}
-            />
+          <div className="relative">
+            <div ref={coverDisplayRef} className="relative h-32 sm:h-40 w-full rounded-t-3xl overflow-visible">
+              <div className="absolute inset-0 overflow-hidden rounded-t-3xl">
+                {!coverUrl && (
+                  <div className="absolute inset-0 bg-linear-to-r from-neo-primary/20 via-neo-primary/10 to-transparent" />
+                )}
+                {coverUrl && (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img src={coverUrl} alt="Portada" className="absolute inset-0 block h-full w-full object-cover" />
+                )}
+              </div>
+              <button
+                onClick={() => coverInputRef.current?.click()}
+                className="absolute right-3 top-3 inline-flex h-11 w-11 items-center justify-center rounded-full text-white/90 transition hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/70"
+                aria-label="Cambiar portada"
+              >
+                <Icon library="lucide" name="Camera" className="h-5 w-5 drop-shadow-[0_2px_6px_rgba(0,0,0,0.55)]" />
+              </button>
+              <input
+                ref={coverInputRef}
+                type="file"
+                accept="image/*"
+                className="hidden"
+                onChange={handleCoverUpload}
+              />
+              <div className="absolute left-1/2 bottom-0 z-30 -translate-x-1/2 translate-y-1/2 sm:left-6 sm:translate-x-0">
+                <div className="relative h-16 w-16 sm:h-20 sm:w-20 rounded-full border-2 border-white/70 bg-neo-surface overflow-visible shadow-xl ring-2 ring-white/20 hover:scale-105 transition shrink-0">
+                  <Image
+                    src={activeAvatar || avatarFallback(session.username)}
+                    alt="Avatar"
+                    width={80}
+                    height={80}
+                    className="h-full w-full object-cover rounded-full"
+                  />
+                  <button
+                    onClick={(e) => {
+                      e.preventDefault();
+                      triggerFileInput();
+                    }}
+                    className="absolute -bottom-2 -right-2 inline-flex h-9 w-9 items-center justify-center rounded-full text-white/90 transition hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/70"
+                    aria-label="Cambiar foto de perfil"
+                    title="Cambiar foto"
+                  >
+                    <Icon library="lucide" name="Camera" className="h-4 w-4 drop-shadow-[0_2px_6px_rgba(0,0,0,0.55)]" />
+                  </button>
+                </div>
+              </div>
+            </div>
           </div>
-          <div className="relative -mt-12 sm:-mt-16 px-4 sm:px-6 pb-4 flex flex-col sm:flex-row sm:items-end sm:justify-between gap-3">
-            <div className="flex flex-col sm:flex-row sm:items-center gap-3">
-              <div className="relative z-10 h-20 w-20 rounded-full border-2 border-white/70 bg-neo-surface overflow-visible shadow-xl ring-2 ring-white/20">
-                <Image
-                  src={activeAvatar || avatarFallback(session.username)}
-                  alt="Avatar"
-                  width={80}
-                  height={80}
-                  className="h-full w-full object-cover rounded-full"
-                />
-                <button
-                  onClick={triggerFileInput}
-                  className="absolute -bottom-2 -right-2 inline-flex h-9 w-9 items-center justify-center text-white/90 hover:text-white"
-                  title="Cambiar foto"
-                >
-                  <Icon library="lucide" name="Camera" className="h-4 w-4 drop-shadow-[0_2px_6px_rgba(0,0,0,0.55)]" />
-                </button>
-              </div>
-              <div className="space-y-1">
-                <p className="text-[11px] uppercase tracking-[0.16em] text-neo-text-secondary">Perfil</p>
-                <h3 className="text-xl font-bold text-neo-text-primary leading-tight">
-                  {displayName || session.username}
-                </h3>
-                <p className="text-sm text-neo-text-secondary max-w-xl">
-                  {bio || "Completa tu bio para que otros sepan en qué estás trabajando."}
-                </p>
-              </div>
+
+          <div className="relative z-10 overflow-hidden rounded-b-3xl border-t border-neo-border/70 bg-neo-card/70 px-4 sm:px-6 pb-4 pt-14 sm:pt-4 backdrop-blur-md">
+            <div className="flex flex-col items-center gap-1 text-center sm:items-start sm:gap-2 sm:text-left sm:pl-24">
+              <h3 className="text-lg sm:text-xl font-bold text-neo-text-primary leading-tight">
+                {displayName || session.username}
+              </h3>
+              <p className="text-sm text-neo-text-secondary/90 line-clamp-2 break-words">
+                {bio || "Completa tu bio para que otros sepan en qué estás trabajando."}
+              </p>
             </div>
           </div>
         </section>
@@ -773,18 +782,18 @@ export default function AdminProfilePage() {
 
       <section className="relative overflow-hidden rounded-4xl border border-neo-border bg-neo-card p-5 sm:p-8 shadow-glow-card">
         <div className="absolute inset-y-0 right-0 hidden w-1/3 bg-linear-to-l from-neo-primary/10 to-transparent blur-3xl lg:block" />
-        <div className="relative flex flex-col gap-4">
-          <div className="flex items-center gap-3">
-            <h1 className="text-2xl font-bold text-neo-text-primary sm:text-3xl">{displayName || session?.username}</h1>
+        <div className="relative w-full min-w-0 flex flex-col gap-4">
+          <div className="flex flex-wrap items-center gap-3">
+            <h1 className="min-w-0 text-2xl font-bold text-neo-text-primary sm:text-3xl">{displayName || session?.username}</h1>
             {session?.role === "admin" && (
-              <span className="rounded-full bg-neo-primary/10 px-2 py-0.5 text-xs font-medium text-neo-primary border border-neo-primary/20">
+              <span className="shrink-0 whitespace-nowrap rounded-full bg-neo-primary/10 px-2 py-0.5 text-xs font-medium text-neo-primary border border-neo-primary/20">
                 ADMIN
               </span>
             )}
           </div>
           <p className="text-sm font-medium text-neo-text-secondary">@{session?.username}</p>
           {bio && (
-            <p className="mt-1 max-w-2xl text-sm leading-relaxed text-neo-text-secondary/90 whitespace-pre-wrap wrap-break-word">
+            <p className="mt-1 w-full text-sm leading-relaxed text-neo-text-secondary/90 whitespace-pre-line break-words">
               {bio}
             </p>
           )}

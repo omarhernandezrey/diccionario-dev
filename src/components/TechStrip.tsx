@@ -81,7 +81,7 @@ export default function TechStrip({ speedSeconds = 60, className }: TechStripPro
           {[...techs, ...techs].map((Icon, i) => (
             <div
               key={i}
-              className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl text-slate-400 dark:text-slate-500 hover:text-emerald-600 dark:hover:text-emerald-400 transition duration-300 drop-shadow-sm dark:drop-shadow-[0_5px_15px_rgba(16,185,129,0.15)]"
+              className="text-xl sm:text-2xl md:text-3xl lg:text-4xl text-slate-400 dark:text-slate-500 hover:text-emerald-600 dark:hover:text-emerald-400 transition duration-300 drop-shadow-sm dark:drop-shadow-[0_5px_15px_rgba(16,185,129,0.15)]"
               aria-hidden
             >
               <Icon />

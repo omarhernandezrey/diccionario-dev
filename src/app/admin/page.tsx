@@ -679,7 +679,7 @@ export function AdminConsole({ initialView = "overview" }: AdminConsoleProps) {
             <h1 className="text-2xl font-semibold sm:text-3xl">Diccionario Dev · Admin</h1>
           </div>
         </div>
-        <p className="mt-4 max-w-3xl text-sm text-neo-text-secondary">
+        <p className="mt-4 w-full text-sm text-neo-text-secondary">
           Controla el glosario técnico, detecta huecos y administra accesos en un solo flujo operacional.
         </p>
         {session?.bio ? (
@@ -1358,7 +1358,7 @@ function TermsTable({
                     </div>
                     <div className="flex flex-col gap-2">
                       <strong className="text-lg font-semibold text-neo-text-primary">Error cargando términos</strong>
-                      <span className="text-sm text-neo-text-secondary max-w-md">{error}</span>
+                      <span className="text-sm text-neo-text-secondary break-words">{error}</span>
                     </div>
                     <button className="btn-primary inline-flex items-center gap-2" type="button" onClick={onRetry}>
                       <Icon library="lucide" name="RefreshCw" className="h-4 w-4" />
@@ -1425,7 +1425,7 @@ function TermsTable({
                     </div>
                     <div className="flex flex-col gap-2">
                       <strong className="text-lg font-semibold text-neo-text-primary">Sin resultados</strong>
-                      <span className="text-sm text-neo-text-secondary max-w-md">Crea un término nuevo o ajusta la búsqueda para ver registros.</span>
+                      <span className="text-sm text-neo-text-secondary break-words">Crea un término nuevo o ajusta la búsqueda para ver registros.</span>
                     </div>
                     <button className="btn-primary inline-flex items-center gap-2" type="button" onClick={onCreate} disabled={!canEdit}>
                       <Icon library="lucide" name="Plus" className="h-4 w-4" />

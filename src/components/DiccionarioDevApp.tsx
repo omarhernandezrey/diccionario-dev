@@ -199,7 +199,7 @@ function CodeBlock({ code, language = "javascript", showLineNumbers = true }: { 
     return (
         <div className="rounded-xl border border-slate-800 bg-[#1e1e1e] overflow-hidden shadow-lg">
             <div className="flex items-center justify-between px-4 py-2 border-b border-slate-800 bg-[#111827]">
-                <div className="flex items-center gap-2 text-slate-400 text-xs font-semibold uppercase tracking-wide">
+                <div className="flex items-center gap-2 text-slate-400 text-xs lg:text-sm font-semibold uppercase tracking-wide">
                     <span className="flex items-center gap-1">
                         <span className="h-3 w-3 rounded-full bg-red-500"></span>
                         <span className="h-3 w-3 rounded-full bg-yellow-400"></span>
@@ -208,22 +208,23 @@ function CodeBlock({ code, language = "javascript", showLineNumbers = true }: { 
                     <span className="ml-2">{language}</span>
                 </div>
             </div>
-            {Highlighter ? (
-                <Highlighter
-                    language={language === "ts" ? "typescript" : language}
-                    style={style as never}
-                    customStyle={{ margin: 0, padding: "1rem", background: "transparent" }}
-                    showLineNumbers={showLineNumbers}
-                    wrapLines={true}
-                >
-                    {code}
-                </Highlighter>
-            ) : (
-                <pre className="overflow-x-auto p-4 font-mono text-xs text-slate-200 whitespace-pre">{code}</pre>
-            )}
-        </div>
-    );
-}
+	            {Highlighter ? (
+	                <Highlighter
+	                    language={language === "ts" ? "typescript" : language}
+	                    style={style as never}
+	                    customStyle={{ margin: 0, padding: "1rem", background: "transparent" }}
+	                    showLineNumbers={showLineNumbers}
+	                    wrapLines={true}
+	                    wrapLongLines={true}
+	                >
+	                    {code}
+	                </Highlighter>
+	            ) : (
+	                <pre className="overflow-x-hidden p-4 font-mono text-xs lg:text-sm text-slate-200 whitespace-pre-wrap break-words sm:overflow-x-auto sm:whitespace-pre">{code}</pre>
+	            )}
+	        </div>
+	    );
+	}
 
 function CssLiveBlock({ term, snippet, language }: { term: TermDTO; snippet: string; language: string }) {
     const isTailwindTerm = (term.tags || []).some(tag => tag.toLowerCase().includes("tailwind"));
@@ -728,17 +729,17 @@ function GeminiLoader({ term }: { term: string }) {
 
                 {/* The Text */}
                 <div className="space-y-3 sm:space-y-4 max-w-md">
-                    <p className="text-xl sm:text-2xl font-medium tracking-tight text-slate-900 dark:text-white">
-                        <span className="opacity-70 dark:opacity-60 text-slate-700 dark:text-slate-300">Generando para </span>
-                        <span className="font-bold text-transparent bg-clip-text bg-linear-to-r from-blue-600 via-purple-600 to-pink-600 dark:from-blue-400 dark:via-purple-400 dark:to-pink-400 animate-gradient-x">
-                            &quot;{term}&quot;
+	                    <p className="text-lg sm:text-2xl font-medium tracking-tight text-slate-900 dark:text-white">
+	                        <span className="opacity-70 dark:opacity-60 text-slate-700 dark:text-slate-300">Generando para </span>
+	                        <span className="font-bold text-transparent bg-clip-text bg-linear-to-r from-blue-600 via-purple-600 to-pink-600 dark:from-blue-400 dark:via-purple-400 dark:to-pink-400 animate-gradient-x">
+	                            &quot;{term}&quot;
                         </span>
                     </p>
 
                     {/* Status Pill */}
                     <div className="inline-flex items-center gap-2.5 px-4 py-1.5 rounded-full bg-slate-100 dark:bg-white/5 border border-slate-200 dark:border-white/10 backdrop-blur-md">
                         <div className="w-2 h-2 rounded-full bg-emerald-500 dark:bg-emerald-400 animate-pulse" />
-                        <span className="text-xs font-mono font-bold tracking-wider text-slate-600 dark:text-white/50 uppercase min-w-[180px] text-left">
+                        <span className="text-xs lg:text-sm font-mono font-bold tracking-wider text-slate-600 dark:text-white/50 uppercase min-w-[180px] text-left">
                             {statusText}
                         </span>
                     </div>
@@ -1603,13 +1604,13 @@ export default function DiccionarioDevApp() {
     }
 
     return (
-        <div id="inicio" className="min-h-screen bg-white dark:bg-slate-950 text-slate-900 dark:text-slate-200 font-sans selection:bg-emerald-500/30 relative overflow-x-hidden">
+	        <div id="inicio" className="dd-home min-h-screen bg-white dark:bg-slate-950 text-slate-900 dark:text-slate-200 font-sans selection:bg-emerald-500/30 relative overflow-x-hidden">
 
-            {/* --- Cheat Sheet Slide-over --- */}
-            <div className={`fixed inset-y-0 right-0 w-full md:w-96 bg-slate-900/95 backdrop-blur-xl border-l border-slate-800 shadow-2xl transform transition-transform duration-300 ease-in-out z-100 ${showCheatSheet ? 'translate-x-0' : 'translate-x-full'}`}>
+	            {/* --- Cheat Sheet Slide-over --- */}
+	            <div className={`fixed inset-y-0 right-0 w-full md:w-96 bg-slate-900/95 backdrop-blur-xl border-l border-slate-800 shadow-2xl transform transition-transform duration-300 ease-in-out z-100 ${showCheatSheet ? 'translate-x-0' : 'translate-x-full'}`}>
                 <div className="h-full flex flex-col">
                     <div className="flex items-center justify-between p-6 border-b border-slate-800">
-                        <h2 className="text-xl font-bold text-white flex items-center gap-2">
+                        <h2 className="text-lg sm:text-xl font-bold text-white flex items-center gap-2">
                             <FileText className="h-5 w-5 text-indigo-400" />
                             Cheat Sheet
                         </h2>
@@ -1622,32 +1623,32 @@ export default function DiccionarioDevApp() {
                         <div className="flex-1 overflow-y-auto p-6 space-y-8">
                             {/* Quick Syntax */}
                             <div>
-                                <h3 className="text-xs font-bold uppercase text-slate-500 mb-3 flex items-center gap-2">
-                                    <Code2 className="h-4 w-4" /> Sintaxis Rápida
+                                <h3 className="text-xs lg:text-sm font-bold uppercase text-slate-500 mb-3 flex items-center gap-2">
+                                    <Code2 className="h-4 w-4 lg:h-5 lg:w-5" /> Sintaxis Rápida
                                 </h3>
-                                <div className="bg-[#282a36] rounded-lg p-3 border border-slate-800 text-xs font-mono overflow-x-auto">
-                                    {activeVariant ? activeVariant.snippet.split('\n')[0] : 'Sintaxis no disponible'}
-                                </div>
-                            </div>
+	                                <div className="bg-[#282a36] rounded-lg p-3 border border-slate-800 text-xs lg:text-sm font-mono overflow-x-hidden whitespace-pre-wrap break-words sm:overflow-x-auto sm:whitespace-pre">
+	                                    {activeVariant ? activeVariant.snippet.split('\n')[0] : 'Sintaxis no disponible'}
+	                                </div>
+	                            </div>
 
                             {/* Quick Tips */}
                             <div>
-                                <h3 className="text-xs font-bold uppercase text-slate-500 mb-3 flex items-center gap-2">
-                                    <Lightbulb className="h-4 w-4" /> Reglas de Oro
+                                <h3 className="text-xs lg:text-sm font-bold uppercase text-slate-500 mb-3 flex items-center gap-2">
+                                    <Lightbulb className="h-4 w-4 lg:h-5 lg:w-5" /> Reglas de Oro
                                 </h3>
                                 <ul className="space-y-3">
-                                    <li className="flex items-start gap-2 text-sm text-slate-300">
-                                        <Check className="h-4 w-4 text-emerald-400 mt-0.5 shrink-0" />
+                                    <li className="flex items-start gap-2 text-sm lg:text-base text-slate-300">
+                                        <Check className="h-4 w-4 lg:h-5 lg:w-5 text-emerald-400 mt-0.5 shrink-0" />
                                         <span>Usa nombres descriptivos para tus variables.</span>
                                     </li>
-                                    <li className="flex items-start gap-2 text-sm text-slate-300">
-                                        <Check className="h-4 w-4 text-emerald-400 mt-0.5 shrink-0" />
+                                    <li className="flex items-start gap-2 text-sm lg:text-base text-slate-300">
+                                        <Check className="h-4 w-4 lg:h-5 lg:w-5 text-emerald-400 mt-0.5 shrink-0" />
                                         <span>Mantén las funciones pequeñas y puras.</span>
                                     </li>
                                     {activeTerm.useCases?.map((uc, i) => (
                                         uc.tips && (
-                                            <li key={i} className="flex items-start gap-2 text-sm text-slate-300">
-                                                <Check className="h-4 w-4 text-emerald-400 mt-0.5 shrink-0" />
+                                            <li key={i} className="flex items-start gap-2 text-sm lg:text-base text-slate-300">
+                                                <Check className="h-4 w-4 lg:h-5 lg:w-5 text-emerald-400 mt-0.5 shrink-0" />
                                                 <span>{uc.tips}</span>
                                             </li>
                                         )
@@ -1657,15 +1658,15 @@ export default function DiccionarioDevApp() {
 
                             {/* JSDoc Generator */}
                             <div className="pt-6 border-t border-slate-800">
-                                <h3 className="text-xs font-bold uppercase text-slate-500 mb-3 flex items-center gap-2">
-                                    <FileJson className="h-4 w-4" /> Documentación
+                                <h3 className="text-xs lg:text-sm font-bold uppercase text-slate-500 mb-3 flex items-center gap-2">
+                                    <FileJson className="h-4 w-4 lg:h-5 lg:w-5" /> Documentación
                                 </h3>
                                 <button
                                     onClick={() => generateJSDoc(activeTerm)}
                                     className="w-full flex items-center justify-center gap-2 p-3 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-700 transition-all group"
                                 >
-                                    {jsDocCopied ? <Check className="h-4 w-4 text-emerald-400" /> : <Copy className="h-4 w-4 text-slate-400 group-hover:text-white" />}
-                                    <span className="text-sm font-medium text-slate-300 group-hover:text-white">
+                                    {jsDocCopied ? <Check className="h-4 w-4 lg:h-5 lg:w-5 text-emerald-400" /> : <Copy className="h-4 w-4 lg:h-5 lg:w-5 text-slate-400 group-hover:text-white" />}
+                                    <span className="text-sm lg:text-base font-medium text-slate-300 group-hover:text-white">
                                         {jsDocCopied ? "¡Copiado al portapapeles!" : "Copiar como JSDoc"}
                                     </span>
                                 </button>
@@ -1693,13 +1694,13 @@ export default function DiccionarioDevApp() {
                                 onClick={() => { setSearchTerm(""); setActiveTerm(null); }}
                             >
                                 <ThemeLogo
-                                    width={40}
-                                    height={40}
-                                    className="transition-transform duration-300 group-hover:scale-105"
+                                    width={56}
+                                    height={56}
+                                    className="h-10 w-10 shrink-0 lg:h-12 lg:w-12 xl:h-14 xl:w-14 transition-transform duration-300 group-hover:scale-105"
                                 />
                                 <div>
-                                    <p className="text-[10px] uppercase tracking-[0.2em] text-indigo-600 dark:text-indigo-300 font-bold">Diccionario</p>
-                                    <h1 className="text-lg font-bold tracking-tight text-slate-900 dark:text-white leading-tight group-hover:text-indigo-600 dark:group-hover:text-indigo-100 transition-colors">
+                                    <p className="text-[10px] lg:text-[11px] uppercase tracking-[0.2em] text-indigo-600 dark:text-indigo-300 font-bold">Diccionario</p>
+                                    <h1 className="text-lg lg:text-xl font-bold tracking-tight text-slate-900 dark:text-white leading-tight group-hover:text-indigo-600 dark:group-hover:text-indigo-100 transition-colors">
                                         Dev
                                     </h1>
                                 </div>
@@ -1726,7 +1727,7 @@ export default function DiccionarioDevApp() {
                                     <>
                                         <a
                                             href="/admin/profile"
-                                            className="hidden md:inline-flex items-center gap-2 rounded-full border border-slate-900 dark:border-slate-800 bg-white dark:bg-slate-900/70 px-3 py-1.5 text-sm font-semibold text-slate-900 dark:text-slate-200 hover:border-emerald-500/40 hover:text-emerald-600 dark:hover:text-white transition"
+                                            className="hidden md:inline-flex items-center gap-2 rounded-full border border-slate-900 dark:border-slate-800 bg-white dark:bg-slate-900/70 px-3 py-1.5 text-sm lg:text-base font-semibold text-slate-900 dark:text-slate-200 hover:border-emerald-500/40 hover:text-emerald-600 dark:hover:text-white transition"
                                             title="Ver perfil"
                                         >
                                             <span className="relative h-8 w-8">
@@ -1764,10 +1765,10 @@ export default function DiccionarioDevApp() {
                         </div>
 
                         {/* Perfil del usuario (solo si hay sesión) */}
-				                        {session && (
-				                            <section className="relative mt-4 sm:mt-6 rounded-2xl border border-slate-800 bg-slate-900/70 shadow-inner overflow-visible">
-					                                <div className="relative">
-				                                    <div ref={coverDisplayRef} className="relative h-28 sm:h-36 w-full rounded-t-2xl overflow-visible">
+					                        {session && (
+					                            <section className="relative mt-4 sm:mt-6 rounded-2xl border border-neo-border bg-neo-card/70 shadow-inner overflow-visible dark:border-slate-800 dark:bg-slate-900/70">
+						                                <div className="relative">
+					                                    <div ref={coverDisplayRef} className="relative h-28 sm:h-36 w-full rounded-t-2xl overflow-visible">
 				                                        <div className="absolute inset-0 overflow-hidden rounded-t-2xl">
 				                                            {!coverUrl && (
 				                                                <div className="absolute inset-0 bg-linear-to-r from-emerald-600 via-cyan-600 to-blue-700" />
@@ -1795,16 +1796,16 @@ export default function DiccionarioDevApp() {
 					                                            href="/admin/profile"
 					                                            className="absolute left-1/2 bottom-0 z-30 -translate-x-1/2 translate-y-1/2 sm:left-6 sm:translate-x-0"
 					                                        >
-				                                            <div className="relative h-16 w-16 sm:h-20 sm:w-20 rounded-full border-2 border-white/70 bg-slate-800 overflow-visible shadow-xl ring-2 ring-white/20 hover:scale-105 transition shrink-0">
-				                                                {avatarPreview || session.avatarUrl ? (
-				                                                    // eslint-disable-next-line @next/next/no-img-element
-				                                                    <img
+					                                            <div className="relative h-16 w-16 sm:h-20 sm:w-20 rounded-full border-2 border-white/70 bg-neo-surface overflow-visible shadow-xl ring-2 ring-white/20 hover:scale-105 transition shrink-0 dark:bg-slate-800">
+					                                                {avatarPreview || session.avatarUrl ? (
+					                                                    // eslint-disable-next-line @next/next/no-img-element
+					                                                    <img
 				                                                        src={avatarPreview || session.avatarUrl || ""}
 				                                                        alt={session.displayName || session.username}
 				                                                        className="h-full w-full object-cover rounded-full"
 				                                                    />
 				                                                ) : (
-				                                                    <div className="flex h-full w-full items-center justify-center bg-emerald-500/20 text-emerald-100 font-bold text-xl rounded-full">
+				                                                    <div className="flex h-full w-full items-center justify-center bg-emerald-500/20 text-emerald-100 font-bold text-lg sm:text-xl rounded-full">
 				                                                        {(session.displayName || session.username).substring(0, 2).toUpperCase()}
 				                                                    </div>
 				                                                )}
@@ -1816,7 +1817,7 @@ export default function DiccionarioDevApp() {
 					                                                    className="absolute -bottom-2 -right-2 inline-flex h-9 w-9 items-center justify-center rounded-full text-white/90 transition hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/70"
 					                                                    aria-label="Cambiar foto de perfil"
 					                                                >
-					                                                    <Camera className="h-4 w-4 drop-shadow-[0_2px_8px_rgba(0,0,0,0.7)]" />
+					                                                    <Camera className="h-4 w-4 lg:h-5 lg:w-5 drop-shadow-[0_2px_8px_rgba(0,0,0,0.7)]" />
 					                                                </button>
 				                                                <input
 				                                                    ref={avatarInputRef}
@@ -1825,30 +1826,30 @@ export default function DiccionarioDevApp() {
 				                                                    className="hidden"
 				                                                    onChange={handleAvatarUpload}
 				                                                />
-				                                            </div>
+					                                            </div>
+					                                        </a>
+					                                    </div>
+					                                </div>
+								                                <div className="relative z-10 overflow-hidden rounded-b-2xl bg-neo-card/70 px-4 sm:px-6 pb-4 pt-14 sm:pt-4 backdrop-blur-md border-t border-neo-border/70 dark:bg-black/55 dark:border-white/10">
+					                                    <div className="flex flex-col items-center gap-1 text-center sm:items-start sm:gap-2 sm:text-left sm:pl-24">
+					                                        <a href="/admin/profile" className="block group">
+						                                            <h3 className="text-lg sm:text-xl font-bold text-emerald-700 leading-tight drop-shadow-none transition-colors group-hover:text-emerald-600 dark:text-emerald-400 dark:drop-shadow-[0_2px_10px_rgba(0,0,0,0.65)] dark:group-hover:text-emerald-300">
+						                                                {session.displayName || session.username}
+					                                            </h3>
 				                                        </a>
-				                                    </div>
-				                                </div>
-							                                <div className="relative z-10 rounded-b-2xl bg-black/55 px-4 sm:px-6 pb-4 pt-14 sm:pt-4 backdrop-blur-md border-t border-white/10">
-				                                    <div className="flex flex-col items-center gap-1 text-center sm:items-start sm:gap-2 sm:text-left sm:pl-24">
-				                                        <a href="/admin/profile" className="block group">
-					                                            <h3 className="text-lg sm:text-xl font-bold text-emerald-400 leading-tight drop-shadow-[0_2px_10px_rgba(0,0,0,0.65)] transition-colors group-hover:text-emerald-300">
-					                                                {session.displayName || session.username}
-				                                            </h3>
-			                                        </a>
-			                                        <p className="text-sm text-slate-200/90 line-clamp-2">
+				                                        <p className="text-sm lg:text-base text-slate-700 line-clamp-2 dark:text-slate-200/90">
 			                                            {session.bio || "Completa tu bio para que otros sepan en qué estás trabajando."}
-				                                        </p>
-				                                    </div>
-				                                </div>
+					                                        </p>
+					                                    </div>
+					                                </div>
 				                            </section>
 				                        )}
 
                         {/* Mobile nav */}
-                        <div className="flex items-center gap-2 md:hidden overflow-x-auto pb-1">
-                            {navLinks.map((link) => (
-                                <a
-                                    key={link.href}
+	                        <div className="flex flex-wrap items-center gap-2 md:hidden pb-1">
+	                            {navLinks.map((link) => (
+	                                <a
+	                                    key={link.href}
                                     href={link.href}
                                     className="rounded-full border border-slate-800 bg-slate-900/60 px-3 py-1.5 text-[11px] font-semibold uppercase tracking-wide text-slate-300 transition-all hover:border-emerald-500/40 hover:text-white"
                                 >
@@ -1859,21 +1860,21 @@ export default function DiccionarioDevApp() {
                     </div>
 
                     {/* Context Selectors */}
-                    <div className="mt-4 flex gap-2 overflow-x-auto pb-1">
-                        {CONTEXT_OPTIONS.map((ctx) => {
-                            const isActive = searchContext === ctx.id;
-                            return (
+	                    <div className="mt-4 grid grid-cols-2 gap-2 pb-1 sm:flex sm:flex-wrap">
+	                        {CONTEXT_OPTIONS.map((ctx) => {
+	                            const isActive = searchContext === ctx.id;
+	                            return (
 	                                <button
 	                                    key={ctx.id}
 	                                    type="button"
 	                                    onClick={() => handleContextSelect(ctx.id)}
 	                                    aria-pressed={isActive}
-	                                    className={`group flex items-center gap-2 rounded-full border px-4 py-1.5 text-sm font-medium transition-all ${isActive
+	                                    className={`group flex items-center gap-2 rounded-full border px-4 py-1.5 text-sm lg:text-base font-medium transition-all ${isActive
 	                                        ? `${ctx.activeBg} text-white dark:shadow-[0_10px_30px_rgba(16,185,129,0.12)]`
 	                                        : "border-slate-800 bg-slate-900/50 text-slate-300 hover:border-slate-700 hover:bg-slate-800 hover:text-white"
 	                                        }`}
 	                                >
-                                    <ctx.icon className={`h-4 w-4 ${ctx.color} ${isActive ? "" : "opacity-90"}`} />
+                                    <ctx.icon className={`h-4 w-4 lg:h-5 lg:w-5 ${ctx.color} ${isActive ? "" : "opacity-90"}`} />
                                     <span>{ctx.label}</span>
                                     {isActive && (
                                         <span className="rounded-full bg-white/5 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-slate-200">
@@ -1886,8 +1887,8 @@ export default function DiccionarioDevApp() {
                     </div>
 
                     {activeContextOption && ActiveContextIcon && (
-                        <div className="mt-2 inline-flex items-center gap-2 rounded-full border border-slate-800 bg-slate-900/70 px-3 py-1 text-[12px] text-slate-200">
-                            <ActiveContextIcon className={`h-4 w-4 ${activeContextOption.color}`} />
+                        <div className="mt-2 inline-flex items-center gap-2 rounded-full border border-slate-800 bg-slate-900/70 px-3 py-1 text-[12px] lg:text-sm text-slate-200">
+                            <ActiveContextIcon className={`h-4 w-4 lg:h-5 lg:w-5 ${activeContextOption.color}`} />
                             <span className="font-semibold text-white">Modo {activeContextOption.label}</span>
                             <span className="text-slate-400">{activeContextOption.hint}</span>
                         </div>
@@ -1898,21 +1899,21 @@ export default function DiccionarioDevApp() {
 	                        {/* Glow Effect Background */}
 	                        <div className={`absolute -inset-0.5 hidden rounded-2xl bg-linear-to-r from-emerald-500 via-cyan-500 to-blue-600 opacity-20 blur transition duration-500 group-hover:opacity-40 dark:block ${searchTerm ? 'opacity-50' : ''}`}></div>
 
-                        <div className="absolute inset-y-0 left-0 flex items-center pl-5 pointer-events-none z-10">
-                            {isCodeMode ? (
-                                <Code2 className="h-6 w-6 text-blue-400 animate-pulse" />
-                            ) : (
-                                <Search className={`h-6 w-6 transition-colors ${loading ? "text-emerald-400 animate-pulse" : "text-slate-400 group-focus-within:text-emerald-400"}`} />
-                            )}
-                        </div>
-	                        <input
-	                            ref={searchInputRef}
-	                            type="text"
-	                            placeholder={getPlaceholder()}
-	                            className={`relative w-full rounded-2xl border-2 py-5 pl-14 pr-24 text-xl font-medium text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-500 shadow-none dark:shadow-2xl backdrop-blur-xl transition-all focus:outline-none focus:ring-0 ${isCodeMode
-	                                ? "bg-slate-900/90 border-blue-500/50 focus:border-blue-500 dark:shadow-blue-500/20"
-	                                : isListening
-	                                    ? "bg-slate-900/90 border-red-500/50 focus:border-red-500 animate-pulse"
+	                        <div className="absolute inset-y-0 left-0 flex items-center pl-4 sm:pl-5 pointer-events-none z-10">
+	                            {isCodeMode ? (
+	                                <Code2 className="h-5 w-5 sm:h-6 sm:w-6 text-blue-400 animate-pulse" />
+	                            ) : (
+	                                <Search className={`h-5 w-5 sm:h-6 sm:w-6 transition-colors ${loading ? "text-emerald-400 animate-pulse" : "text-slate-400 group-focus-within:text-emerald-400"}`} />
+	                            )}
+	                        </div>
+		                        <input
+		                            ref={searchInputRef}
+		                            type="text"
+		                            placeholder={getPlaceholder()}
+		                            className={`relative w-full rounded-2xl border-2 py-4 sm:py-5 pl-12 sm:pl-14 pr-20 sm:pr-24 text-base sm:text-lg lg:text-xl font-medium text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-500 shadow-none dark:shadow-2xl backdrop-blur-xl transition-all focus:outline-none focus:ring-0 ${isCodeMode
+		                                ? "bg-slate-900/90 border-blue-500/50 focus:border-blue-500 dark:shadow-blue-500/20"
+		                                : isListening
+		                                    ? "bg-slate-900/90 border-red-500/50 focus:border-red-500 animate-pulse"
 	                                    : "bg-white border-2 border-slate-900 dark:border-slate-700 hover:border-black dark:hover:border-slate-600 focus:bg-white dark:focus:bg-slate-900 focus:border-emerald-600 dark:focus:border-emerald-500 dark:shadow-emerald-500/10"
 	                                }`}
 	                            value={searchTerm}
@@ -1934,7 +1935,7 @@ export default function DiccionarioDevApp() {
                                     className="p-1 text-slate-500 hover:text-white hover:bg-slate-800 rounded-full transition-colors"
                                     title="Borrar búsqueda"
                                 >
-                                    <X className="h-4 w-4" />
+                                    <X className="h-4 w-4 lg:h-5 lg:w-5" />
                                 </button>
                             )}
 
@@ -1948,7 +1949,7 @@ export default function DiccionarioDevApp() {
                                         }`}
                                     title="Búsqueda por voz"
                                 >
-                                    {isListening ? <MicOff className="h-4 w-4" /> : isStartingMic ? <Loader2 className="h-4 w-4 animate-spin" /> : <Mic className="h-4 w-4" />}
+                                    {isListening ? <MicOff className="h-4 w-4 lg:h-5 lg:w-5" /> : isStartingMic ? <Loader2 className="h-4 w-4 lg:h-5 lg:w-5 animate-spin" /> : <Mic className="h-4 w-4 lg:h-5 lg:w-5" />}
                                 </button>
 
                                 {/* Detailed Error Tooltip with Fix Button */}
@@ -1957,12 +1958,12 @@ export default function DiccionarioDevApp() {
                                         <div className="flex items-start gap-3">
                                             <AlertCircle className="h-5 w-5 text-red-500 shrink-0 mt-0.5" />
                                             <div>
-                                                <p className="text-sm font-bold text-red-400 mb-1">
+                                                <p className="text-sm lg:text-base font-bold text-red-400 mb-1">
                                                     {micError === 'permiso' ? 'Acceso Denegado' :
                                                         micError === 'hardware' ? 'Micrófono no encontrado' :
                                                             micError === 'red' ? 'Error de Conexión' : 'Error Desconocido'}
                                                 </p>
-                                                <p className="text-xs text-slate-300 leading-relaxed mb-3">
+                                                <p className="text-xs lg:text-sm text-slate-300 leading-relaxed mb-3">
                                                     {micError === 'permiso' ? (
                                                         "El navegador bloqueó el micrófono. Intenta forzar la solicitud de permiso manual:"
                                                     ) : micError === 'hardware' ? (
@@ -1975,9 +1976,9 @@ export default function DiccionarioDevApp() {
                                                 {micError === 'permiso' && (
                                                     <button
                                                         onClick={requestMicrophonePermission}
-                                                        className="w-full py-2 px-3 bg-red-500/10 hover:bg-red-500/20 border border-red-500/30 rounded-lg text-xs font-bold text-red-400 transition-colors flex items-center justify-center gap-2"
+                                                        className="w-full py-2 px-3 bg-red-500/10 hover:bg-red-500/20 border border-red-500/30 rounded-lg text-xs lg:text-sm font-bold text-red-400 transition-colors flex items-center justify-center gap-2"
                                                     >
-                                                        <Settings className="h-3 w-3" />
+                                                        <Settings className="h-3 w-3 lg:h-4 lg:w-4" />
                                                         Forzar Permiso
                                                     </button>
                                                 )}
@@ -2006,8 +2007,8 @@ export default function DiccionarioDevApp() {
                                 {/* Historial */}
                                 {showHistory && !results.length && !searchTerm && !loading && (
                                     <div className="py-2">
-                                        <div className="px-4 py-2 text-xs font-bold uppercase tracking-wider text-slate-900 dark:text-slate-500 flex items-center gap-2">
-                                            <History className="h-3 w-3" /> Recientes
+                                        <div className="px-4 py-2 text-xs lg:text-sm font-bold uppercase tracking-wider text-slate-900 dark:text-slate-500 flex items-center gap-2">
+                                            <History className="h-3 w-3 lg:h-4 lg:w-4" /> Recientes
                                         </div>
                                         {recentSearches.map((term) => (
                                             <button
@@ -2015,7 +2016,7 @@ export default function DiccionarioDevApp() {
                                                 onMouseDown={() => { setSearchTerm(term); }}
                                                 className="w-full px-4 py-2 text-left flex items-center gap-3 hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white transition-colors group"
                                             >
-                                                <History className="h-4 w-4 text-slate-400 dark:text-slate-600 group-hover:text-slate-900 dark:group-hover:text-slate-400" />
+                                                <History className="h-4 w-4 lg:h-5 lg:w-5 text-slate-400 dark:text-slate-600 group-hover:text-slate-900 dark:group-hover:text-slate-400" />
                                                 <span className="font-medium">{term}</span>
                                             </button>
                                         ))}
@@ -2025,8 +2026,8 @@ export default function DiccionarioDevApp() {
                                 {/* Resultados de Búsqueda */}
                                 {results.length > 0 && (
                                     <div className="py-2">
-                                        <div className="px-4 py-2 text-xs font-bold uppercase tracking-wider text-slate-500 flex items-center gap-2">
-                                            <Command className="h-3 w-3" /> Resultados
+                                        <div className="px-4 py-2 text-xs lg:text-sm font-bold uppercase tracking-wider text-slate-500 flex items-center gap-2">
+                                            <Command className="h-3 w-3 lg:h-4 lg:w-4" /> Resultados
                                         </div>
                                         {results.map((term, idx) => (
                                             <button
@@ -2038,15 +2039,15 @@ export default function DiccionarioDevApp() {
                                             >
                                                 <div className="flex items-center gap-3">
                                                     <div className={`h-8 w-8 rounded-lg flex items-center justify-center ${idx === selectedIndex ? 'bg-emerald-100 dark:bg-emerald-500/20 text-emerald-600 dark:text-emerald-400' : 'bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400'}`}>
-                                                        {term.category === 'frontend' ? <Globe className="h-4 w-4" /> :
-                                                            term.category === 'backend' ? <Terminal className="h-4 w-4" /> :
-                                                                <BookOpen className="h-4 w-4" />}
+                                                        {term.category === 'frontend' ? <Globe className="h-4 w-4 lg:h-5 lg:w-5" /> :
+                                                            term.category === 'backend' ? <Terminal className="h-4 w-4 lg:h-5 lg:w-5" /> :
+                                                                <BookOpen className="h-4 w-4 lg:h-5 lg:w-5" />}
                                                     </div>
                                                     <div>
                                                         <span className={`font-bold block ${idx === selectedIndex ? 'text-slate-900 dark:text-white' : 'text-slate-700 dark:text-slate-200'}`}>
                                                             {highlightMatch(term.term, debouncedSearch)}
                                                         </span>
-                                                        <span className="text-xs text-slate-500 line-clamp-1">{term.translation}</span>
+                                                        <span className="text-xs lg:text-sm text-slate-500 line-clamp-1">{term.translation}</span>
                                                     </div>
                                                 </div>
                                                 <span className="text-[10px] uppercase px-2 py-1 rounded bg-slate-800 text-slate-400 border border-slate-700 font-mono">
@@ -2060,7 +2061,7 @@ export default function DiccionarioDevApp() {
                                 {/* No Results State */}
                                 {hasSearched && results.length === 0 && !loading && searchTerm && (
                                     <div className="px-4 py-3 text-center">
-                                        <p className="text-xs text-slate-500">No hay coincidencias para &quot;{searchTerm}&quot;</p>
+                                        <p className="text-xs lg:text-sm text-slate-500">No hay coincidencias para &quot;{searchTerm}&quot;</p>
                                     </div>
                                 )}
                             </div>
@@ -2068,9 +2069,9 @@ export default function DiccionarioDevApp() {
                     </div>
 
                     {/* Quick Tags */}
-                    <div className="mt-3 flex gap-2 overflow-x-auto text-xs">
-                        {["#react", "#hooks", "#typescript", "#docker", "#aws"].map((tag) => (
-                            <span
+	                    <div className="mt-3 flex flex-wrap gap-2 text-xs lg:text-sm">
+	                        {["#react", "#hooks", "#typescript", "#docker", "#aws"].map((tag) => (
+	                            <span
                                 key={tag}
                                 className="cursor-pointer rounded px-2 py-1 text-slate-700 dark:text-slate-500 font-medium hover:bg-slate-200 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-emerald-400 transition-colors"
                                 onClick={() => setSearchTerm(tag.replace("#", ""))}
@@ -2082,10 +2083,10 @@ export default function DiccionarioDevApp() {
 
                     {showEmptyMessage && (
                         <div className="mt-4 text-center text-slate-700 dark:text-slate-500">
-                            <p className="mb-3 text-sm sm:text-base font-medium">Prueba buscando un término técnico para ver resultados.</p>
+                            <p className="mb-3 text-sm sm:text-base lg:text-lg font-medium">Prueba buscando un término técnico para ver resultados.</p>
                             {recentSearches.length > 0 && (
-                                <div className="inline-flex flex-wrap items-center justify-center gap-2 rounded-full border-2 border-slate-900 dark:border-slate-800 bg-white dark:bg-slate-900 px-3 py-2 text-xs sm:text-sm shadow-sm">
-                                    <History className="h-4 w-4 text-slate-900 dark:text-slate-500" />
+                                <div className="inline-flex flex-wrap items-center justify-center gap-2 rounded-full border-2 border-slate-900 dark:border-slate-800 bg-white dark:bg-slate-900 px-3 py-2 text-xs sm:text-sm lg:text-base shadow-sm">
+                                    <History className="h-4 w-4 lg:h-5 lg:w-5 text-slate-900 dark:text-slate-500" />
                                     <span className="text-slate-900 dark:text-slate-400 font-bold">Últimas búsquedas:</span>
                                     {recentSearches.map((term) => (
                                         <button
@@ -2116,21 +2117,21 @@ export default function DiccionarioDevApp() {
                 />
 
                 {/* Drawer */}
-	                <div
-	                    className={`absolute top-2 bottom-2 left-0 w-[82vw] max-w-80 rounded-2xl border border-neo-border bg-linear-to-b from-neo-bg via-neo-bg/95 to-neo-surface shadow-2xl overflow-hidden transform transition-transform duration-300 ease-out ${showMobileMenu ? "translate-x-0" : "-translate-x-full"}`}
-	                    role="dialog"
-	                    aria-modal="true"
-	                    aria-label="Menú"
-	                >
+		                <div
+		                    className={`dd-mobile-menu absolute top-2 bottom-2 left-0 w-[82vw] max-w-80 rounded-2xl border border-neo-border bg-linear-to-b from-neo-bg via-neo-bg/95 to-neo-surface shadow-2xl overflow-hidden transform transition-transform duration-300 ease-out ${showMobileMenu ? "translate-x-0" : "-translate-x-full"}`}
+		                    role="dialog"
+		                    aria-modal="true"
+		                    aria-label="Menú"
+		                >
 	                    <div className="flex h-full flex-col">
                         <div className="flex items-center justify-between gap-3 border-b border-neo-border/70 px-4 py-3">
                             <div className="flex items-center gap-3 min-w-0">
                                 <ThemeLogo width={34} height={34} className="shrink-0 rounded-xl" />
                                 <div className="flex flex-col min-w-0 justify-center leading-tight">
-                                    <p className="mb-0.5 text-[9px] font-bold uppercase tracking-[0.2em] text-neo-text-secondary truncate leading-none">Diccionario</p>
-                                    <h1 className="text-base font-bold tracking-tight text-neo-text-primary leading-none truncate">
-                                        Dev
-                                    </h1>
+	                                    <p className="mb-0.5 text-[9px] font-bold uppercase tracking-[0.2em] text-neo-text-secondary leading-none">Diccionario</p>
+	                                    <h1 className="text-base font-bold tracking-tight text-neo-text-primary leading-none">
+	                                        Dev
+	                                    </h1>
                                 </div>
                             </div>
                             <div className="flex items-center gap-2">
@@ -2171,13 +2172,13 @@ export default function DiccionarioDevApp() {
                                         <span className="absolute bottom-0 right-0 z-20 h-2.5 w-2.5 rounded-full bg-emerald-500 ring-2 ring-neo-card" />
                                     </span>
                                     <div className="flex flex-col leading-tight min-w-0">
-                                        <span className="text-sm font-semibold text-neo-text-primary truncate">
-                                            {session.displayName || session.username}
-                                        </span>
-                                        <span className="text-[10px] text-neo-text-secondary truncate">@{session.username}</span>
-                                    </div>
-                                </a>
-                            ) : null}
+	                                        <span className="text-sm font-semibold text-neo-text-primary break-words line-clamp-2">
+	                                            {session.displayName || session.username}
+	                                        </span>
+	                                        <span className="text-[10px] text-neo-text-secondary break-words">@{session.username}</span>
+	                                    </div>
+	                                </a>
+	                            ) : null}
 
                             <div className="rounded-2xl border border-neo-border bg-neo-card/70 p-3 space-y-2">
                                 <div className="flex items-center justify-between">
@@ -2230,8 +2231,8 @@ export default function DiccionarioDevApp() {
                                                 >
                                                     <IconComp className="h-5 w-5" />
                                                 </span>
-                                                <span className="leading-tight truncate">{link.label}</span>
-                                            </span>
+	                                                <span className="leading-tight break-words">{link.label}</span>
+	                                            </span>
                                             {isPanel ? <ArrowRight className="h-4 w-4 text-neo-primary" /> : null}
                                         </a>
                                     );
@@ -2310,7 +2311,7 @@ export default function DiccionarioDevApp() {
 		                        <div className="flex items-center justify-between border-b border-neo-border px-4 py-3">
 		                            <div className="flex items-center gap-2">
 		                                <Sparkles className="h-5 w-5 text-neo-primary" />
-		                                <p className="text-sm font-semibold text-neo-text-primary">Ajustar portada</p>
+		                                <p className="text-sm lg:text-base font-semibold text-neo-text-primary">Ajustar portada</p>
 		                            </div>
 		                            <button
 		                                onClick={cancelCoverEdit}
@@ -2361,12 +2362,12 @@ export default function DiccionarioDevApp() {
 		                                    ) : null}
 		                                    <div className="pointer-events-none absolute inset-0 rounded-lg ring-1 ring-white/20" />
 		                                </div>
-	                                <p className="mt-2 text-xs text-neo-text-secondary">Arrastra para reubicar y ajusta el zoom (mismo flujo que Avatar).</p>
+	                                <p className="mt-2 text-xs lg:text-sm text-neo-text-secondary">Arrastra para reubicar y ajusta el zoom (mismo flujo que Avatar).</p>
 	                            </div>
 
 		                            <div className="rounded-2xl border border-neo-border bg-neo-surface p-3 space-y-3">
                                 <div>
-                                    <label className="text-xs font-semibold text-neo-text-primary">Zoom</label>
+                                    <label className="text-xs lg:text-sm font-semibold text-neo-text-primary">Zoom</label>
                                     <input
                                         type="range"
                                         min={1}
@@ -2384,25 +2385,25 @@ export default function DiccionarioDevApp() {
                                             setCoverOffsetX(0);
                                             setCoverOffsetY(0);
                                         }}
-                                        className="rounded-lg border border-neo-border bg-neo-bg px-3 py-2 text-xs font-semibold text-neo-text-secondary hover:border-neo-primary/40 hover:text-neo-text-primary transition"
+                                        className="rounded-lg border border-neo-border bg-neo-bg px-3 py-2 text-xs lg:text-sm lg:px-4 lg:py-2.5 font-semibold text-neo-text-secondary hover:border-neo-primary/40 hover:text-neo-text-primary transition"
                                     >
                                         Reajustar
                                     </button>
 	                                    <button
 	                                        onClick={cancelCoverEdit}
-	                                        className="rounded-lg border border-neo-border bg-neo-card px-3 py-2 text-xs font-semibold text-neo-text-secondary hover:border-neo-text-secondary hover:text-neo-text-primary transition"
+	                                        className="rounded-lg border border-neo-border bg-neo-card px-3 py-2 text-xs lg:text-sm lg:px-4 lg:py-2.5 font-semibold text-neo-text-secondary hover:border-neo-text-secondary hover:text-neo-text-primary transition"
 	                                    >
 	                                        Cancelar
 	                                    </button>
                                     <button
                                         onClick={applyCoverEdits}
-                                        className="flex-1 rounded-lg bg-neo-primary px-3 py-2 text-xs font-semibold text-white shadow-lg shadow-neo-primary/25 transition hover:brightness-110"
+                                        className="flex-1 rounded-lg bg-neo-primary px-3 py-2 text-xs lg:text-sm lg:px-4 lg:py-2.5 font-semibold text-white shadow-lg shadow-neo-primary/25 transition hover:brightness-110"
                                     >
                                         Guardar portada
                                     </button>
                                     <button
                                         onClick={handleResetCover}
-                                        className="rounded-lg border border-neo-border bg-neo-bg px-3 py-2 text-xs font-semibold text-neo-text-secondary hover:border-neo-primary/40 hover:text-neo-text-primary transition"
+                                        className="rounded-lg border border-neo-border bg-neo-bg px-3 py-2 text-xs lg:text-sm lg:px-4 lg:py-2.5 font-semibold text-neo-text-secondary hover:border-neo-primary/40 hover:text-neo-text-primary transition"
                                     >
                                         Restablecer
                                     </button>
@@ -2421,7 +2422,7 @@ export default function DiccionarioDevApp() {
 		                        <div className="flex items-center justify-between border-b border-neo-border px-4 py-3">
 		                            <div className="flex items-center gap-2">
 		                                <Sparkles className="h-5 w-5 text-neo-primary" />
-		                                <p className="text-sm font-semibold text-neo-text-primary">Ajustar foto</p>
+		                                <p className="text-sm lg:text-base font-semibold text-neo-text-primary">Ajustar foto</p>
 		                            </div>
 		                            <button
 		                                onClick={cancelAvatarEdit}
@@ -2471,12 +2472,12 @@ export default function DiccionarioDevApp() {
 		                                    ) : null}
 		                                    <div className="pointer-events-none absolute inset-0 rounded-full ring-1 ring-white/20" />
 		                                </div>
-                                <p className="mt-2 text-xs text-neo-text-secondary">Arrastra para reubicar y ajusta el zoom (igual que en Admin).</p>
+                                <p className="mt-2 text-xs lg:text-sm text-neo-text-secondary">Arrastra para reubicar y ajusta el zoom (igual que en Admin).</p>
                             </div>
 
 		                            <div className="rounded-2xl border border-neo-border bg-neo-surface p-3 space-y-3">
                                 <div>
-                                    <label className="text-xs font-semibold text-neo-text-primary">Zoom</label>
+                                    <label className="text-xs lg:text-sm font-semibold text-neo-text-primary">Zoom</label>
                                     <input
                                         type="range"
                                         min={1}
@@ -2494,19 +2495,19 @@ export default function DiccionarioDevApp() {
                                             setAvatarOffsetX(0);
                                             setAvatarOffsetY(0);
                                         }}
-                                        className="rounded-lg border border-neo-border bg-neo-bg px-3 py-2 text-xs font-semibold text-neo-text-secondary hover:border-neo-primary/40 hover:text-neo-text-primary transition-colors"
+                                        className="rounded-lg border border-neo-border bg-neo-bg px-3 py-2 text-xs lg:text-sm lg:px-4 lg:py-2.5 font-semibold text-neo-text-secondary hover:border-neo-primary/40 hover:text-neo-text-primary transition-colors"
                                     >
                                         Reajustar
                                     </button>
 	                                    <button
 	                                        onClick={cancelAvatarEdit}
-	                                        className="rounded-lg border border-neo-border bg-neo-card px-3 py-2 text-xs font-semibold text-neo-text-secondary hover:border-neo-text-secondary hover:text-neo-text-primary transition-colors"
+	                                        className="rounded-lg border border-neo-border bg-neo-card px-3 py-2 text-xs lg:text-sm lg:px-4 lg:py-2.5 font-semibold text-neo-text-secondary hover:border-neo-text-secondary hover:text-neo-text-primary transition-colors"
 	                                    >
 	                                        Cancelar
 	                                    </button>
                                     <button
                                         onClick={applyAvatarEdits}
-                                        className="flex-1 rounded-lg bg-neo-primary px-3 py-2 text-xs font-semibold text-white shadow-lg shadow-neo-primary/25 transition-colors hover:brightness-110"
+                                        className="flex-1 rounded-lg bg-neo-primary px-3 py-2 text-xs lg:text-sm lg:px-4 lg:py-2.5 font-semibold text-white shadow-lg shadow-neo-primary/25 transition-colors hover:brightness-110"
                                     >
                                         Guardar foto
                                     </button>
@@ -2527,24 +2528,24 @@ export default function DiccionarioDevApp() {
 	                            <div className="relative p-6 sm:p-8 space-y-6">
 	                                <div className="grid grid-cols-1 lg:grid-cols-[1fr_auto] gap-4 lg:gap-6 items-start lg:items-center">
 	                                    <div className="space-y-4 w-full min-w-0">
-	                                        <span className="inline-flex items-center gap-2 rounded-full border border-slate-900 dark:border-emerald-500/40 bg-white dark:bg-emerald-500/10 px-3 py-1 text-[11px] font-bold uppercase tracking-wide text-slate-900 dark:text-emerald-200">
-	                                            <Search className="h-4 w-4" />
+	                                        <span className="inline-flex items-center gap-2 rounded-full border border-slate-900 dark:border-emerald-500/40 bg-white dark:bg-emerald-500/10 px-3 py-1 text-[11px] lg:text-xs font-bold uppercase tracking-wide text-slate-900 dark:text-emerald-200">
+	                                            <Search className="h-4 w-4 lg:h-5 lg:w-5" />
 	                                            Buscador inteligente
 	                                        </span>
-                                        <h2 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-neo-text-primary dark:text-white leading-tight">
-                                            Entiende lo que escribes y te devuelve la pieza exacta
-                                        </h2>
-                                        <p className="text-sm sm:text-base text-slate-600 dark:text-slate-300 leading-relaxed font-medium">
+	                                        <h2 className="text-xl sm:text-3xl lg:text-4xl font-bold text-neo-text-primary dark:text-white leading-tight">
+	                                            Entiende lo que escribes y te devuelve la pieza exacta
+	                                        </h2>
+                                        <p className="text-sm sm:text-base lg:text-lg text-slate-600 dark:text-slate-300 leading-relaxed font-medium">
                                             Detecta si estás buscando un concepto, una traducción o si pegaste código, para abrir la ficha técnica con ejemplos, previews y buenas prácticas listas para copiar.
                                         </p>
                                     </div>
-	                                    <div className="flex items-center gap-4 rounded-2xl border border-slate-900 dark:border-slate-700/60 bg-white dark:bg-slate-800/70 px-5 py-4 text-left dark:shadow-inner w-full">
-	                                        <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-blue-600 text-white dark:bg-emerald-500/15 dark:text-emerald-300 shrink-0">
-	                                            <ArrowRight className="h-5 w-5" />
-	                                        </div>
-	                                        <div className="space-y-1 min-w-0 flex-1">
-	                                            <p className="text-sm font-semibold text-neo-text-primary dark:text-white">Tip rápido</p>
-                                            <p className="text-xs text-neo-text-secondary dark:text-slate-400">Pega un snippet y el buscador detecta el concepto y abre la ficha adecuada.</p>
+		                                    <div className="flex items-center gap-3 sm:gap-4 rounded-2xl border border-slate-900 dark:border-slate-700/60 bg-white dark:bg-slate-800/70 px-4 py-3 sm:px-5 sm:py-4 text-left dark:shadow-inner w-full">
+		                                        <div className="flex h-10 w-10 sm:h-12 sm:w-12 items-center justify-center rounded-xl bg-blue-600 text-white dark:bg-emerald-500/15 dark:text-emerald-300 shrink-0">
+		                                            <ArrowRight className="h-4 w-4 sm:h-5 sm:w-5" />
+		                                        </div>
+		                                        <div className="space-y-1 min-w-0 flex-1">
+		                                            <p className="text-sm lg:text-base font-semibold text-neo-text-primary dark:text-white">Tip rápido</p>
+                                            <p className="text-xs sm:text-sm lg:text-base text-neo-text-secondary dark:text-slate-400">Pega un snippet y el buscador detecta el concepto y abre la ficha adecuada.</p>
                                         </div>
                                     </div>
                                 </div>
@@ -2552,21 +2553,21 @@ export default function DiccionarioDevApp() {
 	                                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-4 gap-3 sm:gap-4 2xl:gap-6">
 	                                    <div className="rounded-xl border-2 border-slate-900 dark:border-slate-800 bg-white dark:bg-slate-900/80 p-4">
 	                                        <div className="flex items-start gap-3">
-	                                            <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-emerald-100 dark:bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 shrink-0 border border-emerald-200 dark:border-transparent">
-	                                                <BookOpen className="h-5 w-5" />
-	                                            </div>
+		                                            <div className="flex h-9 w-9 sm:h-10 sm:w-10 items-center justify-center rounded-lg bg-emerald-100 dark:bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 shrink-0 border border-emerald-200 dark:border-transparent">
+		                                                <BookOpen className="h-4 w-4 sm:h-5 sm:w-5 lg:h-6 lg:w-6" />
+		                                            </div>
                                             <div className="space-y-1 min-w-0">
-                                                <p className="text-sm font-bold text-slate-900 dark:text-white">Define y traduce</p>
-                                                <p className="text-xs text-slate-700 dark:text-slate-400 font-medium">Términos técnicos en español e inglés con contexto, alias y significados claros.</p>
-                                                <div className="mt-2 flex flex-wrap gap-2 text-[11px] text-emerald-800 dark:text-emerald-200">
+                                                <p className="text-sm sm:text-base lg:text-lg font-bold text-slate-900 dark:text-white">Define y traduce</p>
+                                                <p className="text-xs sm:text-sm lg:text-base text-slate-700 dark:text-slate-400 font-medium">Términos técnicos en español e inglés con contexto, alias y significados claros.</p>
+                                                <div className="mt-2 flex flex-wrap gap-2 text-[11px] lg:text-xs text-emerald-800 dark:text-emerald-200">
                                                     <span className="inline-flex items-center gap-1 rounded-full bg-emerald-50 dark:bg-emerald-500/10 px-2 py-1 border border-emerald-200 dark:border-emerald-500/30 font-semibold">
-                                                        <Check className="h-3 w-3" /> ES / EN
+                                                        <Check className="h-3 w-3 lg:h-4 lg:w-4" /> ES / EN
                                                     </span>
                                                     <span className="inline-flex items-center gap-1 rounded-full bg-emerald-50 dark:bg-emerald-500/10 px-2 py-1 border border-emerald-200 dark:border-emerald-500/30 font-semibold">
-                                                        <Check className="h-3 w-3" /> Alias y tags
+                                                        <Check className="h-3 w-3 lg:h-4 lg:w-4" /> Alias y tags
                                                     </span>
                                                     <span className="inline-flex items-center gap-1 rounded-full bg-emerald-50 dark:bg-emerald-500/10 px-2 py-1 border border-emerald-200 dark:border-emerald-500/30 font-semibold">
-                                                        <Check className="h-3 w-3" /> Historial rápido
+                                                        <Check className="h-3 w-3 lg:h-4 lg:w-4" /> Historial rápido
                                                     </span>
                                                 </div>
                                             </div>
@@ -2575,21 +2576,21 @@ export default function DiccionarioDevApp() {
 
 	                                    <div className="rounded-xl border-2 border-slate-900 dark:border-slate-800 bg-white dark:bg-slate-900/80 p-4">
 	                                        <div className="flex items-start gap-3">
-	                                            <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-blue-100 dark:bg-blue-500/15 text-blue-700 dark:text-blue-300 shrink-0 border border-blue-200 dark:border-transparent">
-	                                                <Code2 className="h-5 w-5" />
-                                            </div>
+		                                            <div className="flex h-9 w-9 sm:h-10 sm:w-10 items-center justify-center rounded-lg bg-blue-100 dark:bg-blue-500/15 text-blue-700 dark:text-blue-300 shrink-0 border border-blue-200 dark:border-transparent">
+		                                                <Code2 className="h-4 w-4 sm:h-5 sm:w-5 lg:h-6 lg:w-6" />
+	                                            </div>
                                             <div className="space-y-1 min-w-0">
-                                                <p className="text-sm font-bold text-slate-900 dark:text-white">Entiende tu código</p>
-                                                <p className="text-xs text-slate-700 dark:text-slate-400 font-medium">Detecta hooks, utilidades CSS o APIs pegando un fragmento y muestra el snippet correcto.</p>
-                                                <div className="mt-2 flex flex-wrap gap-2 text-[11px] text-blue-800 dark:text-blue-100">
+                                                <p className="text-sm sm:text-base lg:text-lg font-bold text-slate-900 dark:text-white">Entiende tu código</p>
+                                                <p className="text-xs sm:text-sm lg:text-base text-slate-700 dark:text-slate-400 font-medium">Detecta hooks, utilidades CSS o APIs pegando un fragmento y muestra el snippet correcto.</p>
+                                                <div className="mt-2 flex flex-wrap gap-2 text-[11px] lg:text-xs text-blue-800 dark:text-blue-100">
                                                     <span className="inline-flex items-center gap-1 rounded-full bg-blue-50 dark:bg-blue-500/10 px-2 py-1 border border-blue-200 dark:border-blue-500/30 font-semibold">
-                                                        <Check className="h-3 w-3" /> Modo código auto
+                                                        <Check className="h-3 w-3 lg:h-4 lg:w-4" /> Modo código auto
                                                     </span>
                                                     <span className="inline-flex items-center gap-1 rounded-full bg-blue-50 dark:bg-blue-500/10 px-2 py-1 border border-blue-200 dark:border-blue-500/30 font-semibold">
-                                                        <Check className="h-3 w-3" /> Previews HTML/CSS
+                                                        <Check className="h-3 w-3 lg:h-4 lg:w-4" /> Previews HTML/CSS
                                                     </span>
                                                     <span className="inline-flex items-center gap-1 rounded-full bg-blue-50 dark:bg-blue-500/10 px-2 py-1 border border-blue-200 dark:border-blue-500/30 font-semibold">
-                                                        <Check className="h-3 w-3" /> Atajos CMD+K
+                                                        <Check className="h-3 w-3 lg:h-4 lg:w-4" /> Atajos CMD+K
                                                     </span>
                                                 </div>
                                             </div>
@@ -2598,12 +2599,12 @@ export default function DiccionarioDevApp() {
 
 	                                    <div className="rounded-xl border-2 border-slate-900 dark:border-slate-800 bg-white dark:bg-slate-900/80 p-4 sm:col-span-2 lg:col-span-1">
 	                                        <div className="flex items-start gap-3">
-	                                            <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-purple-100 dark:bg-purple-500/15 text-purple-700 dark:text-purple-200 shrink-0 border border-purple-200 dark:border-transparent">
-	                                                <Mic className="h-5 w-5" />
-	                                            </div>
+		                                            <div className="flex h-9 w-9 sm:h-10 sm:w-10 items-center justify-center rounded-lg bg-purple-100 dark:bg-purple-500/15 text-purple-700 dark:text-purple-200 shrink-0 border border-purple-200 dark:border-transparent">
+		                                                <Mic className="h-4 w-4 sm:h-5 sm:w-5 lg:h-6 lg:w-6" />
+		                                            </div>
                                             <div className="space-y-1 min-w-0">
-                                                <p className="text-sm font-bold text-slate-900 dark:text-white">Habla o escribe</p>
-                                                <p className="text-xs text-slate-700 dark:text-slate-400 font-medium">Usa voz, atajos CMD+K o historial para saltar rápido a lo que necesitas.</p>
+                                                <p className="text-sm sm:text-base lg:text-lg font-bold text-slate-900 dark:text-white">Habla o escribe</p>
+                                                <p className="text-xs sm:text-sm lg:text-base text-slate-700 dark:text-slate-400 font-medium">Usa voz, atajos CMD+K o historial para saltar rápido a lo que necesitas.</p>
                                             </div>
                                         </div>
                                     </div>
@@ -2621,11 +2622,11 @@ export default function DiccionarioDevApp() {
                         <div className="rounded-2xl border-2 border-slate-900 dark:border-slate-800 bg-white dark:bg-slate-900/60 p-6 shadow-lg dark:shadow-2xl">
                             <div className="grid grid-cols-1 lg:grid-cols-[1fr_auto] gap-4 lg:gap-6 items-start">
                                 <div className="min-w-0">
-                                    <p className="text-xs uppercase text-emerald-700 dark:text-emerald-400 font-bold tracking-wider">⭐ {activeTerm.term} — Guía Técnica Definitiva</p>
-                                    <h2 className="text-2xl sm:text-3xl lg:text-4xl xl:text-5xl font-bold text-slate-900 dark:text-white tracking-tight mt-1 break-words">
-                                        {activeTerm.term} {activeTerm.translation ? <span className="text-slate-500 font-medium text-base sm:text-lg lg:text-xl">({activeTerm.translation})</span> : null}
-                                    </h2>
-                                    <div className="mt-4 flex gap-2 flex-wrap text-sm text-slate-500 dark:text-slate-400">
+                                    <p className="text-xs lg:text-sm uppercase text-emerald-700 dark:text-emerald-400 font-bold tracking-wider">⭐ {activeTerm.term} — Guía Técnica Definitiva</p>
+	                                    <h2 className="text-xl sm:text-2xl md:text-3xl lg:text-4xl xl:text-5xl font-bold text-slate-900 dark:text-white tracking-tight mt-1 break-words">
+	                                        {activeTerm.term} {activeTerm.translation ? <span className="text-slate-500 font-medium text-sm sm:text-base lg:text-lg">({activeTerm.translation})</span> : null}
+	                                    </h2>
+                                    <div className="mt-4 flex gap-2 flex-wrap text-sm lg:text-base text-slate-500 dark:text-slate-400">
                                         <span className="rounded-full border border-emerald-200 dark:border-emerald-500/30 bg-emerald-100 dark:bg-emerald-500/10 px-3 py-1 text-xs font-bold uppercase tracking-wider text-emerald-800 dark:text-emerald-300">
                                             {activeTerm.category}
                                         </span>
@@ -2640,14 +2641,14 @@ export default function DiccionarioDevApp() {
                                 <div className="flex flex-wrap gap-2 lg:flex-nowrap lg:flex-col xl:flex-row">
                                     <button
                                         onClick={() => handleCopy(window.location.href, setCopied)}
-                                        className="flex items-center gap-2 rounded-lg border border-slate-700 bg-slate-800 px-4 py-2 text-sm font-medium text-slate-300 hover:bg-slate-700 hover:text-white transition-colors whitespace-nowrap">
-                                        {copied ? <Check className="h-4 w-4 text-emerald-400" /> : <Share2 className="h-4 w-4" />}
+                                        className="flex items-center gap-2 rounded-lg border border-slate-700 bg-slate-800 px-4 py-2 text-sm lg:text-base font-medium text-slate-300 hover:bg-slate-700 hover:text-white transition-colors whitespace-nowrap">
+                                        {copied ? <Check className="h-4 w-4 lg:h-5 lg:w-5 text-emerald-400" /> : <Share2 className="h-4 w-4 lg:h-5 lg:w-5" />}
                                         {copied ? "Copiado" : "Compartir"}
                                     </button>
                                     <button
                                         onClick={() => setShowCheatSheet(true)}
-                                        className="flex items-center gap-2 rounded-lg border border-indigo-500/30 bg-indigo-500/10 px-4 py-2 text-sm font-medium text-indigo-400 hover:bg-indigo-500/20 transition-colors whitespace-nowrap">
-                                        <FileText className="h-4 w-4" />
+                                        className="flex items-center gap-2 rounded-lg border border-indigo-500/30 bg-indigo-500/10 px-4 py-2 text-sm lg:text-base font-medium text-indigo-400 hover:bg-indigo-500/20 transition-colors whitespace-nowrap">
+                                        <FileText className="h-4 w-4 lg:h-5 lg:w-5" />
                                         Cheat Sheet
                                     </button>
                                 </div>
@@ -2657,14 +2658,14 @@ export default function DiccionarioDevApp() {
                         {/* SECCIÓN 1: DEFINICIÓN */}
                         <div className="rounded-2xl border-2 border-slate-900 dark:border-slate-800 bg-white dark:bg-slate-900/50 p-6 space-y-4 shadow-sm">
                             <div className="flex items-center gap-2 text-emerald-700 dark:text-emerald-400">
-                                <Brain className="h-5 w-5" />
-                                <h3 className="font-bold uppercase tracking-wide text-sm">1. Definición</h3>
+                                <Brain className="h-5 w-5 lg:h-6 lg:w-6" />
+                                <h3 className="font-bold uppercase tracking-wide text-sm lg:text-base">1. Definición</h3>
                             </div>
                             <div className="space-y-2">
                                 <p className="text-base leading-relaxed text-slate-900 dark:text-slate-200 font-medium">
                                     {activeTerm.meaningEs || activeTerm.meaning}
                                 </p>
-                                <p className="text-sm text-slate-700 dark:text-slate-400 italic">
+                                <p className="text-sm lg:text-base text-slate-700 dark:text-slate-400 italic">
                                     EN: {activeTerm.meaningEn || activeTerm.meaning}
                                 </p>
                             </div>
@@ -2673,8 +2674,8 @@ export default function DiccionarioDevApp() {
                         {/* SECCIÓN 2: PARA QUÉ SIRVE */}
                         <div className="rounded-2xl border-2 border-slate-900 dark:border-slate-800 bg-white dark:bg-slate-900/50 p-6 space-y-4 shadow-sm">
                             <div className="flex items-center gap-2 text-blue-700 dark:text-blue-400">
-                                <Rocket className="h-5 w-5" />
-                                <h3 className="font-bold uppercase tracking-wide text-sm">2. Para qué sirve</h3>
+                                <Rocket className="h-5 w-5 lg:h-6 lg:w-6" />
+                                <h3 className="font-bold uppercase tracking-wide text-sm lg:text-base">2. Para qué sirve</h3>
                             </div>
                             <p className="text-base leading-relaxed text-slate-900 dark:text-slate-200 font-medium">
                                 {activeTerm.whatEs || activeTerm.what}
@@ -2685,8 +2686,8 @@ export default function DiccionarioDevApp() {
                         <div className="space-y-4">
                             <div className="rounded-2xl border-2 border-amber-500/50 dark:border-amber-500/20 bg-amber-50 dark:bg-slate-900/50 dark:bg-gradient-to-br dark:from-amber-500/10 dark:to-transparent p-6 space-y-4 shadow-sm">
                                 <div className="flex items-center gap-2 text-amber-700 dark:text-amber-400">
-                                    <Lightbulb className="h-5 w-5" />
-                                    <h3 className="font-bold uppercase tracking-wide text-sm">4. Cómo funciona</h3>
+                                    <Lightbulb className="h-5 w-5 lg:h-6 lg:w-6" />
+                                    <h3 className="font-bold uppercase tracking-wide text-sm lg:text-base">4. Cómo funciona</h3>
                                 </div>
                                 <p className="text-base leading-relaxed text-slate-900 dark:text-slate-200 font-medium">
                                     {activeTerm.howEs || activeTerm.how || "Sigue el flujo recomendado y aplica el patrón principal respetando su ciclo de vida."}
@@ -2701,8 +2702,8 @@ export default function DiccionarioDevApp() {
                                             {/* Código */}
                                             <div className="rounded-2xl border-2 border-slate-900 dark:border-slate-800 bg-[#1e1e1e] dark:bg-slate-950 p-4 sm:p-6 overflow-hidden">
                                                 <div className="mb-4 flex items-center gap-2 text-emerald-400">
-                                                    <Code2 className="h-5 w-5" />
-                                                    <h4 className="font-bold uppercase tracking-wide text-sm">Ejemplo de Código</h4>
+                                                    <Code2 className="h-5 w-5 lg:h-6 lg:w-6" />
+                                                    <h4 className="font-bold uppercase tracking-wide text-sm lg:text-base">Ejemplo de Código</h4>
                                                 </div>
                                                 <StyleAwareCode
                                                     term={activeTerm}
@@ -2714,8 +2715,8 @@ export default function DiccionarioDevApp() {
                                             {/* Preview específico del lenguaje */}
                                             <div className="rounded-2xl border-2 border-slate-900 dark:border-slate-800 bg-[#1e1e1e] dark:bg-slate-950 p-4 sm:p-6 overflow-hidden flex flex-col shadow-lg">
                                                 <div className="mb-3 flex items-center gap-2 text-blue-400">
-                                                    <Eye className="h-5 w-5" />
-                                                    <h4 className="font-bold uppercase tracking-wide text-sm">Preview en Vivo</h4>
+                                                    <Eye className="h-5 w-5 lg:h-6 lg:w-6" />
+                                                    <h4 className="font-bold uppercase tracking-wide text-sm lg:text-base">Preview en Vivo</h4>
                                                 </div>
                                                 <div className="flex-1 bg-white rounded-lg overflow-hidden">
                                                     <LivePreview
@@ -2733,8 +2734,8 @@ export default function DiccionarioDevApp() {
                                     {(isCssActive || cssPreview) && (
                                         <div className="rounded-2xl border-2 border-slate-900 dark:border-slate-800 bg-white dark:bg-slate-950 p-6 overflow-hidden shadow-sm">
                                             <div className="mb-4 flex items-center gap-2 text-emerald-700 dark:text-emerald-400">
-                                                <Code2 className="h-5 w-5" />
-                                                <h4 className="font-bold uppercase tracking-wide text-sm">Ejemplo de Código + Preview</h4>
+                                                <Code2 className="h-5 w-5 lg:h-6 lg:w-6" />
+                                                <h4 className="font-bold uppercase tracking-wide text-sm lg:text-base">Ejemplo de Código + Preview</h4>
                                             </div>
                                             <CssLiveBlock term={activeTerm} snippet={previewSnippet} language={previewLanguage} />
                                         </div>
@@ -2744,8 +2745,8 @@ export default function DiccionarioDevApp() {
                                     {(!allowLivePreview || (!(previewLanguage === 'html' || isHtmlActive) && !isCssActive && !cssPreview)) && (
                                         <div className="rounded-2xl border-2 border-slate-900 dark:border-slate-800 bg-[#1e1e1e] dark:bg-slate-950 p-6 overflow-hidden shadow-lg">
                                             <div className="mb-4 flex items-center gap-2 text-emerald-400">
-                                                <Code2 className="h-5 w-5" />
-                                                <h4 className="font-bold uppercase tracking-wide text-sm">Ejemplo de Código</h4>
+                                                <Code2 className="h-5 w-5 lg:h-6 lg:w-6" />
+                                                <h4 className="font-bold uppercase tracking-wide text-sm lg:text-base">Ejemplo de Código</h4>
                                             </div>
                                             <StyleAwareCode
                                                 term={activeTerm}
@@ -2762,10 +2763,10 @@ export default function DiccionarioDevApp() {
                         {activeTerm.examples && Array.isArray(activeTerm.examples) && activeTerm.examples.length > 0 && (
                             <div className="rounded-2xl border-2 border-slate-900 dark:border-slate-800 bg-white dark:bg-slate-900/50 p-6 space-y-4 shadow-sm">
                                 <div className="flex items-center gap-2 text-emerald-700 dark:text-emerald-400">
-                                    <ThumbsUp className="h-5 w-5" />
-                                    <h3 className="font-bold uppercase tracking-wide text-sm">5. Reglas importantes</h3>
+                                    <ThumbsUp className="h-5 w-5 lg:h-6 lg:w-6" />
+                                    <h3 className="font-bold uppercase tracking-wide text-sm lg:text-base">5. Reglas importantes</h3>
                                 </div>
-                                <ul className="space-y-3 text-sm text-slate-900 dark:text-slate-200 font-medium">
+                                <ul className="space-y-3 text-sm lg:text-base text-slate-900 dark:text-slate-200 font-medium">
                                     {getRulesList(activeTerm, displayLanguage).map((rule, idx) => (
                                         <li key={idx} className="flex items-start gap-3">
                                             <span className="mt-1 h-2 w-2 rounded-full bg-emerald-500 dark:bg-emerald-400 shrink-0"></span>
@@ -2789,7 +2790,7 @@ export default function DiccionarioDevApp() {
                                     const example: TermExampleDTO = typeof ex === 'string' ? { code: ex } : (ex as TermExampleDTO);
                                     return (
                                         <div key={idx} className="space-y-3">
-                                            <h4 className="font-bold uppercase tracking-wide text-sm text-emerald-400">
+                                            <h4 className="font-bold uppercase tracking-wide text-sm lg:text-base text-emerald-400">
                                                 Ejemplo {idx + 2}: {example.title || ''}
                                             </h4>
 
@@ -2825,7 +2826,7 @@ export default function DiccionarioDevApp() {
                                                     {term.category}
                                                 </span>
                                             </div>
-                                            <p className="text-sm text-slate-700 dark:text-slate-400 mt-2 line-clamp-2 font-medium">
+                                            <p className="text-sm lg:text-base text-slate-700 dark:text-slate-400 mt-2 line-clamp-2 font-medium">
                                                 {term.meaningEs || term.meaning}
                                             </p>
                                         </button>

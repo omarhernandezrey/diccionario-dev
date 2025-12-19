@@ -60,7 +60,7 @@ export default function AdminSettingsPage() {
             <h1 className="text-2xl font-semibold sm:text-3xl">Configuración General</h1>
           </div>
         </div>
-        <p className="relative mt-4 max-w-3xl text-sm text-neo-text-secondary">
+        <p className="relative mt-4 w-full text-sm text-neo-text-secondary">
           Define la identidad de la aplicación, apariencia global y políticas de seguridad.
         </p>
         {status ? (

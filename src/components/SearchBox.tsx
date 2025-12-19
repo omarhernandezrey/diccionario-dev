@@ -481,6 +481,14 @@ function ResultPreview({ term, activeContext, variant }: { term: TermDTO; active
   const tags = term.tags ?? [];
   const exercises = term.exercises ?? [];
   const filteredUseCases = useCaseContext ? useCases.filter((useCase) => useCase.context === useCaseContext) : useCases;
+  const useCaseSelectorGrid =
+    availableUseCaseContexts.length <= 1
+      ? "grid-cols-1"
+      : availableUseCaseContexts.length === 2
+        ? "grid-cols-2"
+        : availableUseCaseContexts.length === 3
+          ? "grid-cols-3"
+          : "grid-cols-2 sm:grid-cols-3";
 
   useEffect(() => {
     return () => {
@@ -663,7 +671,7 @@ function ResultPreview({ term, activeContext, variant }: { term: TermDTO; active
           </div>
 
           {/* Premium Segmented Control */}
-          <div className="flex p-1 gap-1 bg-neo-surface/50 rounded-lg mb-8 overflow-x-auto border border-neo-border/30">
+          <div className={`grid ${useCaseSelectorGrid} gap-1 bg-neo-surface/50 rounded-lg mb-8 border border-neo-border/30 p-1`}>
             {availableUseCaseContexts.length ? (
               availableUseCaseContexts.map((contextOption) => {
                 const isActive = useCaseContext === contextOption;
@@ -679,12 +687,12 @@ function ResultPreview({ term, activeContext, variant }: { term: TermDTO; active
                     key={contextOption}
                     type="button"
                     onClick={() => setUseCaseContext(contextOption)}
-                    className={`flex-1 flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg text-xs font-semibold transition-all duration-300 ${isActive
+                    className={`flex w-full items-center justify-center gap-2 px-3 py-2 rounded-lg text-xs font-semibold transition-all duration-300 sm:px-4 sm:py-2.5 ${isActive
                       ? 'bg-white dark:bg-neo-primary text-neo-primary dark:text-white shadow-md scale-[1.02]'
                       : 'text-neo-text-secondary hover:bg-white/50 dark:hover:bg-white/5 hover:text-neo-text-primary'
                       }`}
                   >
-                    <Icon className="text-base" />
+                    <Icon className="text-sm sm:text-base" />
                     <span className="capitalize">{contextOption}</span>
                   </button>
                 );

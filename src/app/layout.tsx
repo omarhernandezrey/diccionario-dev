@@ -23,7 +23,7 @@ export default function RootLayout({
   return (
     <html lang="es" suppressHydrationWarning>
       <body
-        className={`${jetbrains.variable} bg-neo-bg text-neo-text-primary antialiased`}
+        className={`${jetbrains.variable} dd-app bg-neo-bg text-neo-text-primary antialiased`}
       >
         <AppProviders>{children}</AppProviders>
       </body>

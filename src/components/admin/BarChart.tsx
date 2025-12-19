@@ -37,9 +37,9 @@ export default function BarChartComponent({
           <XAxis
             dataKey="name"
             stroke="var(--neo-text-secondary)"
-            style={{ fontSize: "12px" }}
+            style={{ fontSize: "var(--admin-chart-font-size, 12px)" }}
           />
-          <YAxis stroke="var(--neo-text-secondary)" style={{ fontSize: "12px" }} />
+          <YAxis stroke="var(--neo-text-secondary)" style={{ fontSize: "var(--admin-chart-font-size, 12px)" }} />
           <Tooltip
             contentStyle={{
               backgroundColor: "var(--neo-card)",

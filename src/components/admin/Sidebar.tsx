@@ -93,11 +93,15 @@ export default function Sidebar() {
         className={`fixed left-0 top-0 z-40 h-screen w-64 border-r border-neo-border bg-neo-card transition-all duration-300 ease-out lg:sticky lg:translate-x-0 ${collapsed ? "-translate-x-full" : "translate-x-0"
           }`}
       >
-        <div className="flex h-full flex-col">
+          <div className="flex h-full flex-col">
           {/* Header */}
           <div className="flex items-center justify-between border-b border-neo-border bg-neo-bg/80 p-4">
-            <div className="flex items-center gap-3">
-              <ThemeLogo width={40} height={40} className="rounded-lg" />
+            <div className="flex items-center gap-3 lg:gap-4">
+              <ThemeLogo
+                width={56}
+                height={56}
+                className="h-10 w-10 shrink-0 rounded-lg lg:h-12 lg:w-12 xl:h-14 xl:w-14"
+              />
               <div className="hidden sm:block leading-tight">
                 <div className="text-[11px] uppercase tracking-[0.2em] text-indigo-400 font-bold">Diccionario</div>
                 <div className="text-sm font-bold text-neo-text-primary">Dev</div>
