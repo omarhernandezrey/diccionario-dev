@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import AdminDashboard from "@/components/admin/Dashboard";
+import EditorialKanban from "@/components/admin/EditorialKanban";
 import { Icon } from "@/components/Icon";
 import { useNotifications } from "@/components/admin/NotificationsProvider";
 import type { AdminNotification } from "@/components/admin/NotificationsProvider";
@@ -97,6 +98,20 @@ const STATUS_OPTIONS: ReviewStatus[] = ["pending", "in_review", "approved", "rej
 const LANGUAGE_OPTIONS = ["js", "ts", "css", "py", "java", "csharp", "go", "php", "ruby", "rust", "cpp", "swift", "kotlin"];
 const LEVEL_OPTIONS = ["beginner", "intermediate", "advanced"];
 const DIFFICULTY_OPTIONS = ["easy", "medium", "hard"];
+const QUALITY_SECTIONS = [
+  { key: "examples", label: "Ejemplos" },
+  { key: "exercises", label: "Ejercicios" },
+  { key: "variants", label: "Variantes" },
+  { key: "faqs", label: "FAQs" },
+] as const;
+
+type QualitySectionKey = (typeof QUALITY_SECTIONS)[number]["key"];
+
+type QualityScore = {
+  score: number;
+  missing: string[];
+  counts: Record<QualitySectionKey, number>;
+};
 
 const ADMIN_VIEWS = [
   { id: "overview", label: "Inteligencia", description: "Analítica en vivo y tendencias", iconName: "ActivitySquare" },
@@ -207,6 +222,32 @@ function extractErrorMessage(payload: unknown): string | null {
     if (first) return first;
   }
   return null;
+}
+
+function computeQualityScore(term: Term): QualityScore {
+  const counts: Record<QualitySectionKey, number> = {
+    examples: term.exampleCount ?? term.examples?.length ?? 0,
+    exercises: term.exerciseCount ?? term.exercises?.length ?? 0,
+    variants: term.variants?.length ?? 0,
+    faqs: term.faqs?.length ?? 0,
+  };
+  const missing = QUALITY_SECTIONS.filter((section) => counts[section.key] <= 0).map((section) => section.label);
+  const completed = QUALITY_SECTIONS.length - missing.length;
+  const score = Math.round((completed / QUALITY_SECTIONS.length) * 100);
+  return { score, missing, counts };
+}
+
+function qualityBadgeClass(score: number) {
+  if (score >= 100) {
+    return "border border-accent-emerald/40 bg-accent-emerald/10 text-accent-emerald";
+  }
+  if (score >= 75) {
+    return "border border-accent-secondary/40 bg-accent-secondary/10 text-accent-secondary";
+  }
+  if (score >= 50) {
+    return "border border-accent-amber/40 bg-accent-amber/10 text-accent-amber";
+  }
+  return "border border-accent-danger/40 bg-accent-danger/10 text-accent-danger";
 }
 
 type AdminConsoleProps = {
@@ -977,6 +1018,22 @@ export function AdminConsole({ initialView = "overview" }: AdminConsoleProps) {
         <div className="space-y-6">
           <AdminDashboard refreshToken={analyticsRefreshKey} />
           <TermPipelinePanel statusSummary={statusSummary} categories={categoryHighlights} />
+          <QualityScorePanel
+            items={items}
+            loading={itemsLoading}
+            error={itemsError}
+            canEdit={canEdit}
+            onOpenTerm={handleEditTerm}
+          />
+          <EditorialKanban
+            canEdit={canEdit}
+            session={session}
+            refreshToken={refreshIndex}
+            onOpenTerm={handleEditTerm}
+            onNotify={(text) => setMessage(text)}
+            onError={(text) => setAuthError(text)}
+            onGlobalRefresh={scheduleRefresh}
+          />
           <MissingTermsPanel
             items={missingTerms}
             loading={missingLoading}
@@ -1482,6 +1539,7 @@ function TermsTable({
         ) : items.length ? (
           items.map((item) => {
             const exercisesCount = item.exerciseCount ?? item.exercises?.length ?? 0;
+            const quality = computeQualityScore(item);
             return (
               <div key={item.id} className="rounded-2xl border border-neo-border bg-neo-card p-4">
                 <div className="flex items-start gap-3">
@@ -1515,7 +1573,13 @@ function TermsTable({
                       ) : (
                         <span className="rounded-full bg-neo-surface px-2 py-1 text-neo-text-secondary">Sin ejercicios</span>
                       )}
+                      <span className={`rounded-full px-2 py-1 font-semibold ${qualityBadgeClass(quality.score)}`}>
+                        {quality.score}%
+                      </span>
                     </div>
+                    <p className={`mt-2 text-xs ${quality.missing.length ? "text-neo-text-secondary" : "text-accent-emerald"}`}>
+                      {quality.missing.length ? `Falta: ${quality.missing.join(", ")}` : "Completo"}
+                    </p>
 
                     <div className="mt-4 grid grid-cols-2 gap-2">
                       <button className="btn-ghost w-full" type="button" onClick={() => onEdit(item.id)} disabled={!canEdit}>
@@ -1551,7 +1615,7 @@ function TermsTable({
 
       {/* Desktop / Tablet table */}
       <div className="hidden overflow-x-auto rounded-3xl border border-neo-border bg-neo-surface md:block">
-        <table className="min-w-[720px] divide-y divide-neo-border text-sm">
+        <table className="min-w-[860px] divide-y divide-neo-border text-sm">
           <thead className="bg-neo-card text-left text-xs uppercase tracking-wide text-neo-text-secondary">
             <tr>
               <th className="px-4 py-3">
@@ -1568,6 +1632,7 @@ function TermsTable({
               <th className="px-4 py-3">Traducción</th>
               <th className="px-4 py-3">Término</th>
               <th className="px-4 py-3">Ejercicios</th>
+              <th className="px-4 py-3">Calidad</th>
               <th className="px-4 py-3">Estado</th>
               <th className="px-4 py-3">Categoría</th>
               <th className="px-4 py-3">Acciones</th>
@@ -1580,7 +1645,7 @@ function TermsTable({
                   <td className="px-4 py-3">
                     <div className="h-4 w-4 rounded border border-neo-border bg-neo-card" />
                   </td>
-                  {Array.from({ length: 7 }).map((__, cellIdx) => (
+                  {Array.from({ length: 8 }).map((__, cellIdx) => (
                     <td key={cellIdx} className="px-4 py-3">
                       <div className="h-4 w-full rounded bg-neo-card" />
                     </td>
@@ -1589,7 +1654,7 @@ function TermsTable({
               ))
             ) : error ? (
               <tr>
-                <td colSpan={8} className="px-4 py-12">
+                <td colSpan={9} className="px-4 py-12">
                   <div className="flex flex-col items-center gap-4 text-center">
                     <div className="rounded-full border border-accent-danger/40 bg-accent-danger/10 p-4">
                       <Icon library="lucide" name="AlertCircle" className="h-8 w-8 text-accent-danger" />
@@ -1606,7 +1671,9 @@ function TermsTable({
                 </td>
               </tr>
             ) : items.length ? (
-              items.map((item) => (
+              items.map((item) => {
+                const quality = computeQualityScore(item);
+                return (
                 <tr key={item.id} className="bg-neo-surface hover:bg-neo-card transition-colors">
                   <td className="px-4 py-3">
                     <input
@@ -1635,6 +1702,18 @@ function TermsTable({
                     )}
                   </td>
                   <td className="px-4 py-3">
+                    <div className="flex flex-col gap-1">
+                      <span className={`inline-flex w-fit items-center rounded-full px-2 py-1 text-xs font-semibold ${qualityBadgeClass(quality.score)}`}>
+                        {quality.score}%
+                      </span>
+                      {quality.missing.length ? (
+                        <span className="text-[11px] text-neo-text-secondary">Falta: {quality.missing.join(", ")}</span>
+                      ) : (
+                        <span className="text-[11px] text-accent-emerald">Completo</span>
+                      )}
+                    </div>
+                  </td>
+                  <td className="px-4 py-3">
                     <span className={`rounded-full px-2 py-1 text-xs font-semibold ${statusBadgeClass(item.status)}`}>
                       {item.status}
                     </span>
@@ -1653,10 +1732,11 @@ function TermsTable({
                     </div>
                   </td>
                 </tr>
-              ))
+              );
+            })
             ) : (
               <tr>
-                <td colSpan={8} className="px-4 py-12">
+                <td colSpan={9} className="px-4 py-12">
                   <div className="flex flex-col items-center gap-4 text-center">
                     <div className="rounded-full border border-neo-border bg-neo-card p-4">
                       <Icon library="lucide" name="Inbox" className="h-8 w-8 text-neo-text-secondary" />
@@ -1778,6 +1858,114 @@ function TermPipelinePanel({ statusSummary, categories }: TermPipelinePanelProps
             <p className="mt-4 text-xs text-neo-text-secondary">Aún no hay categorías registradas.</p>
           )}
         </div>
+      </div>
+    </section>
+  );
+}
+
+type QualityScorePanelProps = {
+  items: Term[];
+  loading: boolean;
+  error: string | null;
+  canEdit: boolean;
+  onOpenTerm: (id: number) => void;
+};
+
+function QualityScorePanel({ items, loading, error, canEdit, onOpenTerm }: QualityScorePanelProps) {
+  const scored = useMemo(
+    () => items.map((term) => ({ term, ...computeQualityScore(term) })),
+    [items],
+  );
+
+  const averageScore = useMemo(() => {
+    if (!scored.length) return 0;
+    const total = scored.reduce((sum, entry) => sum + entry.score, 0);
+    return Math.round(total / scored.length);
+  }, [scored]);
+
+  const improveNow = useMemo(
+    () =>
+      scored
+        .filter((entry) => entry.missing.length > 0)
+        .sort((a, b) => {
+          if (a.score !== b.score) return a.score - b.score;
+          if (a.missing.length !== b.missing.length) return b.missing.length - a.missing.length;
+          return a.term.term.localeCompare(b.term.term);
+        })
+        .slice(0, 6),
+    [scored],
+  );
+
+  const completeCount = scored.filter((entry) => entry.score === 100).length;
+
+  return (
+    <section className="rounded-3xl border border-neo-border bg-neo-surface p-6 shadow-glow-card">
+      <header className="flex flex-wrap items-center justify-between gap-3">
+        <div>
+          <p className="text-xs uppercase tracking-wide text-neo-text-secondary">Calidad editorial</p>
+          <h2 className="text-lg font-semibold">Mejorar ahora</h2>
+          <p className="text-xs text-neo-text-secondary">
+            Completitud por termino basada en ejemplos, ejercicios, variantes y FAQs segun filtros activos.
+          </p>
+        </div>
+        <span className="text-xs text-neo-text-secondary">
+          {items.length ? `${items.length} terminos visibles` : "Sin datos"}
+        </span>
+      </header>
+
+      <div className="mt-4 flex flex-wrap gap-2 text-xs text-neo-text-secondary">
+        <span className="rounded-full bg-neo-card px-2 py-1">Promedio {averageScore}%</span>
+        <span className="rounded-full bg-neo-card px-2 py-1">Completos {completeCount}</span>
+        <span className="rounded-full bg-neo-card px-2 py-1">Por mejorar {improveNow.length}</span>
+      </div>
+
+      <div className="mt-4 space-y-3">
+        {loading ? (
+          Array.from({ length: 3 }).map((_, index) => (
+            <div key={`quality-skeleton-${index}`} className="h-24 rounded-2xl border border-neo-border bg-neo-card animate-pulse" />
+          ))
+        ) : error ? (
+          <div className="rounded-2xl border border-accent-danger/40 bg-accent-danger/10 p-4 text-xs text-accent-danger">
+            {error}
+          </div>
+        ) : improveNow.length ? (
+          improveNow.map((entry) => (
+            <article key={entry.term.id} className="rounded-2xl border border-neo-border bg-neo-card p-4">
+              <div className="flex items-start justify-between gap-3">
+                <div className="min-w-0">
+                  <p className="text-sm font-semibold text-neo-text-primary">
+                    {entry.term.translation || entry.term.term}
+                  </p>
+                  <p className="text-xs text-neo-text-secondary">{entry.term.term}</p>
+                </div>
+                <span className={`rounded-full px-2 py-1 text-xs font-semibold ${qualityBadgeClass(entry.score)}`}>
+                  {entry.score}%
+                </span>
+              </div>
+              <div className="mt-3 flex flex-wrap gap-2 text-xs text-neo-text-secondary">
+                <span className="rounded-full bg-neo-surface px-2 py-0.5">Ejemplos {entry.counts.examples}</span>
+                <span className="rounded-full bg-neo-surface px-2 py-0.5">Ejercicios {entry.counts.exercises}</span>
+                <span className="rounded-full bg-neo-surface px-2 py-0.5">Variantes {entry.counts.variants}</span>
+                <span className="rounded-full bg-neo-surface px-2 py-0.5">FAQs {entry.counts.faqs}</span>
+              </div>
+              <p className="mt-2 text-xs text-neo-text-secondary">Falta: {entry.missing.join(", ")}</p>
+              <div className="mt-3 flex gap-2">
+                <button
+                  className="btn-ghost text-xs"
+                  type="button"
+                  onClick={() => onOpenTerm(entry.term.id)}
+                  disabled={!canEdit}
+                >
+                  Abrir
+                </button>
+              </div>
+            </article>
+          ))
+        ) : (
+          <div className="rounded-2xl border border-neo-border bg-neo-card p-4 text-xs text-neo-text-secondary">
+            Todo el catalogo cumple con la completitud minima.
+          </div>
+        )}
       </div>
     </section>
   );

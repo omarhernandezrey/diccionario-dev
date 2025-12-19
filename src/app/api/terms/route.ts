@@ -397,7 +397,7 @@ async function fetchTermsWithFilters(query: TermsQueryInput) {
   let paramIndex = 1;
 
   if (category) {
-    filters.push(`${termAlias}."category" = $${paramIndex++}`);
+    filters.push(`${termAlias}."category" = $${paramIndex++}::"Category"`);
     params.push(category);
   }
   if (tag) {
@@ -410,7 +410,7 @@ async function fetchTermsWithFilters(query: TermsQueryInput) {
     params.push(like);
   }
   if (status) {
-    filters.push(`${termAlias}."status" = $${paramIndex++}`);
+    filters.push(`${termAlias}."status" = $${paramIndex++}::"ReviewStatus"`);
     params.push(status);
   }
 
