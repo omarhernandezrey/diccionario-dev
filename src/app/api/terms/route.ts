@@ -389,7 +389,7 @@ function searchExpression(alias: string) {
  * Ejecuta la consulta principal sobre PostgreSQL y devuelve items + total.
  */
 async function fetchTermsWithFilters(query: TermsQueryInput) {
-  const { category, tag, q, page, pageSize, sort } = query;
+  const { category, tag, q, status, page, pageSize, sort } = query;
   const termAlias = "t";
   const searchable = searchExpression(termAlias);
   const filters: string[] = [];
@@ -408,6 +408,10 @@ async function fetchTermsWithFilters(query: TermsQueryInput) {
     const like = `%${q.toLowerCase()}%`;
     filters.push(`${searchable} ILIKE $${paramIndex++}`);
     params.push(like);
+  }
+  if (status) {
+    filters.push(`${termAlias}."status" = $${paramIndex++}`);
+    params.push(status);
   }
 
   const whereClause = filters.length ? `WHERE ${filters.join(" AND ")}` : "";

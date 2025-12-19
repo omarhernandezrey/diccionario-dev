@@ -116,6 +116,38 @@ const HERO_STAT_ICONS: Record<string, string> = {
 type TermsResponse = {
   ok?: boolean;
   items?: Term[];
+  meta?: TermsMeta;
+};
+
+type TermsMeta = {
+  page: number;
+  pageSize: number;
+  total: number;
+  totalPages: number;
+};
+
+type AdminSummary = {
+  totalTerms: number;
+  exampleCount: number;
+  exerciseCount: number;
+  statusCounts: Record<ReviewStatus, number>;
+  categoryCounts: Array<{ category: Term["category"]; value: number }>;
+  recentTerms: Array<{ id: number; term: string; translation: string; status: ReviewStatus }>;
+  scope?: "all" | "approved";
+};
+
+type SummaryResponse = {
+  ok?: boolean;
+  summary?: AdminSummary;
+  error?: string;
+};
+
+type FetchTermsInput = {
+  query: string;
+  page: number;
+  pageSize: number;
+  status: ReviewStatus | "all";
+  signal?: AbortSignal;
 };
 
 type UnknownRecord = Record<string, unknown>;
@@ -171,9 +203,15 @@ type AdminConsoleProps = {
 
 export function AdminConsole({ initialView = "overview" }: AdminConsoleProps) {
   const [q, setQ] = useState("");
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(25);
   const [items, setItems] = useState<Term[]>([]);
   const [itemsLoading, setItemsLoading] = useState(true);
   const [itemsError, setItemsError] = useState<string | null>(null);
+  const [termsMeta, setTermsMeta] = useState<TermsMeta | null>(null);
+  const [summary, setSummary] = useState<AdminSummary | null>(null);
+  const [summaryLoading, setSummaryLoading] = useState(true);
+  const [summaryError, setSummaryError] = useState<string | null>(null);
   const [editing, setEditing] = useState<Term | null>(null);
   const [detailLoading, setDetailLoading] = useState(false);
   const [session, setSession] = useState<SessionUser | null>(null);
@@ -195,6 +233,7 @@ export function AdminConsole({ initialView = "overview" }: AdminConsoleProps) {
   const [exporting, setExporting] = useState(false);
   const [analyticsPulse, setAnalyticsPulse] = useState<"idle" | "loading" | "ok" | "error">("idle");
   const [lastAnalyticsPing, setLastAnalyticsPing] = useState<string | null>(null);
+  const [analyticsRefreshKey, setAnalyticsRefreshKey] = useState(0);
   const { notifications, unreadCount, refresh: refreshNotifications, loading: notificationsLoading } = useNotifications();
 
   const empty: Term = useMemo(
@@ -218,30 +257,7 @@ export function AdminConsole({ initialView = "overview" }: AdminConsoleProps) {
     [],
   );
 
-  const categoriesCount = useMemo(() => new Set(items.map((item) => item.category)).size, [items]);
-  const exampleCount = useMemo(
-    () => items.reduce((sum, item) => sum + (item.exampleCount ?? item.examples?.length ?? 0), 0),
-    [items],
-  );
-  const pendingCount = useMemo(() => items.filter((item) => item.status !== "approved").length, [items]);
-
-  const canEdit = session?.role === "admin";
-  const selectedCount = selectedIds.length;
-  const allSelected = items.length > 0 && selectedCount === items.length;
-  const selectionDisabled = !items.length || !canEdit;
-  const today = new Date().toLocaleDateString("es-ES");
-
-  const adminHeroStats = useMemo(
-    () => [
-      { label: "Términos visibles", value: items.length },
-      { label: "Categorías activas", value: categoriesCount },
-      { label: "Snippets guardados", value: exampleCount },
-      { label: "Pendientes", value: pendingCount },
-    ],
-    [items.length, categoriesCount, exampleCount, pendingCount],
-  );
-
-  const statusSummary = useMemo(
+  const fallbackStatusSummary = useMemo(
     () =>
       items.reduce(
         (acc, item) => {
@@ -253,7 +269,36 @@ export function AdminConsole({ initialView = "overview" }: AdminConsoleProps) {
     [items],
   );
 
+  const statusSummary = summary?.statusCounts ?? fallbackStatusSummary;
+  const totalTerms = summary?.totalTerms ?? termsMeta?.total ?? items.length;
+  const categoriesCount = summary?.categoryCounts?.length ?? new Set(items.map((item) => item.category)).size;
+  const exampleCount =
+    summary?.exampleCount ?? items.reduce((sum, item) => sum + (item.exampleCount ?? item.examples?.length ?? 0), 0);
+  const pendingCount = (statusSummary.pending || 0) + (statusSummary.in_review || 0);
+
+  const canEdit = session?.role === "admin";
+  const selectedCount = selectedIds.length;
+  const allSelected = items.length > 0 && selectedCount === items.length;
+  const selectionDisabled = !items.length || !canEdit;
+  const today = new Date().toLocaleDateString("es-ES");
+  const panelLoading = authLoading || itemsLoading || summaryLoading;
+  const termsStatus: IntegrationStatus = itemsLoading || summaryLoading ? "loading" : totalTerms ? "ok" : "warning";
+  const panelError = authError || summaryError;
+
+  const adminHeroStats = useMemo(
+    () => [
+      { label: "Términos visibles", value: totalTerms },
+      { label: "Categorías activas", value: categoriesCount },
+      { label: "Snippets guardados", value: exampleCount },
+      { label: "Pendientes", value: pendingCount },
+    ],
+    [totalTerms, categoriesCount, exampleCount, pendingCount],
+  );
+
   const categoryHighlights = useMemo(() => {
+    if (summary?.categoryCounts?.length) {
+      return [...summary.categoryCounts].sort((a, b) => b.value - a.value);
+    }
     const buckets = new Map<Term["category"], number>();
     items.forEach((item) => {
       buckets.set(item.category, (buckets.get(item.category) || 0) + 1);
@@ -261,18 +306,25 @@ export function AdminConsole({ initialView = "overview" }: AdminConsoleProps) {
     return [...buckets.entries()]
       .map(([category, value]) => ({ category, value }))
       .sort((a, b) => b.value - a.value);
-  }, [items]);
+  }, [items, summary?.categoryCounts]);
 
-  const filteredItems = useMemo(
-    () => (statusFilter === "all" ? items : items.filter((item) => item.status === statusFilter)),
-    [items, statusFilter],
-  );
+  const recentTerms = useMemo(() => {
+    if (summary?.recentTerms?.length) return summary.recentTerms;
+    return items.slice(0, 3).map((item) => ({
+      id: item.id,
+      term: item.term,
+      translation: item.translation,
+      status: item.status,
+    }));
+  }, [items, summary?.recentTerms]);
 
-  const fetchTerms = useCallback(async (query: string, signal?: AbortSignal) => {
+  const fetchTerms = useCallback(async ({ query, page, pageSize, status, signal }: FetchTermsInput) => {
     const params = new URLSearchParams();
-    params.set("pageSize", "10");
+    params.set("page", String(page));
+    params.set("pageSize", String(pageSize));
     params.set("sort", "recent");
     if (query) params.set("q", query);
+    if (status !== "all") params.set("status", status);
     const url = `/api/terms?${params.toString()}`;
     const res = await fetch(url, {
       cache: "no-store",
@@ -310,23 +362,34 @@ export function AdminConsole({ initialView = "overview" }: AdminConsoleProps) {
       exerciseCount: typeof (item as { exerciseCount?: unknown })?.exerciseCount === "number" ? (item as { exerciseCount: number }).exerciseCount : undefined,
       exampleCount: typeof (item as { exampleCount?: unknown })?.exampleCount === "number" ? (item as { exampleCount: number }).exampleCount : undefined,
     }));
-    return [...normalized].sort((a, b) => Number(a.id) - Number(b.id));
+    const meta = isRecord(data?.meta) ? (data?.meta as TermsMeta) : null;
+    return { items: normalized, meta };
   }, []);
 
   const loadTerms = useCallback(
-    async (query: string, signal?: AbortSignal) => {
+    async (input: FetchTermsInput) => {
       setItemsLoading(true);
       setItemsError(null);
       try {
-        const fetched = await fetchTerms(query, signal);
-        setItems(fetched);
+        const fetched = await fetchTerms(input);
+        if (input.signal?.aborted) return;
+        setItems(fetched.items);
+        if (fetched.meta) {
+          setTermsMeta(fetched.meta);
+          if (input.page > fetched.meta.totalPages && fetched.meta.totalPages > 0) {
+            setPage(fetched.meta.totalPages);
+          }
+        } else {
+          setTermsMeta(null);
+        }
       } catch (error) {
         if ((error as Error)?.name === "AbortError") return;
         console.error("No se pudieron cargar los términos", error);
         setItems([]);
+        setTermsMeta(null);
         setItemsError((error as Error)?.message || "No se pudieron cargar los términos");
       } finally {
-        if (signal?.aborted) return;
+        if (input.signal?.aborted) return;
         setItemsLoading(false);
       }
     },
@@ -335,11 +398,47 @@ export function AdminConsole({ initialView = "overview" }: AdminConsoleProps) {
 
   useEffect(() => {
     const controller = new AbortController();
-    loadTerms(q, controller.signal);
+    loadTerms({ query: q, page, pageSize, status: statusFilter, signal: controller.signal });
     return () => {
       controller.abort();
     };
-  }, [loadTerms, q, refreshIndex]);
+  }, [loadTerms, q, page, pageSize, refreshIndex, statusFilter]);
+
+  const loadSummary = useCallback(async (signal?: AbortSignal) => {
+    setSummaryLoading(true);
+    setSummaryError(null);
+    try {
+      const res = await fetch("/api/admin/summary", { cache: "no-store", credentials: "include", signal });
+      let payload: SummaryResponse | null = null;
+      let textFallback = "";
+      try {
+        payload = (await res.json()) as SummaryResponse;
+      } catch {
+        textFallback = await res.text().catch(() => "");
+      }
+      if (!res.ok || payload?.ok === false) {
+        const message = extractErrorMessage(payload) || (textFallback?.trim() || res.statusText || "Error cargando resumen");
+        throw new Error(message);
+      }
+      setSummary(payload?.summary ?? null);
+    } catch (error) {
+      if ((error as Error)?.name === "AbortError") return;
+      console.error("No se pudo cargar el resumen", error);
+      setSummary(null);
+      setSummaryError((error as Error)?.message || "No se pudo cargar el resumen");
+    } finally {
+      if (signal?.aborted) return;
+      setSummaryLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    const controller = new AbortController();
+    loadSummary(controller.signal);
+    return () => {
+      controller.abort();
+    };
+  }, [loadSummary, refreshIndex]);
 
   useEffect(() => {
     refreshSession();
@@ -385,6 +484,25 @@ export function AdminConsole({ initialView = "overview" }: AdminConsoleProps) {
     if (!items.length || !canEdit) return;
     setSelectedIds(allSelected ? [] : items.map((item) => item.id));
   }
+
+  const handleSearchChange = useCallback((value: string) => {
+    setQ(value);
+    setPage(1);
+  }, []);
+
+  const handleStatusFilterChange = useCallback((value: ReviewStatus | "all") => {
+    setStatusFilter(value);
+    setPage(1);
+  }, []);
+
+  const handlePageChange = useCallback((value: number) => {
+    setPage(value);
+  }, []);
+
+  const handlePageSizeChange = useCallback((value: number) => {
+    setPageSize(value);
+    setPage(1);
+  }, []);
 
   const scheduleRefresh = useCallback(() => {
     setRefreshIndex((prev) => prev + 1);
@@ -457,7 +575,22 @@ export function AdminConsole({ initialView = "overview" }: AdminConsoleProps) {
     if (exporting) return;
     setExporting(true);
     try {
-      const snapshot = await fetchTerms("", undefined);
+      const snapshot: Term[] = [];
+      const exportPageSize = 50;
+      let currentPage = 1;
+      let totalPages = 1;
+      do {
+        const { items: batch, meta } = await fetchTerms({
+          query: "",
+          page: currentPage,
+          pageSize: exportPageSize,
+          status: "all",
+        });
+        snapshot.push(...batch);
+        totalPages = meta?.totalPages ?? currentPage;
+        currentPage += 1;
+      } while (currentPage <= totalPages);
+
       const payload = JSON.stringify(snapshot, null, 2);
       const blob = new Blob([payload], { type: "application/json" });
       const url = URL.createObjectURL(blob);
@@ -484,6 +617,7 @@ export function AdminConsole({ initialView = "overview" }: AdminConsoleProps) {
     try {
       const res = await fetch("/api/analytics", { cache: "no-store" });
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      setAnalyticsRefreshKey((prev) => prev + 1);
       setAnalyticsPulse("ok");
       setLastAnalyticsPing(new Date().toLocaleTimeString("es-ES"));
     } catch (error) {
@@ -647,13 +781,17 @@ export function AdminConsole({ initialView = "overview" }: AdminConsoleProps) {
 
   return (
     <div className="space-y-8 text-neo-text-primary">
-      {(authLoading || itemsLoading) && (
+      {panelLoading && (
         <div className="flex items-center gap-3 rounded-3xl border border-neo-primary/40 bg-neo-surface px-4 py-3 text-sm shadow-inner shadow-neo-primary/10">
           <Icon library="lucide" name="Loader2" className="h-5 w-5 animate-spin text-neo-primary" />
           <div className="flex flex-col">
             <span className="font-semibold text-neo-text-primary">Sincronizando panel</span>
             <span className="text-xs text-neo-text-secondary">
-              {authLoading ? "Validando sesión y permisos..." : "Cargando catálogo y métricas..."}
+              {authLoading
+                ? "Validando sesión y permisos..."
+                : summaryLoading
+                  ? "Cargando métricas globales..."
+                  : "Cargando catálogo y métricas..."}
             </span>
           </div>
         </div>
@@ -754,22 +892,25 @@ export function AdminConsole({ initialView = "overview" }: AdminConsoleProps) {
       <ViewSwitcher
         activeView={activeView}
         onChange={handleViewChange}
-        itemsCount={items.length}
+        itemsCount={totalTerms}
         pendingCount={pendingCount}
         session={session}
         allowBootstrap={allowBootstrap}
       />
 
       <ToastStack
-        error={authError}
+        error={panelError}
         message={message}
-        onClearError={() => setAuthError(null)}
+        onClearError={() => {
+          setAuthError(null);
+          setSummaryError(null);
+        }}
         onClearMessage={() => setMessage(null)}
       />
 
       {activeView === "overview" ? (
         <div className="space-y-6">
-          <AdminDashboard />
+          <AdminDashboard refreshToken={analyticsRefreshKey} />
           <TermPipelinePanel statusSummary={statusSummary} categories={categoryHighlights} />
           <QuickActionsPanel
             autoRefresh={autoRefresh}
@@ -785,14 +926,14 @@ export function AdminConsole({ initialView = "overview" }: AdminConsoleProps) {
             onPingAnalytics={pingAnalytics}
           />
           <OpsTimelinePanel
-            items={items}
+            recentTerms={recentTerms}
             notifications={notifications}
             lastManualRefresh={lastManualRefresh}
             lastAutoRefresh={lastAutoRefresh}
             lastExportedAt={lastExportedAt}
           />
           <IntegrationsStatusPanel
-            termsStatus={items.length ? "ok" : "warning"}
+            termsStatus={termsStatus}
             analyticsStatus={analyticsPulse}
             notificationsStatus={notificationsLoading ? "loading" : unreadCount ? "warning" : "ok"}
             authStatus={session ? "ok" : authLoading ? "loading" : "error"}
@@ -814,15 +955,15 @@ export function AdminConsole({ initialView = "overview" }: AdminConsoleProps) {
             onBulkDelete={() => requestDeletion(selectedIds, "bulk")}
           />
           <TermsTable
-            items={filteredItems}
+            items={items}
             selectedIds={selectedIds}
             allSelected={allSelected}
             selectionDisabled={selectionDisabled}
             canEdit={canEdit}
             search={q}
-            onSearchChange={setQ}
+            onSearchChange={handleSearchChange}
             statusFilter={statusFilter}
-            onStatusFilterChange={setStatusFilter}
+            onStatusFilterChange={handleStatusFilterChange}
             onToggleItem={toggleItemSelection}
             onToggleAll={toggleSelectAll}
             onEdit={handleEditTerm}
@@ -833,6 +974,12 @@ export function AdminConsole({ initialView = "overview" }: AdminConsoleProps) {
             loading={itemsLoading}
             error={itemsError}
             onRetry={handleManualRefresh}
+            page={page}
+            pageSize={pageSize}
+            total={termsMeta?.total ?? items.length}
+            totalPages={termsMeta?.totalPages ?? 1}
+            onPageChange={handlePageChange}
+            onPageSizeChange={handlePageSizeChange}
           />
         </div>
       ) : null}
@@ -1127,6 +1274,12 @@ type TermsTableProps = {
   loading: boolean;
   error: string | null;
   onRetry: () => void;
+  page: number;
+  pageSize: number;
+  total: number;
+  totalPages: number;
+  onPageChange: (value: number) => void;
+  onPageSizeChange: (value: number) => void;
 };
 
 function TermsTable({
@@ -1149,7 +1302,16 @@ function TermsTable({
   loading,
   error,
   onRetry,
+  page,
+  pageSize,
+  total,
+  totalPages,
+  onPageChange,
+  onPageSizeChange,
 }: TermsTableProps) {
+  const safeTotalPages = Math.max(1, totalPages || 1);
+  const canPrev = page > 1;
+  const canNext = page < safeTotalPages;
   return (
     <section className="space-y-6 rounded-3xl border border-neo-border bg-neo-surface p-6 shadow-glow-card" aria-busy={loading}>
       <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
@@ -1157,6 +1319,9 @@ function TermsTable({
           <p className="text-xs uppercase tracking-wide text-neo-text-secondary">Catálogo</p>
           <h2 className="text-2xl font-semibold">Términos técnicos</h2>
           <p className="text-sm text-neo-text-secondary">Controla y sincroniza el glosario completo en tiempo real.</p>
+          <p className="text-xs text-neo-text-secondary">
+            {total ? `${total} términos indexados` : "Sin términos registrados"}
+          </p>
           <p className="text-xs text-neo-text-secondary">
             {autoRefreshEnabled ? (
               <span className="text-accent-secondary" suppressHydrationWarning>
@@ -1438,6 +1603,44 @@ function TermsTable({
           </tbody>
         </table>
       </div>
+
+      <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-neo-border bg-neo-card px-4 py-3 text-xs text-neo-text-secondary">
+        <span>
+          Página {page} de {safeTotalPages}
+        </span>
+        <div className="flex flex-wrap items-center gap-2">
+          <button
+            className="btn-ghost"
+            type="button"
+            onClick={() => onPageChange(page - 1)}
+            disabled={!canPrev}
+          >
+            Anterior
+          </button>
+          <button
+            className="btn-ghost"
+            type="button"
+            onClick={() => onPageChange(page + 1)}
+            disabled={!canNext}
+          >
+            Siguiente
+          </button>
+          <label className="flex items-center gap-2 text-xs text-neo-text-secondary">
+            <span>Tamaño</span>
+            <select
+              className="rounded-xl border border-neo-border bg-neo-surface px-2 py-1 text-xs text-neo-text-primary focus:border-accent-secondary focus:outline-none"
+              value={pageSize}
+              onChange={(event) => onPageSizeChange(Number(event.target.value))}
+            >
+              {[10, 25, 50].map((size) => (
+                <option key={size} value={size}>
+                  {size}
+                </option>
+              ))}
+            </select>
+          </label>
+        </div>
+      </div>
     </section>
   );
 }
@@ -1609,14 +1812,14 @@ function QuickActionsPanel({
 }
 
 type OpsTimelinePanelProps = {
-  items: Term[];
+  recentTerms: Array<{ id: number; term: string; translation: string; status: ReviewStatus }>;
   notifications: AdminNotification[];
   lastManualRefresh: string | null;
   lastAutoRefresh: string | null;
   lastExportedAt: string | null;
 };
 
-function OpsTimelinePanel({ items, notifications, lastManualRefresh, lastAutoRefresh, lastExportedAt }: OpsTimelinePanelProps) {
+function OpsTimelinePanel({ recentTerms, notifications, lastManualRefresh, lastAutoRefresh, lastExportedAt }: OpsTimelinePanelProps) {
   const timeline = useMemo(() => {
     const events: Array<{ title: string; detail: string; time: string; tone: "info" | "alert" | "success" }> = [];
     if (lastManualRefresh) {
@@ -1628,17 +1831,14 @@ function OpsTimelinePanel({ items, notifications, lastManualRefresh, lastAutoRef
     if (lastExportedAt) {
       events.push({ title: "Exportación JSON", detail: "Se generó un respaldo del catálogo.", time: lastExportedAt, tone: "info" });
     }
-    items
-      .slice(-3)
-      .reverse()
-      .forEach((term) => {
-        events.push({
-          title: `Edición · ${term.term || "Sin título"}`,
-          detail: `Estado ${term.status} · ${term.translation}`,
-          time: `#${term.id}`,
-          tone: term.status === "approved" ? "success" : term.status === "rejected" ? "alert" : "info",
-        });
+    recentTerms.slice(0, 3).forEach((term) => {
+      events.push({
+        title: `Edición · ${term.term || "Sin título"}`,
+        detail: `Estado ${term.status} · ${term.translation || "-"}`,
+        time: `#${term.id}`,
+        tone: term.status === "approved" ? "success" : term.status === "rejected" ? "alert" : "info",
       });
+    });
     notifications.slice(0, 3).forEach((notif) => {
       events.push({
         title: notif.title,
@@ -1648,7 +1848,7 @@ function OpsTimelinePanel({ items, notifications, lastManualRefresh, lastAutoRef
       });
     });
     return events.slice(0, 6);
-  }, [items, notifications, lastManualRefresh, lastAutoRefresh, lastExportedAt]);
+  }, [recentTerms, notifications, lastManualRefresh, lastAutoRefresh, lastExportedAt]);
 
   return (
     <section className="rounded-3xl border border-neo-border bg-neo-surface p-6 shadow-glow-card">

@@ -7,7 +7,6 @@ import { Icon } from "@/components/Icon";
 import { useSession, notifySessionChange } from "@/components/admin/SessionProvider";
 import ThemeToggle from "@/components/ThemeToggle";
 import { NotificationBell } from "@/components/NotificationBell";
-import { ThemeLogo } from "@/components/ThemeLogo";
 
 export default function Topbar() {
   const router = useRouter();
@@ -57,20 +56,8 @@ export default function Topbar() {
   return (
     <header className="sticky top-0 z-30 border-b border-neo-border bg-neo-bg/80 backdrop-blur-md">
       <div className="flex items-center justify-between px-4 py-2 sm:px-6 sm:py-3">
-        {/* Left side */}
-        <div className="flex flex-1 items-center gap-3">
-          <div className="hidden md:flex items-center gap-3 lg:gap-4">
-            <ThemeLogo
-              width={56}
-              height={56}
-              className="h-10 w-10 shrink-0 rounded-lg lg:h-12 lg:w-12 xl:h-14 xl:w-14"
-            />
-            <div className="leading-tight">
-              <div className="text-[10px] uppercase tracking-[0.2em] text-indigo-400 font-bold">Diccionario</div>
-              <div className="text-sm font-bold text-neo-text-primary">Dev</div>
-            </div>
-          </div>
-        </div>
+        {/* Left side - espacio vacío para balance */}
+        <div className="flex flex-1 items-center gap-3" />
 
         {/* Right side - Actions */}
         <div className="flex items-center gap-2 sm:gap-3">

@@ -14,32 +14,44 @@ const EMPTY_SUMMARY: AnalyticsSummary = {
   languages: [],
   contexts: [],
   emptyQueries: [],
+  totalSearches: 0,
+  totalEmptyQueries: 0,
+  uniqueTerms: 0,
+  languagesTotal: 0,
 };
 
-export default function AdminDashboard() {
+export default function AdminDashboard({ refreshToken = 0 }: { refreshToken?: number }) {
   const [analytics, setAnalytics] = useState<AnalyticsSummary>(EMPTY_SUMMARY);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    let mounted = true;
     const fetchAnalytics = async () => {
+      setLoading(true);
       try {
-        const res = await fetch("/api/analytics", { credentials: "include" });
-        if (!res.ok) return;
-        const payload = await res.json();
-        if (payload?.summary) {
-          setAnalytics(payload.summary as AnalyticsSummary);
-        } else {
-          setAnalytics(EMPTY_SUMMARY);
+        const res = await fetch("/api/analytics", { cache: "no-store", credentials: "include" });
+        if (!res.ok) {
+          if (mounted) setAnalytics(EMPTY_SUMMARY);
+          return;
         }
+        const payload = await res.json();
+        if (!mounted) return;
+        setAnalytics(payload?.summary ? (payload.summary as AnalyticsSummary) : EMPTY_SUMMARY);
       } catch (error) {
         console.error("Error cargando analytics:", error);
+        if (!mounted) return;
+        setAnalytics(EMPTY_SUMMARY);
       } finally {
+        if (!mounted) return;
         setLoading(false);
       }
     };
 
     fetchAnalytics();
-  }, []);
+    return () => {
+      mounted = false;
+    };
+  }, [refreshToken]);
 
   if (loading) {
     return (
@@ -78,32 +90,27 @@ export default function AdminDashboard() {
   const stats = [
     {
       label: "Total de búsquedas",
-      value: analytics.topTerms.reduce((sum, t) => sum + t.hits, 0) +
-        contextData.reduce((sum, c) => sum + c.value, 0),
+      value: analytics.totalSearches,
       icon: <Icon library="lucide" name="Zap" className="h-5 w-5" />,
       color: "primary" as const,
-      trend: { value: 12, direction: "up" as const },
     },
     {
       label: "Términos buscados",
-      value: analytics.topTerms.length,
+      value: analytics.uniqueTerms,
       icon: <Icon library="lucide" name="BookOpen" className="h-5 w-5" />,
       color: "secondary" as const,
-      trend: { value: 8, direction: "up" as const },
     },
     {
       label: "Lenguajes activos",
-      value: analytics.languages.length,
+      value: analytics.languagesTotal,
       icon: <Icon library="lucide" name="TrendingUp" className="h-5 w-5" />,
       color: "emerald" as const,
-      trend: { value: 5, direction: "up" as const },
     },
     {
       label: "Búsquedas vacías",
-      value: analytics.emptyQueries.reduce((sum, q) => sum + q.attempts, 0),
+      value: analytics.totalEmptyQueries,
       icon: <Icon library="lucide" name="Users" className="h-5 w-5" />,
       color: "rose" as const,
-      trend: { value: 3, direction: "down" as const },
     },
   ];
 

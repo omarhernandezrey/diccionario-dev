@@ -5,10 +5,14 @@ export type AnalyticsSummary = {
   languages: Array<{ language: string; count: number }>;
   contexts: Array<{ context: string; count: number }>;
   emptyQueries: Array<{ query: string; attempts: number }>;
+  totalSearches: number;
+  totalEmptyQueries: number;
+  uniqueTerms: number;
+  languagesTotal: number;
 };
 
 export async function getAnalyticsSummary(limit = 10): Promise<AnalyticsSummary> {
-  const [topTermsGroup, languageUsage, contextUsage, emptyQueries] = await Promise.all([
+  const [topTermsGroup, languageUsage, contextUsage, emptyQueries, totalSearches, totalEmptyQueries] = await Promise.all([
     prisma.searchLog.groupBy({
       by: ["termId"],
       where: { termId: { not: null } },
@@ -27,6 +31,8 @@ export async function getAnalyticsSummary(limit = 10): Promise<AnalyticsSummary>
       where: { termId: null },
       _count: { _all: true },
     }),
+    prisma.searchLog.count(),
+    prisma.searchLog.count({ where: { termId: null } }),
   ]);
 
   const ids = topTermsGroup.map((entry) => entry.termId).filter((value): value is number => value !== null);
@@ -59,5 +65,14 @@ export async function getAnalyticsSummary(limit = 10): Promise<AnalyticsSummary>
     .slice(0, limit)
     .map((entry) => ({ query: entry.query, attempts: entry._count?._all ?? 0 }));
 
-  return { topTerms, languages, contexts, emptyQueries: empty };
+  return {
+    topTerms,
+    languages,
+    contexts,
+    emptyQueries: empty,
+    totalSearches,
+    totalEmptyQueries,
+    uniqueTerms: topTermsGroup.length,
+    languagesTotal: languageUsage.length,
+  };
 }

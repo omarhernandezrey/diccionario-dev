@@ -141,6 +141,7 @@ export const termsQuerySchema = z.object({
     .default("dictionary")
     .optional(),
   mode: z.enum(["list", "app", "widget"]).default("list").optional(),
+  status: reviewStatusSchema.optional(),
   page: z.coerce.number().int().min(1).default(1),
   pageSize: z.coerce.number().int().min(1).max(50).default(25),
   sort: z.enum(["recent", "oldest", "term_asc", "term_desc"]).default("term_asc"),

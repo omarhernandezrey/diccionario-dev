@@ -18,14 +18,14 @@ interface DonutChartProps {
 }
 
 const defaultColors = [
-  "#3b82f6", // blue-500
-  "#8b5cf6", // violet-500
-  "#06b6d4", // cyan-500
-  "#10b981", // emerald-500
-  "#f59e0b", // amber-500
-  "#ef4444", // red-500
-  "#ec4899", // pink-500
-  "#6366f1", // indigo-500
+  "var(--chart-1)",
+  "var(--chart-2)",
+  "var(--chart-3)",
+  "var(--chart-4)",
+  "var(--chart-5)",
+  "var(--chart-6)",
+  "var(--chart-7)",
+  "var(--chart-8)",
 ];
 
 // Componente personalizado para el Tooltip
@@ -33,15 +33,15 @@ const CustomTooltip = ({ active, payload }: { active?: boolean; payload?: Array<
   if (active && payload && payload.length) {
     const data = payload[0];
     return (
-      <div className="rounded-lg border border-slate-600 bg-slate-800 px-3 py-2 shadow-xl">
-        <p className="flex items-center gap-2 text-sm font-medium text-white">
+      <div className="rounded-lg border border-neo-border bg-neo-card px-3 py-2 shadow-xl">
+        <p className="flex items-center gap-2 text-sm font-medium text-neo-text-primary">
           <span 
             className="h-3 w-3 rounded-full" 
             style={{ backgroundColor: data.payload.fill }}
           />
           {data.name}
         </p>
-        <p className="text-lg font-bold text-emerald-400">{data.value} búsquedas</p>
+        <p className="text-lg font-bold text-neo-primary">{data.value} búsquedas</p>
       </div>
     );
   }
@@ -59,7 +59,7 @@ const CustomLegend = ({ payload }: { payload?: Array<{ value: string; color: str
             className="h-2.5 w-2.5 rounded-full shrink-0" 
             style={{ backgroundColor: entry.color }}
           />
-          <span className="text-slate-600 dark:text-slate-300 font-medium">
+          <span className="text-neo-text-secondary font-medium">
             {entry.value}
           </span>
         </li>
