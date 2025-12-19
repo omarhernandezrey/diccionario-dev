@@ -987,11 +987,11 @@ export function AdminConsole({ initialView = "overview" }: AdminConsoleProps) {
   }
 
   return (
-    <div className="space-y-8 text-neo-text-primary">
+    <div className="min-w-0 space-y-8 text-neo-text-primary">
       {panelLoading && (
         <div className="flex items-center gap-3 rounded-3xl border border-neo-primary/40 bg-neo-surface px-4 py-3 text-sm">
           <Icon library="lucide" name="Loader2" className="h-5 w-5 animate-spin text-neo-primary" />
-          <div className="flex flex-col">
+          <div className="min-w-0 flex flex-col">
             <span className="font-semibold text-neo-text-primary">Sincronizando panel</span>
             <span className="text-xs text-neo-text-secondary">
               {authLoading
@@ -1006,17 +1006,17 @@ export function AdminConsole({ initialView = "overview" }: AdminConsoleProps) {
       {detailLoading && (
         <div className="flex items-center gap-3 rounded-3xl border border-neo-border bg-neo-surface px-4 py-3 text-sm">
           <Icon library="lucide" name="FileSignature" className="h-4 w-4 text-neo-primary" />
-          <div className="flex flex-col">
+          <div className="min-w-0 flex flex-col">
             <span className="font-semibold text-neo-text-primary">Cargando detalle del término…</span>
             <span className="text-xs text-neo-text-secondary">Prepara la edición segura sin bloquear la tabla.</span>
           </div>
         </div>
       )}
 
-      <section className="relative overflow-hidden rounded-[32px] border border-neo-border bg-neo-card p-5 sm:p-8 shadow-glow-card">
+      <section className="relative min-w-0 overflow-hidden rounded-[32px] border border-neo-border bg-neo-card p-5 sm:p-8 shadow-glow-card">
         <div className="absolute inset-y-0 right-0 hidden w-1/3 bg-gradient-to-l from-neo-primary/10 to-transparent blur-3xl lg:block" />
         <div className="flex flex-wrap items-center gap-4">
-          <div className="rounded-3xl border border-neo-border bg-neo-surface p-3 shadow-glow-card">
+          <div className="shrink-0 rounded-3xl border border-neo-border bg-neo-surface p-3 shadow-glow-card">
             <Icon library="lucide" name="BookOpenCheck" className="h-7 w-7 text-neo-text-primary" />
           </div>
           <div className="flex-1">
@@ -1542,11 +1542,11 @@ function TermsTable({
   const canPrev = page > 1;
   const canNext = page < safeTotalPages;
   return (
-    <section className="space-y-6 rounded-3xl border border-neo-border bg-neo-surface p-6 shadow-glow-card" aria-busy={loading}>
+    <section className="min-w-0 space-y-6 rounded-3xl border border-neo-border bg-neo-surface p-4 shadow-glow-card sm:p-6" aria-busy={loading}>
       <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
-        <div>
+        <div className="min-w-0">
           <p className="text-xs uppercase tracking-wide text-neo-text-secondary">Catálogo</p>
-          <h2 className="text-2xl font-semibold">Términos técnicos</h2>
+          <h2 className="text-xl font-semibold sm:text-2xl">Términos técnicos</h2>
           <p className="text-sm text-neo-text-secondary">Controla y sincroniza el glosario completo en tiempo real.</p>
           <p className="text-xs text-neo-text-secondary">
             {total ? `${total} términos indexados` : "Sin términos registrados"}
@@ -1713,7 +1713,7 @@ function TermsTable({
       </div>
 
       {/* Desktop / Tablet table */}
-      <div className="hidden rounded-3xl border border-neo-border bg-neo-surface md:block">
+      <div className="hidden overflow-hidden rounded-3xl border border-neo-border bg-neo-surface md:block">
         <table className="w-full table-fixed divide-y divide-neo-border text-sm">
           <thead className="bg-neo-card text-left text-xs uppercase tracking-wide text-neo-text-secondary">
             <tr>
