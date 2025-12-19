@@ -858,7 +858,7 @@ export function AdminConsole({ initialView = "overview" }: AdminConsoleProps) {
   return (
     <div className="space-y-8 text-neo-text-primary">
       {panelLoading && (
-        <div className="flex items-center gap-3 rounded-3xl border border-neo-primary/40 bg-neo-surface px-4 py-3 text-sm shadow-inner shadow-neo-primary/10">
+        <div className="flex items-center gap-3 rounded-3xl border border-neo-primary/40 bg-neo-surface px-4 py-3 text-sm">
           <Icon library="lucide" name="Loader2" className="h-5 w-5 animate-spin text-neo-primary" />
           <div className="flex flex-col">
             <span className="font-semibold text-neo-text-primary">Sincronizando panel</span>
@@ -873,7 +873,7 @@ export function AdminConsole({ initialView = "overview" }: AdminConsoleProps) {
         </div>
       )}
       {detailLoading && (
-        <div className="flex items-center gap-3 rounded-3xl border border-neo-border bg-neo-surface px-4 py-3 text-sm shadow-inner">
+        <div className="flex items-center gap-3 rounded-3xl border border-neo-border bg-neo-surface px-4 py-3 text-sm">
           <Icon library="lucide" name="FileSignature" className="h-4 w-4 text-neo-primary" />
           <div className="flex flex-col">
             <span className="font-semibold text-neo-text-primary">Cargando detalle del término…</span>
@@ -897,7 +897,7 @@ export function AdminConsole({ initialView = "overview" }: AdminConsoleProps) {
           Controla el glosario técnico, detecta huecos y administra accesos en un solo flujo operacional.
         </p>
         {session && (!session.bio || !session.avatarUrl || session.displayName === session.username) ? (
-          <div className="mt-4 flex flex-wrap items-start gap-3 rounded-2xl border border-amber-400/60 bg-amber-500/10 p-3 shadow-inner">
+          <div className="mt-4 flex flex-wrap items-start gap-3 rounded-2xl border border-amber-400/60 bg-amber-500/10 p-3">
             <div className="rounded-xl bg-white/40 p-2">
               <Icon library="lucide" name="Sparkles" className="h-4 w-4 text-amber-700" />
             </div>
@@ -918,7 +918,7 @@ export function AdminConsole({ initialView = "overview" }: AdminConsoleProps) {
           {adminHeroStats.map((stat) => {
             const iconName = HERO_STAT_ICONS[stat.label] || "ActivitySquare";
             return (
-              <div key={stat.label} className="flex flex-col gap-3 rounded-3xl border border-neo-border bg-neo-surface p-4 shadow-inner">
+              <div key={stat.label} className="flex flex-col gap-3 rounded-3xl border border-neo-border bg-neo-surface p-4">
                 <div className="inline-flex h-10 w-10 items-center justify-center rounded-2xl bg-neo-card">
                   <Icon library="lucide" name={iconName} className="h-5 w-5 text-neo-primary" />
                 </div>
@@ -2205,7 +2205,7 @@ type EditorSheetProps = {
 function EditorSheet({ term, onCancel, onSave }: EditorSheetProps) {
   const [val, setVal] = useState(term);
   const baseFieldClasses =
-    "mt-1 w-full rounded-2xl border border-neo-border bg-neo-surface px-4 py-2 text-neo-text-primary shadow-inner focus:border-accent-secondary focus:outline-none placeholder-neo-text-secondary";
+    "mt-1 w-full rounded-2xl border border-neo-border bg-neo-surface px-4 py-2 text-neo-text-primary focus:border-accent-secondary focus:outline-none placeholder-neo-text-secondary";
 
   useEffect(() => {
     setVal(term);
@@ -2403,7 +2403,7 @@ function ChipInput({ label, placeholder, values, onChange }: ChipInputProps) {
   return (
     <label className="text-sm text-neo-text-secondary">
       {label}
-      <div className="mt-1 flex flex-wrap gap-2 rounded-2xl border border-neo-border bg-neo-surface px-3 py-2 shadow-inner">
+      <div className="mt-1 flex flex-wrap gap-2 rounded-2xl border border-neo-border bg-neo-surface px-3 py-2">
         {values.map((value) => (
           <span key={value} className="inline-flex items-center gap-2 rounded-full bg-neo-bg px-3 py-1 text-xs text-neo-text-primary">
             {value}
@@ -2481,7 +2481,7 @@ function ExamplesEditor({ value, onChange }: ExamplesEditorProps) {
       {list.length ? (
         <div className="space-y-4">
           {list.map((example, index) => (
-            <div key={`${example.title}-${index}`} className="rounded-2xl border border-neo-border bg-neo-card p-4 shadow-inner">
+            <div key={`${example.title}-${index}`} className="rounded-2xl border border-neo-border bg-neo-card p-4">
               <div className="flex flex-wrap items-center justify-between gap-3">
                 <p className="text-sm font-semibold text-neo-text-primary">Bloque #{index + 1}</p>
                 <div className="flex gap-2">
@@ -2500,7 +2500,7 @@ function ExamplesEditor({ value, onChange }: ExamplesEditorProps) {
                 <label className="text-xs uppercase tracking-wide text-neo-text-secondary">
                   Título
                   <input
-                    className="mt-1 w-full rounded-2xl border border-neo-border bg-neo-surface px-3 py-2 text-sm text-neo-text-primary shadow-inner focus:border-accent-secondary focus:outline-none"
+                    className="mt-1 w-full rounded-2xl border border-neo-border bg-neo-surface px-3 py-2 text-sm text-neo-text-primary focus:border-accent-secondary focus:outline-none"
                     value={example.title}
                     onChange={(event) => update(index, { title: event.target.value })}
                   />
@@ -2508,7 +2508,7 @@ function ExamplesEditor({ value, onChange }: ExamplesEditorProps) {
                 <label className="text-xs uppercase tracking-wide text-neo-text-secondary">
                   Nota
                   <input
-                    className="mt-1 w-full rounded-2xl border border-neo-border bg-neo-surface px-3 py-2 text-sm text-neo-text-primary shadow-inner focus:border-accent-secondary focus:outline-none"
+                    className="mt-1 w-full rounded-2xl border border-neo-border bg-neo-surface px-3 py-2 text-sm text-neo-text-primary focus:border-accent-secondary focus:outline-none"
                     value={example.note || ""}
                     onChange={(event) => update(index, { note: event.target.value })}
                   />
@@ -2517,7 +2517,7 @@ function ExamplesEditor({ value, onChange }: ExamplesEditorProps) {
               <label className="mt-3 block text-xs uppercase tracking-wide text-neo-text-secondary">
                 Código
                 <textarea
-                  className="mt-1 w-full rounded-2xl border border-neo-border bg-neo-surface px-3 py-2 font-mono text-xs text-neo-text-primary shadow-inner focus:border-accent-secondary focus:outline-none"
+                  className="mt-1 w-full rounded-2xl border border-neo-border bg-neo-surface px-3 py-2 font-mono text-xs text-neo-text-primary focus:border-accent-secondary focus:outline-none"
                   rows={4}
                   value={example.code}
                   onChange={(event) => update(index, { code: event.target.value })}
@@ -2572,7 +2572,7 @@ function VariantsEditor({ value, onChange }: VariantsEditorProps) {
       {list.length ? (
         <div className="space-y-3">
           {list.map((variant, index) => (
-            <div key={`variant-${index}`} className="rounded-2xl border border-neo-border bg-neo-card p-4 shadow-inner">
+            <div key={`variant-${index}`} className="rounded-2xl border border-neo-border bg-neo-card p-4">
               <div className="flex flex-wrap items-center justify-between gap-3">
                 <p className="text-xs uppercase tracking-wide text-neo-text-secondary">Variante #{index + 1}</p>
                 <button className="btn-ghost" type="button" onClick={() => remove(index)}>
@@ -2691,7 +2691,7 @@ function UseCasesEditor({ value, onChange }: UseCasesEditorProps) {
       {list.length ? (
         <div className="space-y-3">
           {list.map((useCase, index) => (
-            <div key={`usecase-${index}`} className="rounded-2xl border border-neo-border bg-neo-card p-4 shadow-inner">
+            <div key={`usecase-${index}`} className="rounded-2xl border border-neo-border bg-neo-card p-4">
               <div className="flex flex-wrap items-center justify-between gap-3">
                 <p className="text-xs uppercase tracking-wide text-neo-text-secondary">Caso #{index + 1}</p>
                 <button className="btn-ghost" type="button" onClick={() => remove(index)}>
@@ -2817,7 +2817,7 @@ function FaqsEditor({ value, onChange }: FaqsEditorProps) {
       {list.length ? (
         <div className="space-y-3">
           {list.map((faq, index) => (
-            <div key={`faq-${index}`} className="rounded-2xl border border-neo-border bg-neo-card p-4 shadow-inner">
+            <div key={`faq-${index}`} className="rounded-2xl border border-neo-border bg-neo-card p-4">
               <div className="flex flex-wrap items-center justify-between gap-3">
                 <p className="text-xs uppercase tracking-wide text-neo-text-secondary">FAQ #{index + 1}</p>
                 <button className="btn-ghost" type="button" onClick={() => remove(index)}>
@@ -2945,7 +2945,7 @@ function ExercisesEditor({ value, onChange }: ExercisesEditorProps) {
       {list.length ? (
         <div className="space-y-3">
           {list.map((exercise, index) => (
-            <div key={`exercise-${index}`} className="rounded-2xl border border-neo-border bg-neo-card p-4 shadow-inner">
+            <div key={`exercise-${index}`} className="rounded-2xl border border-neo-border bg-neo-card p-4">
               <div className="flex flex-wrap items-center justify-between gap-3">
                 <p className="text-xs uppercase tracking-wide text-neo-text-secondary">Ejercicio #{index + 1}</p>
                 <button className="btn-ghost" type="button" onClick={() => remove(index)}>

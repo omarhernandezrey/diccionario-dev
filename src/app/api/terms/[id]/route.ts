@@ -162,7 +162,7 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
       return jsonError("No se encontró el término", 404);
     }
 
-    const { variants, useCases, faqs, exercises, status, ...rest } = updateData as Partial<TermInput> & {
+    const { variants, useCases, faqs, exercises, status, reviewedById, ...rest } = updateData as Partial<TermInput> & {
       variants?: VariantInput[];
       useCases?: UseCaseInput[];
       faqs?: FaqInput[];
@@ -170,11 +170,18 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
     };
 
     const reviewStatus = status ? normalizeReviewStatus(status as string) : undefined;
+    const reviewerId =
+      typeof reviewedById === "number" ? reviewedById : reviewedById === null ? null : undefined;
+    const reviewerForStatus = typeof reviewerId === "number" ? reviewerId : admin.id;
+    const shouldIncludeReviewer =
+      typeof reviewerId !== "undefined" &&
+      (typeof reviewerId === "number" || reviewStatus === ReviewStatus.pending || !reviewStatus);
     await prisma.term.update({
       where: { id },
       data: {
         ...rest,
-        ...(reviewStatus ? { status: reviewStatus, ...buildReviewMetadata(reviewStatus, admin.id) } : {}),
+        ...(reviewStatus ? { status: reviewStatus, ...buildReviewMetadata(reviewStatus, reviewerForStatus) } : {}),
+        ...(shouldIncludeReviewer ? { reviewedById: reviewerId } : {}),
         updatedById: admin.id,
       },
     });

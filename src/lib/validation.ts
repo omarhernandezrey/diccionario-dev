@@ -109,6 +109,7 @@ export const termSchema = z.object({
   what: z.string().min(1),
   how: z.string().min(1),
   status: reviewStatusSchema.optional(),
+  reviewedById: z.number().int().positive().nullable().optional(),
   examples: z.array(exampleSchema).optional().default([]),
   variants: z.array(variantSchema).optional().default([]),
   useCases: z.array(useCaseSchema).optional().default([]),

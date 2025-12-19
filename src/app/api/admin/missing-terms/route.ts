@@ -50,16 +50,16 @@ export async function GET(req: NextRequest) {
     const grouped = await prisma.searchLog.groupBy({
       by: ["query"],
       where: { termId: null },
-      _count: { _all: true },
+      _count: { query: true },
       _max: { createdAt: true },
-      orderBy: [{ _count: { _all: "desc" } }],
+      orderBy: [{ _count: { query: "desc" } }],
       take,
     });
 
     const items = grouped
       .map((entry) => ({
         query: entry.query,
-        attempts: entry._count?._all ?? 0,
+        attempts: entry._count?.query ?? 0,
         lastSeen: entry._max?.createdAt?.toISOString?.() ?? null,
       }))
       .filter((entry) => entry.query.trim().length > 0);
