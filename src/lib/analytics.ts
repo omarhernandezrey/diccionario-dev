@@ -11,28 +11,32 @@ export type AnalyticsSummary = {
   languagesTotal: number;
 };
 
+const SEARCH_MODES = ["list", "app", "widget", "create"] as const;
+
 export async function getAnalyticsSummary(limit = 10): Promise<AnalyticsSummary> {
   const [topTermsGroup, languageUsage, contextUsage, emptyQueries, totalSearches, totalEmptyQueries] = await Promise.all([
     prisma.searchLog.groupBy({
       by: ["termId"],
-      where: { termId: { not: null } },
+      where: { termId: { not: null }, mode: { in: SEARCH_MODES } },
       _count: { _all: true },
     }),
     prisma.searchLog.groupBy({
       by: ["language"],
+      where: { mode: { in: SEARCH_MODES } },
       _count: { _all: true },
     }),
     prisma.searchLog.groupBy({
       by: ["context"],
+      where: { mode: { in: SEARCH_MODES } },
       _count: { _all: true },
     }),
     prisma.searchLog.groupBy({
       by: ["query"],
-      where: { termId: null },
+      where: { termId: null, mode: { in: SEARCH_MODES } },
       _count: { _all: true },
     }),
-    prisma.searchLog.count(),
-    prisma.searchLog.count({ where: { termId: null } }),
+    prisma.searchLog.count({ where: { mode: { in: SEARCH_MODES } } }),
+    prisma.searchLog.count({ where: { termId: null, mode: { in: SEARCH_MODES } } }),
   ]);
 
   const ids = topTermsGroup.map((entry) => entry.termId).filter((value): value is number => value !== null);
