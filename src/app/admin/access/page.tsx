@@ -136,15 +136,17 @@ function AdminAccessPageInner() {
   return (
     <div className="space-y-8 text-neo-text-primary">
       <section className="rounded-[32px] border border-neo-border bg-neo-card p-5 sm:p-8 shadow-glow-card">
-        <div className="flex flex-wrap items-center gap-4">
-          <div className="rounded-3xl border border-neo-border bg-neo-surface p-3 shadow-glow-card">
-            <Icon library="lucide" name="ShieldCheck" className="h-7 w-7 text-accent-emerald" />
+        <div className="flex flex-col gap-4 sm:flex-row sm:flex-wrap sm:items-center">
+          <div className="flex items-center gap-4">
+            <div className="shrink-0 rounded-3xl border border-neo-border bg-neo-surface p-3 shadow-glow-card">
+              <Icon library="lucide" name="ShieldCheck" className="h-7 w-7 text-accent-emerald" />
+            </div>
+            <div className="min-w-0">
+              <p className="text-xs uppercase tracking-[0.3em] text-neo-text-secondary">Control de acceso</p>
+              <h1 className="truncate text-2xl font-semibold sm:text-3xl">Autenticación avanzada</h1>
+            </div>
           </div>
-          <div>
-            <p className="text-xs uppercase tracking-[0.3em] text-neo-text-secondary">Control de acceso</p>
-            <h1 className="text-2xl font-semibold sm:text-3xl">Autenticación avanzada</h1>
-          </div>
-          <div className="ml-auto flex items-center gap-2 rounded-full border border-neo-border bg-neo-surface px-4 py-2 text-xs text-neo-text-secondary">
+          <div className="flex w-full items-center gap-2 rounded-full border border-neo-border bg-neo-surface px-4 py-2 text-xs text-neo-text-secondary sm:ml-auto sm:w-auto">
             {session ? (
               <Icon library="lucide" name="CheckCircle2" className="h-4 w-4 text-accent-emerald" />
             ) : authLoading ? (
@@ -152,13 +154,13 @@ function AdminAccessPageInner() {
             ) : (
               <Icon library="lucide" name="AlertTriangle" className="h-4 w-4 text-accent-danger" />
             )}
-            <span>{authLoading ? "Verificando sesión…" : session ? `Activo: ${session.username} (${session.role})` : "Sin sesión activa"}</span>
+            <span className="truncate">{authLoading ? "Verificando sesión…" : session ? `Activo: ${session.username} (${session.role})` : "Sin sesión activa"}</span>
           </div>
         </div>
-        <p className="mt-4 w-full text-sm text-neo-text-secondary">
+        <p className="mt-4 text-sm text-neo-text-secondary">
           Centraliza la creación de cuentas, el inicio de sesión y la auditoría de accesos administrativos. Esta vista funciona incluso si el resto del panel no está disponible.
         </p>
-        <div className="mt-6 grid gap-4 sm:grid-cols-3">
+        <div className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           <MetricPill label="Bootstrap" value={allowBootstrap ? "Disponible" : "Cerrado"} icon={<Icon library="lucide" name="KeyRound" className="h-4 w-4 text-accent-secondary" />} />
           <MetricPill label="ID de sesión" value={session ? `#${session.id}` : "-"} icon={<Icon library="lucide" name="UserCircle2" className="h-4 w-4 text-accent-secondary" />} />
           <MetricPill label="Estado" value={authLoading ? "Validando" : session ? "Autenticado" : "Invitado"} icon={<Icon library="lucide" name="Mail" className="h-4 w-4 text-accent-secondary" />} />
@@ -251,7 +253,7 @@ function AdminAccessPageInner() {
       </div>
 
       <section className="rounded-3xl border border-neo-border bg-neo-card p-6 shadow-glow-card">
-        <header className="flex items-center justify-between">
+        <header className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div>
             <p className="text-xs uppercase tracking-wide text-neo-text-secondary">Sesión actual</p>
             <h2 className="text-lg font-semibold">Estado y acciones</h2>
@@ -267,7 +269,7 @@ function AdminAccessPageInner() {
             ) : null}
           </div>
         </header>
-        <div className="mt-4 grid gap-4 md:grid-cols-3">
+        <div className="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           <StatusCard label="Usuario" value={session?.username || "-"} helper={session?.email || "Sin correo vinculado"} />
           <StatusCard label="Rol" value={session?.role || "Invitado"} helper={session ? "Acceso completo" : "Solo lectura"} />
           <StatusCard label="Último chequeo" value={new Date().toLocaleTimeString("es-ES")} helper="Hora local" />
@@ -329,10 +331,10 @@ type MetricPillProps = {
 function MetricPill({ label, value, icon }: MetricPillProps) {
   return (
     <div className="flex items-center gap-3 rounded-2xl border border-neo-border bg-neo-surface px-4 py-3">
-      <span className="rounded-2xl bg-neo-bg p-2">{icon}</span>
-      <div>
+      <span className="shrink-0 rounded-2xl bg-neo-bg p-2">{icon}</span>
+      <div className="min-w-0">
         <p className="text-xs uppercase tracking-wide text-neo-text-secondary">{label}</p>
-        <p className="text-sm font-semibold text-neo-text-primary">{value}</p>
+        <p className="truncate text-sm font-semibold text-neo-text-primary">{value}</p>
       </div>
     </div>
   );
@@ -344,8 +346,8 @@ function StatusCard({ label, value, helper }: StatusCardProps) {
   return (
     <div className="rounded-2xl border border-neo-border bg-neo-surface px-4 py-3">
       <p className="text-xs uppercase tracking-wide text-neo-text-secondary">{label}</p>
-      <p className="text-sm font-semibold text-neo-text-primary" suppressHydrationWarning>{value}</p>
-      {helper ? <p className="text-xs text-neo-text-secondary">{helper}</p> : null}
+      <p className="truncate text-sm font-semibold text-neo-text-primary" suppressHydrationWarning>{value}</p>
+      {helper ? <p className="truncate text-xs text-neo-text-secondary">{helper}</p> : null}
     </div>
   );
 }

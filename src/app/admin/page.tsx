@@ -169,6 +169,39 @@ type MissingTermsResponse = {
   error?: string;
 };
 
+type UsageTerm = {
+  id: number;
+  term: string;
+  translation: string;
+  category: Term["category"];
+  views: number;
+  favorites: number;
+  copies: number;
+  total: number;
+};
+
+type UsageHeatmap = {
+  days: string[];
+  hours: number[];
+  matrix: number[][];
+  max: number;
+  windowDays: number;
+};
+
+type UsageTotals = {
+  views: number;
+  favorites: number;
+  copies: number;
+};
+
+type UsageResponse = {
+  ok?: boolean;
+  terms?: UsageTerm[];
+  heatmap?: UsageHeatmap;
+  totals?: UsageTotals;
+  error?: string;
+};
+
 type FetchTermsInput = {
   query: string;
   page: number;
@@ -268,6 +301,11 @@ export function AdminConsole({ initialView = "overview" }: AdminConsoleProps) {
   const [missingTerms, setMissingTerms] = useState<MissingTerm[]>([]);
   const [missingLoading, setMissingLoading] = useState(false);
   const [missingError, setMissingError] = useState<string | null>(null);
+  const [usageTerms, setUsageTerms] = useState<UsageTerm[]>([]);
+  const [usageHeatmap, setUsageHeatmap] = useState<UsageHeatmap | null>(null);
+  const [usageTotals, setUsageTotals] = useState<UsageTotals | null>(null);
+  const [usageLoading, setUsageLoading] = useState(true);
+  const [usageError, setUsageError] = useState<string | null>(null);
   const [editing, setEditing] = useState<Term | null>(null);
   const [detailLoading, setDetailLoading] = useState(false);
   const [session, setSession] = useState<SessionUser | null>(null);
@@ -541,6 +579,58 @@ export function AdminConsole({ initialView = "overview" }: AdminConsoleProps) {
       controller.abort();
     };
   }, [canEdit, loadMissingTerms, refreshIndex, analyticsRefreshKey]);
+
+  const loadUsage = useCallback(async (signal?: AbortSignal) => {
+    setUsageLoading(true);
+    setUsageError(null);
+    try {
+      const res = await fetch("/api/admin/usage?days=30&limit=12", {
+        cache: "no-store",
+        credentials: "include",
+        signal,
+      });
+      let payload: UsageResponse | null = null;
+      let textFallback = "";
+      try {
+        payload = (await res.json()) as UsageResponse;
+      } catch {
+        textFallback = await res.text().catch(() => "");
+      }
+      if (!res.ok || payload?.ok === false) {
+        const message = extractErrorMessage(payload) || (textFallback?.trim() || res.statusText || "Error cargando uso real");
+        throw new Error(message);
+      }
+      setUsageTerms(Array.isArray(payload?.terms) ? payload.terms : []);
+      setUsageHeatmap(payload?.heatmap ?? null);
+      setUsageTotals(payload?.totals ?? null);
+    } catch (error) {
+      if ((error as Error)?.name === "AbortError") return;
+      console.error("No se pudo cargar el uso real", error);
+      setUsageTerms([]);
+      setUsageHeatmap(null);
+      setUsageTotals(null);
+      setUsageError((error as Error)?.message || "No se pudo cargar el uso real");
+    } finally {
+      if (signal?.aborted) return;
+      setUsageLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (!canEdit) {
+      setUsageTerms([]);
+      setUsageHeatmap(null);
+      setUsageTotals(null);
+      setUsageLoading(false);
+      setUsageError(null);
+      return;
+    }
+    const controller = new AbortController();
+    loadUsage(controller.signal);
+    return () => {
+      controller.abort();
+    };
+  }, [canEdit, loadUsage, refreshIndex]);
 
   useEffect(() => {
     refreshSession();
@@ -1022,6 +1112,15 @@ export function AdminConsole({ initialView = "overview" }: AdminConsoleProps) {
             items={items}
             loading={itemsLoading}
             error={itemsError}
+            canEdit={canEdit}
+            onOpenTerm={handleEditTerm}
+          />
+          <UsageInsightsPanel
+            terms={usageTerms}
+            heatmap={usageHeatmap}
+            totals={usageTotals}
+            loading={usageLoading}
+            error={usageError}
             canEdit={canEdit}
             onOpenTerm={handleEditTerm}
           />
@@ -1966,6 +2065,163 @@ function QualityScorePanel({ items, loading, error, canEdit, onOpenTerm }: Quali
             Todo el catalogo cumple con la completitud minima.
           </div>
         )}
+      </div>
+    </section>
+  );
+}
+
+type UsageInsightsPanelProps = {
+  terms: UsageTerm[];
+  heatmap: UsageHeatmap | null;
+  totals: UsageTotals | null;
+  loading: boolean;
+  error: string | null;
+  canEdit: boolean;
+  onOpenTerm: (id: number) => void;
+};
+
+function UsageInsightsPanel({
+  terms,
+  heatmap,
+  totals,
+  loading,
+  error,
+  canEdit,
+  onOpenTerm,
+}: UsageInsightsPanelProps) {
+  const safeHeatmap: UsageHeatmap = heatmap ?? {
+    days: ["Dom", "Lun", "Mar", "Mie", "Jue", "Vie", "Sab"],
+    hours: Array.from({ length: 24 }, (_, idx) => idx),
+    matrix: Array.from({ length: 7 }, () => Array.from({ length: 24 }, () => 0)),
+    max: 0,
+    windowDays: 30,
+  };
+
+  const maxValue = safeHeatmap.max || 0;
+  const hasHeatmapData = maxValue > 0;
+
+  return (
+    <section className="rounded-3xl border border-neo-border bg-neo-surface p-6 shadow-glow-card">
+      <header className="flex flex-wrap items-center justify-between gap-3">
+        <div>
+          <p className="text-xs uppercase tracking-wide text-neo-text-secondary">Insights de uso real</p>
+          <h2 className="text-lg font-semibold">Vistas, favoritos y copias</h2>
+          <p className="text-xs text-neo-text-secondary">
+            Ventana de {safeHeatmap.windowDays} dias con actividad agregada por hora y dia.
+          </p>
+        </div>
+        <div className="flex flex-wrap gap-2 text-xs text-neo-text-secondary">
+          <span className="rounded-full bg-neo-card px-2 py-1">Vistas {totals?.views ?? 0}</span>
+          <span className="rounded-full bg-neo-card px-2 py-1">Favoritos {totals?.favorites ?? 0}</span>
+          <span className="rounded-full bg-neo-card px-2 py-1">Copias {totals?.copies ?? 0}</span>
+        </div>
+      </header>
+
+      <div className="mt-6 grid gap-6 xl:grid-cols-[1.1fr_1fr]">
+        <div className="rounded-2xl border border-neo-border bg-neo-card p-4">
+          <div className="flex items-center justify-between">
+            <p className="text-xs uppercase tracking-wide text-neo-text-secondary">Top terminos por uso</p>
+            <span className="text-xs text-neo-text-secondary">{terms.length} items</span>
+          </div>
+          {loading ? (
+            <div className="mt-4 space-y-3">
+              {Array.from({ length: 4 }).map((_, index) => (
+                <div key={`usage-term-skeleton-${index}`} className="h-12 rounded-xl border border-neo-border bg-neo-surface animate-pulse" />
+              ))}
+            </div>
+          ) : error ? (
+            <div className="mt-4 rounded-xl border border-accent-danger/40 bg-accent-danger/10 p-3 text-xs text-accent-danger">
+              {error}
+            </div>
+          ) : terms.length ? (
+            <div className="mt-4 space-y-3">
+              {terms.map((term) => (
+                <div key={term.id} className="rounded-xl border border-neo-border bg-neo-surface p-3">
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="min-w-0">
+                      <p className="truncate text-sm font-semibold text-neo-text-primary">
+                        {term.translation || term.term}
+                      </p>
+                      <p className="truncate text-xs text-neo-text-secondary">{term.term}</p>
+                    </div>
+                    <span className="rounded-full bg-neo-card px-2 py-0.5 text-[11px] text-neo-text-secondary">
+                      {term.total}
+                    </span>
+                  </div>
+                  <div className="mt-2 flex flex-wrap gap-2 text-xs text-neo-text-secondary">
+                    <span className="rounded-full bg-neo-card px-2 py-0.5">Vistas {term.views}</span>
+                    <span className="rounded-full bg-neo-card px-2 py-0.5">Favoritos {term.favorites}</span>
+                    <span className="rounded-full bg-neo-card px-2 py-0.5">Copias {term.copies}</span>
+                  </div>
+                  <div className="mt-3">
+                    <button
+                      className="btn-ghost text-xs"
+                      type="button"
+                      onClick={() => onOpenTerm(term.id)}
+                      disabled={!canEdit}
+                    >
+                      Abrir
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div className="mt-4 rounded-xl border border-neo-border bg-neo-surface p-3 text-xs text-neo-text-secondary">
+              Aun no hay actividad registrada.
+            </div>
+          )}
+        </div>
+
+        <div className="rounded-2xl border border-neo-border bg-neo-card p-4">
+          <div className="flex items-center justify-between">
+            <p className="text-xs uppercase tracking-wide text-neo-text-secondary">Heatmap hora / dia</p>
+            <span className="text-xs text-neo-text-secondary">{hasHeatmapData ? "Actividad detectada" : "Sin actividad"}</span>
+          </div>
+          <div className="mt-4 overflow-x-auto">
+            <div className="min-w-[720px]">
+              <div className="flex items-center gap-2 text-[10px] text-neo-text-secondary">
+                <span className="w-10" />
+                <div className="grid gap-1" style={{ gridTemplateColumns: "repeat(24, minmax(0, 1fr))" }}>
+                  {safeHeatmap.hours.map((hour) => (
+                    <span key={`hour-${hour}`} className="text-center">
+                      {hour % 6 === 0 ? String(hour).padStart(2, "0") : ""}
+                    </span>
+                  ))}
+                </div>
+              </div>
+              <div className="mt-2 space-y-2">
+                {safeHeatmap.days.map((day, dayIndex) => (
+                  <div key={`day-${day}`} className="flex items-center gap-2">
+                    <span className="w-10 text-[11px] text-neo-text-secondary">{day}</span>
+                    <div className="grid gap-1" style={{ gridTemplateColumns: "repeat(24, minmax(0, 1fr))" }}>
+                      {safeHeatmap.hours.map((hour, hourIndex) => {
+                        const value = safeHeatmap.matrix?.[dayIndex]?.[hourIndex] ?? 0;
+                        const intensity = maxValue ? value / maxValue : 0;
+                        const opacity = value ? 0.2 + intensity * 0.75 : 0.08;
+                        return (
+                          <span
+                            key={`cell-${day}-${hour}`}
+                            title={`${day} ${String(hour).padStart(2, "0")}:00 · ${value}`}
+                            className="h-4 w-4 rounded-md bg-accent-secondary"
+                            style={{ opacity }}
+                          />
+                        );
+                      })}
+                    </div>
+                  </div>
+                ))}
+              </div>
+              <div className="mt-3 flex items-center gap-2 text-[10px] text-neo-text-secondary">
+                <span>0</span>
+                <div className="h-2 flex-1 rounded-full bg-neo-surface">
+                  <div className="h-2 rounded-full bg-accent-secondary" style={{ width: "100%", opacity: 0.6 }} />
+                </div>
+                <span>{maxValue}</span>
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
     </section>
   );

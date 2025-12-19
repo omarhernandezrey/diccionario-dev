@@ -36,6 +36,7 @@ import {
     Twitter,
     Linkedin,
     Home,
+    Star,
 } from "lucide-react";
 import type { TermDTO, TermExampleDTO } from "@/types/term";
 import { LivePreview } from "./LivePreview";
@@ -49,6 +50,7 @@ import { useSession } from "@/components/admin/SessionProvider";
 import { NotificationBell } from "./NotificationBell";
 import { ThemeLogo } from "./ThemeLogo";
 import ThemeToggle from "./ThemeToggle";
+import { trackTermUsage } from "@/lib/usage";
 
 type SearchContext = "concept" | "interview" | "debug" | "translate";
 
@@ -765,9 +767,11 @@ export default function DiccionarioDevApp() {
     const [relatedTerms, setRelatedTerms] = useState<TermDTO[]>([]);
     const [loading, setLoading] = useState(false);
     const [hasSearched, setHasSearched] = useState(false);
+    const lastTrackedTermRef = useRef<number | null>(null);
 
     const [copied, setCopied] = useState(false);
     const [jsDocCopied, setJsDocCopied] = useState(false);
+    const [favoritePulse, setFavoritePulse] = useState(false);
 
     // UX Avanzada
     const [selectedIndex, setSelectedIndex] = useState(-1);
@@ -1401,6 +1405,13 @@ export default function DiccionarioDevApp() {
         fetchRelated();
     }, [activeTerm]);
 
+    useEffect(() => {
+        if (!activeTerm?.id) return;
+        if (lastTrackedTermRef.current === activeTerm.id) return;
+        lastTrackedTermRef.current = activeTerm.id;
+        void trackTermUsage({ termId: activeTerm.id, action: "view", context: "app" });
+    }, [activeTerm?.id]);
+
     // Force Permission Request
     const requestMicrophonePermission = async () => {
         try {
@@ -1534,6 +1545,16 @@ export default function DiccionarioDevApp() {
         navigator.clipboard.writeText(text);
         setCopiedState(true);
         setTimeout(() => setCopiedState(false), 2000);
+        if (activeTerm?.id) {
+            void trackTermUsage({ termId: activeTerm.id, action: "copy", context: "app" });
+        }
+    };
+
+    const handleFavorite = () => {
+        if (!activeTerm?.id) return;
+        void trackTermUsage({ termId: activeTerm.id, action: "favorite", context: "app" });
+        setFavoritePulse(true);
+        window.setTimeout(() => setFavoritePulse(false), 1800);
     };
 
     // --- New Feature Helpers ---
@@ -2644,6 +2665,12 @@ export default function DiccionarioDevApp() {
                                         className="flex items-center gap-2 rounded-lg border border-slate-700 bg-slate-800 px-4 py-2 text-sm lg:text-base font-medium text-slate-300 hover:bg-slate-700 hover:text-white transition-colors whitespace-nowrap">
                                         {copied ? <Check className="h-4 w-4 lg:h-5 lg:w-5 text-emerald-400" /> : <Share2 className="h-4 w-4 lg:h-5 lg:w-5" />}
                                         {copied ? "Copiado" : "Compartir"}
+                                    </button>
+                                    <button
+                                        onClick={handleFavorite}
+                                        className="flex items-center gap-2 rounded-lg border border-amber-500/30 bg-amber-500/10 px-4 py-2 text-sm lg:text-base font-medium text-amber-200 hover:bg-amber-500/20 transition-colors whitespace-nowrap">
+                                        <Star className={`h-4 w-4 lg:h-5 lg:w-5 ${favoritePulse ? "text-amber-300" : "text-amber-200"}`} />
+                                        {favoritePulse ? "Guardado" : "Favorito"}
                                     </button>
                                     <button
                                         onClick={() => setShowCheatSheet(true)}

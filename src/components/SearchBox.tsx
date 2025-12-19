@@ -4,6 +4,7 @@ import { useEffect, useMemo, useRef, useState, type ClipboardEvent } from "react
 import { Prism as SyntaxHighlighter } from "react-syntax-highlighter";
 import { dracula } from "react-syntax-highlighter/dist/cjs/styles/prism";
 import { useI18n } from "@/lib/i18n";
+import { trackTermUsage } from "@/lib/usage";
 import type { TermDTO, TermVariantDTO, TermExampleDTO, TermExerciseDTO } from "@/types/term";
 import type { StructuralTranslationResult } from "@/types/translate";
 import { TbBriefcase, TbMicrophone, TbBug, TbBulb, TbListCheck, TbTarget, TbSparkles } from "react-icons/tb";
@@ -26,6 +27,7 @@ type SelectorPanelProps = {
 type ActionToolbarProps = {
   onCopyDefinition: () => void;
   onCopySnippet: () => void;
+  onFavorite: () => void;
   onOpenCheatSheet: () => void;
   onGenerateResponse: (lang: "es" | "en") => void;
   hint?: string | null;
@@ -448,6 +450,7 @@ function ResultPreview({ term, activeContext, variant }: { term: TermDTO; active
   const [cheatSheetOpen, setCheatSheetOpen] = useState(false);
   const [actionHint, setActionHint] = useState<string | null>(null);
   const hintTimeout = useRef<number | null>(null);
+  const lastTrackedRef = useRef<number | null>(null);
   const useCases = useMemo(() => term.useCases ?? [], [term.useCases]);
   const availableUseCaseContexts = useMemo(
     () => Array.from(new Set(useCases.map((useCase) => useCase.context))),
@@ -498,6 +501,13 @@ function ResultPreview({ term, activeContext, variant }: { term: TermDTO; active
     };
   }, []);
 
+  useEffect(() => {
+    if (!term?.id) return;
+    if (lastTrackedRef.current === term.id) return;
+    lastTrackedRef.current = term.id;
+    void trackTermUsage({ termId: term.id, action: "view", context: "searchbox" });
+  }, [term?.id]);
+
   const showActionHint = (message: string) => {
     setActionHint(message);
     if (hintTimeout.current) {
@@ -511,6 +521,7 @@ function ResultPreview({ term, activeContext, variant }: { term: TermDTO; active
     try {
       await navigator.clipboard.writeText(text);
       showActionHint('Definición copiada al portapapeles');
+      void trackTermUsage({ termId: term.id, action: "copy", context: "searchbox" });
     } catch {
       showActionHint('No se pudo copiar');
     }
@@ -520,6 +531,7 @@ function ResultPreview({ term, activeContext, variant }: { term: TermDTO; active
     try {
       await navigator.clipboard.writeText(snippetCode);
       showActionHint('Snippet copiado');
+      void trackTermUsage({ termId: term.id, action: "copy", context: "searchbox" });
     } catch {
       showActionHint('No se pudo copiar');
     }
@@ -530,9 +542,15 @@ function ResultPreview({ term, activeContext, variant }: { term: TermDTO; active
     try {
       await navigator.clipboard.writeText(text);
       showActionHint(language === 'es' ? 'Respuesta en ES lista' : 'Respuesta en EN lista');
+      void trackTermUsage({ termId: term.id, action: "copy", context: "searchbox" });
     } catch {
       showActionHint('No se pudo copiar la respuesta');
     }
+  };
+
+  const handleFavorite = () => {
+    void trackTermUsage({ termId: term.id, action: "favorite", context: "searchbox" });
+    showActionHint('Favorito registrado');
   };
 
   return (
@@ -569,6 +587,7 @@ function ResultPreview({ term, activeContext, variant }: { term: TermDTO; active
         <ActionToolbar
           onCopyDefinition={handleCopyDefinition}
           onCopySnippet={handleCopySnippet}
+          onFavorite={handleFavorite}
           onOpenCheatSheet={() => setCheatSheetOpen(true)}
           onGenerateResponse={handleGenerateResponse}
           hint={actionHint}
@@ -841,7 +860,7 @@ function SelectorPanel({
 
 
 
-function ActionToolbar({ onCopyDefinition, onCopySnippet, onOpenCheatSheet, onGenerateResponse, hint }: ActionToolbarProps) {
+function ActionToolbar({ onCopyDefinition, onCopySnippet, onFavorite, onOpenCheatSheet, onGenerateResponse, hint }: ActionToolbarProps) {
   return (
     <div className="flex flex-col gap-4 border-b border-neo-border/30 pb-6">
       <div className="flex flex-wrap gap-2 text-xs font-semibold">
@@ -850,6 +869,9 @@ function ActionToolbar({ onCopyDefinition, onCopySnippet, onOpenCheatSheet, onGe
         </button>
         <button className="btn-ghost" type="button" onClick={onCopySnippet}>
           Copiar snippet
+        </button>
+        <button className="btn-ghost" type="button" onClick={onFavorite}>
+          Favorito
         </button>
         <button className="btn-ghost" type="button" onClick={onOpenCheatSheet}>
           Abrir cheat sheet
