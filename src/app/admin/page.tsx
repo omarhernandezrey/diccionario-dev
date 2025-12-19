@@ -729,7 +729,7 @@ export function AdminConsole({ initialView = "overview" }: AdminConsoleProps) {
       setDeleteDialog(null);
     }
     try {
-      await loadTerms(q);
+      await loadTerms({ query: q, page, pageSize, status: statusFilter });
     } catch (error) {
       console.error("No se pudo sincronizar los términos tras eliminar", error);
     }
@@ -772,7 +772,7 @@ export function AdminConsole({ initialView = "overview" }: AdminConsoleProps) {
     setMessage(isNew ? "Término creado" : "Término actualizado");
     setEditing(null);
     try {
-      await loadTerms(q);
+      await loadTerms({ query: q, page, pageSize, status: statusFilter });
     } catch (error) {
       console.error("No se pudo sincronizar los términos tras guardar", error);
     }
@@ -820,17 +820,6 @@ export function AdminConsole({ initialView = "overview" }: AdminConsoleProps) {
         <p className="mt-4 w-full text-sm text-neo-text-secondary">
           Controla el glosario técnico, detecta huecos y administra accesos en un solo flujo operacional.
         </p>
-        {session?.bio ? (
-          <div className="mt-4 flex items-start gap-3 rounded-2xl border border-neo-border bg-neo-surface p-3 shadow-inner">
-            <div className="rounded-xl bg-neo-card p-2">
-              <Icon library="lucide" name="Quote" className="h-4 w-4 text-neo-primary" />
-            </div>
-            <div className="flex flex-col gap-1">
-              <span className="text-[11px] uppercase tracking-wide text-neo-text-secondary">Bio</span>
-              <p className="text-sm leading-relaxed text-neo-text-primary line-clamp-3">{session.bio}</p>
-            </div>
-          </div>
-        ) : null}
         {session && (!session.bio || !session.avatarUrl || session.displayName === session.username) ? (
           <div className="mt-4 flex flex-wrap items-start gap-3 rounded-2xl border border-amber-400/60 bg-amber-500/10 p-3 shadow-inner">
             <div className="rounded-xl bg-white/40 p-2">
