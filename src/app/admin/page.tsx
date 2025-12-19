@@ -2977,13 +2977,14 @@ function UseCasesEditor({ value, onChange }: UseCasesEditorProps) {
 }
 
 type FaqsEditorProps = {
-  value: TermFaqForm[];
+  value?: TermFaqForm[];
   onChange: (faqs: TermFaqForm[]) => void;
 };
 
 function FaqsEditor({ value, onChange }: FaqsEditorProps) {
-  const [list, setList] = useState<TermFaqForm[]>(value);
-  useEffect(() => setList(value), [value]);
+  const normalize = (items?: TermFaqForm[]) => (Array.isArray(items) ? items : []);
+  const [list, setList] = useState<TermFaqForm[]>(normalize(value));
+  useEffect(() => setList(normalize(value)), [value]);
   const sync = (next: TermFaqForm[]) => {
     setList(next);
     onChange(next);
