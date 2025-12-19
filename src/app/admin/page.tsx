@@ -142,6 +142,18 @@ type SummaryResponse = {
   error?: string;
 };
 
+type MissingTerm = {
+  query: string;
+  attempts: number;
+  lastSeen?: string | null;
+};
+
+type MissingTermsResponse = {
+  ok?: boolean;
+  items?: MissingTerm[];
+  error?: string;
+};
+
 type FetchTermsInput = {
   query: string;
   page: number;
@@ -212,6 +224,9 @@ export function AdminConsole({ initialView = "overview" }: AdminConsoleProps) {
   const [summary, setSummary] = useState<AdminSummary | null>(null);
   const [summaryLoading, setSummaryLoading] = useState(true);
   const [summaryError, setSummaryError] = useState<string | null>(null);
+  const [missingTerms, setMissingTerms] = useState<MissingTerm[]>([]);
+  const [missingLoading, setMissingLoading] = useState(false);
+  const [missingError, setMissingError] = useState<string | null>(null);
   const [editing, setEditing] = useState<Term | null>(null);
   const [detailLoading, setDetailLoading] = useState(false);
   const [session, setSession] = useState<SessionUser | null>(null);
@@ -440,6 +455,52 @@ export function AdminConsole({ initialView = "overview" }: AdminConsoleProps) {
     };
   }, [loadSummary, refreshIndex]);
 
+  const loadMissingTerms = useCallback(async (signal?: AbortSignal) => {
+    setMissingLoading(true);
+    setMissingError(null);
+    try {
+      const res = await fetch("/api/admin/missing-terms?limit=8", {
+        cache: "no-store",
+        credentials: "include",
+        signal,
+      });
+      let payload: MissingTermsResponse | null = null;
+      let textFallback = "";
+      try {
+        payload = (await res.json()) as MissingTermsResponse;
+      } catch {
+        textFallback = await res.text().catch(() => "");
+      }
+      if (!res.ok || payload?.ok === false) {
+        const message = extractErrorMessage(payload) || (textFallback?.trim() || res.statusText || "Error cargando radar");
+        throw new Error(message);
+      }
+      setMissingTerms(Array.isArray(payload?.items) ? payload.items : []);
+    } catch (error) {
+      if ((error as Error)?.name === "AbortError") return;
+      console.error("No se pudo cargar el radar de términos faltantes", error);
+      setMissingTerms([]);
+      setMissingError((error as Error)?.message || "No se pudo cargar el radar");
+    } finally {
+      if (signal?.aborted) return;
+      setMissingLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (!canEdit) {
+      setMissingTerms([]);
+      setMissingError(null);
+      setMissingLoading(false);
+      return;
+    }
+    const controller = new AbortController();
+    loadMissingTerms(controller.signal);
+    return () => {
+      controller.abort();
+    };
+  }, [canEdit, loadMissingTerms, refreshIndex, analyticsRefreshKey]);
+
   useEffect(() => {
     refreshSession();
   }, []);
@@ -504,6 +565,11 @@ export function AdminConsole({ initialView = "overview" }: AdminConsoleProps) {
     setPage(1);
   }, []);
 
+  const handleMissingRefresh = useCallback(() => {
+    if (!canEdit) return;
+    void loadMissingTerms();
+  }, [canEdit, loadMissingTerms]);
+
   const scheduleRefresh = useCallback(() => {
     setRefreshIndex((prev) => prev + 1);
   }, []);
@@ -528,6 +594,16 @@ export function AdminConsole({ initialView = "overview" }: AdminConsoleProps) {
     handleViewChange("terms");
     setEditing(empty);
   }, [empty, handleViewChange]);
+
+  const handleCreateFromQuery = useCallback(
+    (query: string) => {
+      const normalized = query.trim();
+      if (!normalized) return;
+      handleViewChange("terms");
+      setEditing({ ...empty, term: normalized });
+    },
+    [empty, handleViewChange],
+  );
 
   const loadTermDetail = useCallback(
     async (id: number) => {
@@ -901,6 +977,14 @@ export function AdminConsole({ initialView = "overview" }: AdminConsoleProps) {
         <div className="space-y-6">
           <AdminDashboard refreshToken={analyticsRefreshKey} />
           <TermPipelinePanel statusSummary={statusSummary} categories={categoryHighlights} />
+          <MissingTermsPanel
+            items={missingTerms}
+            loading={missingLoading}
+            error={missingError}
+            canEdit={canEdit}
+            onCreateFromQuery={handleCreateFromQuery}
+            onRefresh={handleMissingRefresh}
+          />
           <QuickActionsPanel
             autoRefresh={autoRefresh}
             lastAutoRefresh={lastAutoRefresh}
@@ -1796,6 +1880,84 @@ function QuickActionsPanel({
           </button>
         </article>
       </div>
+    </section>
+  );
+}
+
+type MissingTermsPanelProps = {
+  items: MissingTerm[];
+  loading: boolean;
+  error: string | null;
+  canEdit: boolean;
+  onCreateFromQuery: (query: string) => void;
+  onRefresh: () => void;
+};
+
+function MissingTermsPanel({ items, loading, error, canEdit, onCreateFromQuery, onRefresh }: MissingTermsPanelProps) {
+  return (
+    <section className="rounded-3xl border border-neo-border bg-neo-surface p-6 shadow-glow-card">
+      <header className="flex flex-wrap items-center justify-between gap-3">
+        <div>
+          <p className="text-xs uppercase tracking-wide text-neo-text-secondary">Radar editorial</p>
+          <h2 className="text-lg font-semibold">Términos faltantes</h2>
+        </div>
+        <div className="flex items-center gap-2 text-xs text-neo-text-secondary">
+          <span>{items.length ? `${items.length} señales activas` : "Sin señales"}</span>
+          <button className="btn-ghost text-xs" type="button" onClick={onRefresh} disabled={!canEdit || loading}>
+            {loading ? "Actualizando..." : "Actualizar"}
+          </button>
+        </div>
+      </header>
+      <p className="mt-2 text-sm text-neo-text-secondary">
+        Prioriza los términos que la audiencia busca sin encontrar respuesta.
+      </p>
+
+      {!canEdit ? (
+        <div className="mt-4 rounded-2xl border border-neo-border bg-neo-card px-4 py-4 text-sm text-neo-text-secondary">
+          Inicia sesión como admin para ver el radar y crear términos desde las búsquedas fallidas.
+        </div>
+      ) : loading ? (
+        <div className="mt-4 space-y-3">
+          {Array.from({ length: 4 }).map((_, index) => (
+            <div key={`missing-skeleton-${index}`} className="flex items-center justify-between rounded-2xl border border-neo-border bg-neo-card px-4 py-3">
+              <div className="h-4 w-2/3 rounded bg-neo-surface animate-pulse" />
+              <div className="h-8 w-28 rounded-xl bg-neo-surface animate-pulse" />
+            </div>
+          ))}
+        </div>
+      ) : error ? (
+        <div className="mt-4 rounded-2xl border border-accent-danger/40 bg-accent-danger/10 px-4 py-4 text-sm text-accent-danger">
+          <div className="flex items-center justify-between gap-3">
+            <span>{error}</span>
+            <button className="btn-ghost text-xs" type="button" onClick={onRefresh}>
+              Reintentar
+            </button>
+          </div>
+        </div>
+      ) : items.length ? (
+        <ul className="mt-4 space-y-3">
+          {items.map((item) => {
+            const lastSeen = item.lastSeen ? new Date(item.lastSeen).toLocaleString("es-ES") : "Sin fecha";
+            return (
+              <li key={item.query} className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-neo-border bg-neo-card px-4 py-3">
+                <div className="min-w-0">
+                  <p className="text-sm font-semibold text-neo-text-primary line-clamp-1">{item.query}</p>
+                  <p className="text-xs text-neo-text-secondary" suppressHydrationWarning>
+                    {item.attempts} intento(s) · Último: {lastSeen}
+                  </p>
+                </div>
+                <button className="btn-primary text-xs" type="button" onClick={() => onCreateFromQuery(item.query)}>
+                  Crear término
+                </button>
+              </li>
+            );
+          })}
+        </ul>
+      ) : (
+        <div className="mt-4 rounded-2xl border border-neo-border bg-neo-card px-4 py-4 text-sm text-neo-text-secondary">
+          No hay búsquedas sin resultados registradas recientemente.
+        </div>
+      )}
     </section>
   );
 }
