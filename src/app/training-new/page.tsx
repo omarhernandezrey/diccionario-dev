@@ -1,9 +1,14 @@
 "use client";
 
+import Link from "next/link";
+import { usePathname } from "next/navigation";
 import { useEffect, useMemo, useRef, useState } from "react";
+import { useSession } from "@/components/admin/SessionProvider";
 import type { QuizAttemptDTO, QuizTemplateDTO } from "@/types/quiz";
 
 export default function TrainingPage() {
+  const pathname = usePathname() || "";
+  const { session, loading: sessionLoading } = useSession();
   const [quizzes, setQuizzes] = useState<QuizTemplateDTO[]>([]);
   const [loadingQuizzes, setLoadingQuizzes] = useState(true);
   const [attempts, setAttempts] = useState<QuizAttemptDTO[]>([]);
@@ -57,6 +62,19 @@ export default function TrainingPage() {
     if (!selected) return false;
     return selected.items.every((_, index) => typeof answers[index] === "number");
   }, [selected, answers]);
+
+  const quickLinks = [
+    { label: "Home", href: "/" },
+    { label: "Training", href: "/training" },
+    { label: "Interview Live", href: "/interview/live" },
+  ];
+  if (session?.role === "admin") {
+    quickLinks.push({ label: "Dashboard", href: "/admin" });
+  }
+  if (!sessionLoading && !session) {
+    quickLinks.push({ label: "Autenticación", href: "/admin/access" });
+  }
+  const isActive = (href: string) => (href === "/" ? pathname === "/" : pathname.startsWith(href));
 
   async function refreshAttempts() {
     try {
@@ -112,6 +130,24 @@ export default function TrainingPage() {
 
   return (
     <main className="min-h-screen bg-neo-bg px-4 py-10 text-neo-text-primary">
+      <nav className="mx-auto mb-6 flex w-full max-w-6xl flex-wrap items-center gap-2">
+        {quickLinks.map((link) => {
+          const active = isActive(link.href);
+          return (
+            <Link
+              key={link.href}
+              href={link.href}
+              aria-current={active ? "page" : undefined}
+              className={`rounded-full border px-3 py-1.5 text-[11px] font-semibold uppercase tracking-[0.2em] transition ${active
+                ? "border-neo-primary bg-linear-to-r from-neo-primary to-neo-accent-purple text-white shadow-lg shadow-neo-primary/30"
+                : "border-neo-border bg-neo-surface text-neo-text-secondary hover:border-neo-primary/40 hover:text-neo-text-primary"
+                }`}
+            >
+              {link.label}
+            </Link>
+          );
+        })}
+      </nav>
       <div className="mx-auto flex w-full max-w-6xl flex-col gap-8 lg:flex-row">
         <section className="w-full rounded-3xl border border-neo-border bg-neo-card p-6 shadow-xl lg:w-1/3">
           <header className="mb-4">

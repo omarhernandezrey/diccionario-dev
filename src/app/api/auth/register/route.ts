@@ -4,10 +4,21 @@ import { prisma } from "@/lib/prisma";
 import { buildAuthCookie, hashPassword, requireAdmin, signJwt } from "@/lib/auth";
 import { ensureContributorProfile } from "@/lib/contributors";
 
+const optionalEmail = z.preprocess(
+  (val) => (typeof val === "string" && val.trim() === "" ? undefined : val),
+  z.string().email("Correo inválido.").optional(),
+);
+
+const passwordSchema = z
+  .string()
+  .min(8, "La contraseña debe tener al menos 8 caracteres")
+  .regex(/[a-zA-Z]/, "Incluye al menos una letra")
+  .regex(/\d/, "Incluye al menos un número");
+
 const registerSchema = z.object({
-  username: z.string().min(3, "El usuario debe tener al menos 3 caracteres"),
-  password: z.string().min(8, "La contraseña debe tener al menos 8 caracteres"),
-  email: z.string().email().optional(),
+  username: z.string().trim().min(3, "El usuario debe tener al menos 3 caracteres"),
+  password: passwordSchema,
+  email: optionalEmail,
   role: z.enum(["admin", "user"]).optional(),
 });
 
@@ -36,9 +47,11 @@ export async function POST(req: NextRequest) {
 
   // Permitir registro público de usuarios normales (sin restricciones de admin)
   
-  const uniqueFilters: Array<{ username: string } | { email: string }> = [{ username }];
+  const uniqueFilters: Array<{ username: { equals: string; mode: "insensitive" } } | { email: { equals: string; mode: "insensitive" } }> = [
+    { username: { equals: username, mode: "insensitive" } },
+  ];
   if (email) {
-    uniqueFilters.push({ email });
+    uniqueFilters.push({ email: { equals: email, mode: "insensitive" } });
   }
 
   const existing = await prisma.user.findFirst({
@@ -48,9 +61,8 @@ export async function POST(req: NextRequest) {
   });
 
   if (existing) {
-    const conflictField = existing.username === username ? "username" : "email";
     return NextResponse.json(
-      { ok: false, error: `${conflictField} already exists` },
+      { ok: false, error: "El usuario o correo ya existe" },
       { status: 409 },
     );
   }

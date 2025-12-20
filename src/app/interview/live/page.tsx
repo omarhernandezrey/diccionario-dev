@@ -1,10 +1,15 @@
 "use client";
 
+import Link from "next/link";
+import { usePathname } from "next/navigation";
 import { useEffect, useMemo, useRef, useState } from "react";
+import { useSession } from "@/components/admin/SessionProvider";
 import type { TermDTO } from "@/types/term";
 import SoftSkillsPanel from "@/components/SoftSkillsPanel";
 
 export default function InterviewLivePage() {
+  const pathname = usePathname() || "";
+  const { session, loading: sessionLoading } = useSession();
   const [query, setQuery] = useState("");
   const [term, setTerm] = useState<TermDTO | null>(null);
   const [status, setStatus] = useState<"idle" | "loading" | "ready" | "empty">("idle");
@@ -80,6 +85,19 @@ export default function InterviewLivePage() {
     };
   }, [term]);
 
+  const quickLinks = [
+    { label: "Home", href: "/" },
+    { label: "Training", href: "/training" },
+    { label: "Interview Live", href: "/interview/live" },
+  ];
+  if (session?.role === "admin") {
+    quickLinks.push({ label: "Dashboard", href: "/admin" });
+  }
+  if (!sessionLoading && !session) {
+    quickLinks.push({ label: "Autenticación", href: "/admin/access" });
+  }
+  const isActive = (href: string) => (href === "/" ? pathname === "/" : pathname.startsWith(href));
+
   function copyResponse(lang: "es" | "en") {
     if (!term) return;
     const text = buildInterviewResponse(term, meaning, usage, lang);
@@ -101,6 +119,24 @@ export default function InterviewLivePage() {
 
   return (
     <div className="min-h-screen bg-neo-bg p-6 text-neo-text-primary">
+      <nav className="mx-auto mb-6 flex w-full max-w-5xl flex-wrap items-center gap-2">
+        {quickLinks.map((link) => {
+          const active = isActive(link.href);
+          return (
+            <Link
+              key={link.href}
+              href={link.href}
+              aria-current={active ? "page" : undefined}
+              className={`rounded-full border px-3 py-1.5 text-[11px] font-semibold uppercase tracking-[0.2em] transition ${active
+                ? "border-neo-primary bg-linear-to-r from-neo-primary to-neo-accent-purple text-white shadow-lg shadow-neo-primary/30"
+                : "border-neo-border bg-neo-surface text-neo-text-secondary hover:border-neo-primary/40 hover:text-neo-text-primary"
+                }`}
+            >
+              {link.label}
+            </Link>
+          );
+        })}
+      </nav>
       <div className="mx-auto w-full max-w-5xl rounded-3xl border border-neo-border bg-white p-6 shadow-2xl shadow-neo-primary/10">
         <header className="flex flex-wrap items-center justify-between gap-3">
           <div>

@@ -48,6 +48,7 @@
     "react-syntax-highlighter": "^16.1.0",
     "recharts": "^3.4.1",
     "redis": "^4.7.0",
+    "resend": "^6.6.0",
     "swagger-ui-dist": "^5.30.2",
     "swr": "^2.3.6",
     "tabler-icons-react": "^1.56.0",

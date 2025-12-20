@@ -126,6 +126,32 @@ const registerPayloadSchema = registry.register(
   }),
 );
 
+const recoveryRequestSchema = registry.register(
+  "RecoveryRequest",
+  z.object({
+    identifier: z.string().min(3).openapi({ example: "admin@example.com" }),
+  }),
+);
+
+const recoveryConfirmSchema = registry.register(
+  "RecoveryConfirm",
+  z.object({
+    token: z.string().min(16).openapi({ example: "token" }),
+    password: z.string().min(8).openapi({ example: "NuevaPass123" }),
+  }),
+);
+
+const recoveryResponseSchema = registry.register(
+  "RecoveryResponse",
+  okResponseSchema.extend({
+    message: z.string().openapi({ example: "Si existe una cuenta asociada, enviaremos instrucciones para recuperar la contraseña." }),
+    expiresIn: z.number().int().optional().openapi({ example: 1800 }),
+    retryAfter: z.number().int().optional().openapi({ example: 60 }),
+    recoveryToken: z.string().optional().openapi({ example: "token" }),
+    resetUrl: z.string().optional().openapi({ example: "https://app.local/admin/access?token=token" }),
+  }),
+);
+
 const termsQuerySchema = registry.register(
   "TermsQuery",
   z.object({
@@ -280,6 +306,42 @@ registry.registerPath({
     400: { description: "Datos inválidos", content: { "application/json": { schema: errorResponseSchema } } },
     401: { description: "No autorizado", content: { "application/json": { schema: errorResponseSchema } } },
     409: { description: "Conflicto", content: { "application/json": { schema: errorResponseSchema } } },
+  },
+});
+
+registry.registerPath({
+  method: "post",
+  path: "/api/auth/recovery",
+  tags: ["Auth"],
+  summary: "Solicitar recuperación de contraseña",
+  request: {
+    body: {
+      content: {
+        "application/json": { schema: recoveryRequestSchema },
+      },
+    },
+  },
+  responses: {
+    200: { description: "Solicitud recibida", content: { "application/json": { schema: recoveryResponseSchema } } },
+    400: { description: "Datos inválidos", content: { "application/json": { schema: errorResponseSchema } } },
+  },
+});
+
+registry.registerPath({
+  method: "post",
+  path: "/api/auth/recovery/confirm",
+  tags: ["Auth"],
+  summary: "Confirmar recuperación y cambiar contraseña",
+  request: {
+    body: {
+      content: {
+        "application/json": { schema: recoveryConfirmSchema },
+      },
+    },
+  },
+  responses: {
+    200: { description: "Contraseña actualizada", content: { "application/json": { schema: recoveryResponseSchema } } },
+    400: { description: "Datos inválidos", content: { "application/json": { schema: errorResponseSchema } } },
   },
 });
 

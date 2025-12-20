@@ -23,6 +23,7 @@ export default function AdminAccessPage() {
 function AdminAccessPageInner() {
   const searchParams = useSearchParams();
   const returnUrl = searchParams?.get("returnUrl") || "/admin";
+  const recoveryTokenFromUrl = searchParams?.get("token") || "";
 
   const [session, setSession] = useState<SessionUser | null>(null);
   const [authLoading, setAuthLoading] = useState(true);
@@ -31,14 +32,34 @@ function AdminAccessPageInner() {
   const [allowBootstrap, setAllowBootstrap] = useState(false);
 
   const [loginForm, setLoginForm] = useState({ username: "", password: "" });
-  const [registerForm, setRegisterForm] = useState({ username: "", password: "", email: "", role: "admin" as "admin" | "user" });
+  const [registerForm, setRegisterForm] = useState({
+    username: "",
+    password: "",
+    confirm: "",
+    email: "",
+    role: "admin" as "admin" | "user",
+  });
+  const [recoveryStep, setRecoveryStep] = useState<"request" | "confirm">("request");
+  const [recoveryForm, setRecoveryForm] = useState({ identifier: "", token: "", password: "", confirm: "" });
+  const [recoveryMessage, setRecoveryMessage] = useState<string | null>(null);
+  const [recoveryError, setRecoveryError] = useState<string | null>(null);
+  const [tokenCopied, setTokenCopied] = useState(false);
+  const [recoveryTokenHint, setRecoveryTokenHint] = useState<string | null>(null);
 
   const [isLoggingIn, startLoginTransition] = useTransition();
   const [isRegistering, startRegisterTransition] = useTransition();
+  const [isRecovering, startRecoveryTransition] = useTransition();
 
   useEffect(() => {
     refreshSession();
   }, []);
+
+  useEffect(() => {
+    if (recoveryTokenFromUrl) {
+      setRecoveryStep("confirm");
+      setRecoveryForm((prev) => ({ ...prev, token: recoveryTokenFromUrl }));
+    }
+  }, [recoveryTokenFromUrl]);
 
   async function refreshSession() {
     setAuthLoading(true);
@@ -60,7 +81,27 @@ function AdminAccessPageInner() {
   }
 
   const loginDisabled = !loginForm.username.trim() || !loginForm.password.trim() || isLoggingIn;
-  const registerDisabled = !registerForm.username.trim() || !registerForm.password.trim() || isRegistering;
+  const passwordRules = [
+    { label: "8+ caracteres", test: (value: string) => value.length >= 8 },
+    { label: "1 letra", test: (value: string) => /[a-zA-Z]/.test(value) },
+    { label: "1 número", test: (value: string) => /\d/.test(value) },
+  ];
+  const registerPasswordValid = passwordRules.every((rule) => rule.test(registerForm.password));
+  const registerMismatch = registerForm.confirm && registerForm.password !== registerForm.confirm;
+  const registerDisabled =
+    !registerForm.username.trim() ||
+    !registerForm.password.trim() ||
+    !registerPasswordValid ||
+    !registerForm.confirm.trim() ||
+    registerMismatch ||
+    isRegistering;
+  const resetPasswordValid = passwordRules.every((rule) => rule.test(recoveryForm.password));
+  const resetMismatch = recoveryForm.confirm && recoveryForm.password !== recoveryForm.confirm;
+  const recoveryDisabled =
+    isRecovering ||
+    (recoveryStep === "request"
+      ? !recoveryForm.identifier.trim()
+      : !recoveryForm.token.trim() || !recoveryForm.confirm.trim() || !resetPasswordValid || resetMismatch);
 
   function login() {
     if (loginDisabled) return;
@@ -103,11 +144,17 @@ function AdminAccessPageInner() {
         headers["x-admin-token"] = process.env.NEXT_PUBLIC_ADMIN_TOKEN as string;
       }
       try {
+        const payload = {
+          username: registerForm.username,
+          password: registerForm.password,
+          email: registerForm.email,
+          role: registerForm.role,
+        };
         const res = await fetch("/api/auth/register", {
           method: "POST",
           credentials: "include",
           headers,
-          body: JSON.stringify(registerForm),
+          body: JSON.stringify(payload),
         });
         const data = await res.json().catch(() => ({}));
         if (!res.ok) {
@@ -118,9 +165,70 @@ function AdminAccessPageInner() {
         if (allowBootstrap) {
           refreshSession();
         }
-        setRegisterForm({ username: "", password: "", email: "", role: allowBootstrap ? "admin" : "user" });
+        setRegisterForm({ username: "", password: "", confirm: "", email: "", role: allowBootstrap ? "admin" : "user" });
       } catch {
         setError("No se pudo contactar el servidor");
+      }
+    });
+  }
+
+  function requestRecovery() {
+    if (!recoveryForm.identifier.trim()) return;
+    setRecoveryError(null);
+    setRecoveryMessage(null);
+    setTokenCopied(false);
+    setRecoveryTokenHint(null);
+    startRecoveryTransition(async () => {
+      try {
+        const res = await fetch("/api/auth/recovery", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ identifier: recoveryForm.identifier }),
+        });
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok) {
+          setRecoveryError(data?.error || "No se pudo iniciar la recuperación");
+          return;
+        }
+        setRecoveryMessage(data?.message || "Revisa tu correo para continuar.");
+        if (data?.recoveryToken) {
+          setRecoveryTokenHint(String(data.recoveryToken));
+          setRecoveryForm((prev) => ({ ...prev, token: String(data.recoveryToken) }));
+          setRecoveryStep("confirm");
+        } else {
+          setRecoveryStep("confirm");
+        }
+        if (data?.retryAfter) {
+          setRecoveryMessage(`Revisa tu correo. Puedes intentarlo de nuevo en ${data.retryAfter}s.`);
+        }
+      } catch {
+        setRecoveryError("No se pudo contactar el servidor");
+      }
+    });
+  }
+
+  function confirmRecovery() {
+    if (!recoveryForm.token.trim() || !recoveryForm.confirm.trim() || !resetPasswordValid || resetMismatch) return;
+    setRecoveryError(null);
+    setRecoveryMessage(null);
+    startRecoveryTransition(async () => {
+      try {
+        const res = await fetch("/api/auth/recovery/confirm", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ token: recoveryForm.token, password: recoveryForm.password }),
+        });
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok) {
+          setRecoveryError(data?.error || "No se pudo actualizar la contraseña");
+          return;
+        }
+        setRecoveryMessage(data?.message || "Contraseña actualizada.");
+        setRecoveryForm({ identifier: "", token: "", password: "", confirm: "" });
+        setRecoveryTokenHint(null);
+        setRecoveryStep("request");
+      } catch {
+        setRecoveryError("No se pudo contactar el servidor");
       }
     });
   }
@@ -169,7 +277,7 @@ function AdminAccessPageInner() {
         {error ? <p className="mt-2 text-sm text-accent-danger">{error}</p> : null}
       </section>
 
-      <div className="grid gap-6 lg:grid-cols-2">
+      <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
         <AuthCard
           title="Iniciar sesión"
           description="Autentica un administrador existente."
@@ -184,6 +292,7 @@ function AdminAccessPageInner() {
               className="mt-1 w-full rounded-2xl border border-neo-border bg-transparent px-4 py-2 text-neo-text-primary focus:border-neo-primary focus:outline-none"
               value={loginForm.username}
               onChange={(event) => setLoginForm({ ...loginForm, username: event.target.value })}
+              autoComplete="username"
             />
           </label>
           <label className="text-sm text-neo-text-secondary">
@@ -193,6 +302,7 @@ function AdminAccessPageInner() {
               className="mt-1 w-full rounded-2xl border border-neo-border bg-transparent px-4 py-2 text-neo-text-primary focus:border-neo-primary focus:outline-none"
               value={loginForm.password}
               onChange={(event) => setLoginForm({ ...loginForm, password: event.target.value })}
+              autoComplete="current-password"
             />
           </label>
         </AuthCard>
@@ -214,14 +324,17 @@ function AdminAccessPageInner() {
                 className="mt-1 w-full rounded-2xl border border-neo-border bg-transparent px-4 py-2 text-neo-text-primary focus:border-neo-primary focus:outline-none"
                 value={registerForm.username}
                 onChange={(event) => setRegisterForm({ ...registerForm, username: event.target.value })}
+                autoComplete="username"
               />
             </label>
             <label className="text-sm text-neo-text-secondary">
               Correo (opcional)
               <input
+                type="email"
                 className="mt-1 w-full rounded-2xl border border-neo-border bg-transparent px-4 py-2 text-neo-text-primary focus:border-neo-primary focus:outline-none"
                 value={registerForm.email}
                 onChange={(event) => setRegisterForm({ ...registerForm, email: event.target.value })}
+                autoComplete="email"
               />
             </label>
           </div>
@@ -233,22 +346,183 @@ function AdminAccessPageInner() {
                 className="mt-1 w-full rounded-2xl border border-neo-border bg-transparent px-4 py-2 text-neo-text-primary focus:border-neo-primary focus:outline-none"
                 value={registerForm.password}
                 onChange={(event) => setRegisterForm({ ...registerForm, password: event.target.value })}
+                autoComplete="new-password"
               />
             </label>
-            {!allowBootstrap && (
+            <label className="text-sm text-neo-text-secondary">
+              Confirmar contraseña
+              <input
+                type="password"
+                className="mt-1 w-full rounded-2xl border border-neo-border bg-transparent px-4 py-2 text-neo-text-primary focus:border-neo-primary focus:outline-none"
+                value={registerForm.confirm}
+                onChange={(event) => setRegisterForm({ ...registerForm, confirm: event.target.value })}
+                autoComplete="new-password"
+              />
+            </label>
+          </div>
+          {registerMismatch ? (
+            <p className="text-xs font-semibold text-accent-danger">Las contraseñas no coinciden.</p>
+          ) : null}
+          <div className="rounded-2xl border border-neo-border bg-neo-surface px-4 py-3">
+            <p className="text-[11px] font-semibold uppercase tracking-wide text-neo-text-secondary">Requisitos</p>
+            <div className="mt-2 flex flex-wrap gap-2">
+              {passwordRules.map((rule) => {
+                const valid = rule.test(registerForm.password);
+                return (
+                  <span
+                    key={rule.label}
+                    className={`rounded-full border px-2 py-0.5 text-[11px] font-semibold ${valid
+                      ? "border-emerald-500/40 text-emerald-600 dark:text-emerald-400"
+                      : "border-neo-border text-neo-text-secondary"
+                      }`}
+                  >
+                    {rule.label}
+                  </span>
+                );
+              })}
+            </div>
+          </div>
+          {!allowBootstrap && (
+            <label className="text-sm text-neo-text-secondary">
+              Rol
+              <select
+                className="mt-1 w-full rounded-2xl border border-neo-border bg-neo-surface px-4 py-2 text-neo-text-primary focus:border-neo-primary focus:outline-none"
+                value={registerForm.role}
+                onChange={(event) => setRegisterForm({ ...registerForm, role: event.target.value as "admin" | "user" })}
+              >
+                <option value="admin">Admin</option>
+                <option value="user">User</option>
+              </select>
+            </label>
+          )}
+        </AuthCard>
+
+        <AuthCard
+          title="Recuperar contraseña"
+          description="Solicita un enlace de recuperación o usa tu código temporal."
+          onSubmit={recoveryStep === "request" ? requestRecovery : confirmRecovery}
+          disabled={recoveryDisabled}
+          isPending={isRecovering}
+          actionLabel={recoveryStep === "request" ? "Enviar instrucciones" : "Actualizar contraseña"}
+        >
+          {recoveryStep === "request" ? (
+            <label className="text-sm text-neo-text-secondary">
+              Usuario o correo
+              <input
+                className="mt-1 w-full rounded-2xl border border-neo-border bg-transparent px-4 py-2 text-neo-text-primary focus:border-neo-primary focus:outline-none"
+                value={recoveryForm.identifier}
+                onChange={(event) => setRecoveryForm({ ...recoveryForm, identifier: event.target.value })}
+                autoComplete="username"
+              />
+              <span className="mt-2 block text-xs text-neo-text-secondary">
+                Te enviaremos instrucciones si existe una cuenta asociada.
+              </span>
+            </label>
+          ) : (
+            <>
               <label className="text-sm text-neo-text-secondary">
-                Rol
-                <select
-                  className="mt-1 w-full rounded-2xl border border-neo-border bg-neo-surface px-4 py-2 text-neo-text-primary focus:border-neo-primary focus:outline-none"
-                  value={registerForm.role}
-                  onChange={(event) => setRegisterForm({ ...registerForm, role: event.target.value as "admin" | "user" })}
-                >
-                  <option value="admin">Admin</option>
-                  <option value="user">User</option>
-                </select>
-              </label>
+                Código de recuperación
+              <input
+                className="mt-1 w-full rounded-2xl border border-neo-border bg-transparent px-4 py-2 text-neo-text-primary focus:border-neo-primary focus:outline-none"
+                value={recoveryForm.token}
+                onChange={(event) => setRecoveryForm({ ...recoveryForm, token: event.target.value })}
+                autoComplete="one-time-code"
+              />
+            </label>
+            <label className="text-sm text-neo-text-secondary">
+              Nueva contraseña
+              <input
+                type="password"
+                className="mt-1 w-full rounded-2xl border border-neo-border bg-transparent px-4 py-2 text-neo-text-primary focus:border-neo-primary focus:outline-none"
+                value={recoveryForm.password}
+                onChange={(event) => setRecoveryForm({ ...recoveryForm, password: event.target.value })}
+                autoComplete="new-password"
+              />
+            </label>
+            <label className="text-sm text-neo-text-secondary">
+              Confirmar contraseña
+              <input
+                type="password"
+                className="mt-1 w-full rounded-2xl border border-neo-border bg-transparent px-4 py-2 text-neo-text-primary focus:border-neo-primary focus:outline-none"
+                value={recoveryForm.confirm}
+                onChange={(event) => setRecoveryForm({ ...recoveryForm, confirm: event.target.value })}
+                autoComplete="new-password"
+              />
+            </label>
+              {resetMismatch ? (
+                <p className="text-xs font-semibold text-accent-danger">Las contraseñas no coinciden.</p>
+              ) : null}
+              <div className="rounded-2xl border border-neo-border bg-neo-surface px-4 py-3">
+                <p className="text-[11px] font-semibold uppercase tracking-wide text-neo-text-secondary">Requisitos</p>
+                <div className="mt-2 flex flex-wrap gap-2">
+                  {passwordRules.map((rule) => {
+                    const valid = rule.test(recoveryForm.password);
+                    return (
+                      <span
+                        key={rule.label}
+                        className={`rounded-full border px-2 py-0.5 text-[11px] font-semibold ${valid
+                          ? "border-emerald-500/40 text-emerald-600 dark:text-emerald-400"
+                          : "border-neo-border text-neo-text-secondary"
+                          }`}
+                      >
+                        {rule.label}
+                      </span>
+                    );
+                  })}
+                </div>
+              </div>
+            </>
+          )}
+
+          <div className="flex items-center justify-between text-xs">
+            {recoveryStep === "request" ? (
+              <button
+                type="button"
+                onClick={() => setRecoveryStep("confirm")}
+                className="font-semibold text-neo-text-secondary hover:text-neo-text-primary"
+              >
+                Ya tengo un código
+              </button>
+            ) : (
+              <button
+                type="button"
+                onClick={() => setRecoveryStep("request")}
+                className="font-semibold text-neo-text-secondary hover:text-neo-text-primary"
+              >
+                Solicitar otro código
+              </button>
             )}
           </div>
+
+          {recoveryTokenHint ? (
+            <div className="rounded-2xl border border-neo-border bg-neo-surface px-4 py-3">
+              <div className="flex items-center justify-between gap-2">
+                <p className="text-xs font-semibold text-neo-text-secondary">Código temporal (modo local)</p>
+                <button
+                  type="button"
+                  onClick={() => {
+                    navigator.clipboard.writeText(recoveryTokenHint);
+                    setTokenCopied(true);
+                  }}
+                  className="text-xs font-semibold text-neo-primary"
+                >
+                  {tokenCopied ? "Copiado" : "Copiar"}
+                </button>
+              </div>
+              <p className="mt-2 break-all text-xs font-mono text-neo-text-primary">{recoveryTokenHint}</p>
+            </div>
+          ) : null}
+
+          {recoveryError ? (
+            <p className="text-xs font-semibold text-accent-danger" role="alert">
+              {recoveryError}
+            </p>
+          ) : null}
+          {recoveryMessage ? (
+            <p className="text-xs font-semibold text-accent-secondary" aria-live="polite">
+              {recoveryMessage}
+            </p>
+          ) : null}
         </AuthCard>
       </div>
 

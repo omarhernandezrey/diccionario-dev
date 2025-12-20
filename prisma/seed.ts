@@ -13,6 +13,7 @@ import {
 import { createHash } from "crypto";
 import bcrypt from "bcryptjs";
 import { getMetricsSnapshot, incrementMetric, logger } from "@/lib/logger";
+import { buildTermQuizSeed } from "@/lib/quiz-from-terms";
 import type {
   SeedTerm,
   ExampleSnippet,
@@ -3961,7 +3962,7 @@ async function main() {
   incrementMetric("seed.terms.created", createdTerms.length);
 
   await seedSoftSkills(admin.id);
-  await seedQuizzes(admin.id);
+  await seedQuizzes(admin.id, createdTerms);
   await seedBadges(contributor.id);
 
   incrementMetric("seed.admin.upserted");
@@ -4066,7 +4067,10 @@ async function seedSoftSkills(adminId: number) {
   incrementMetric("seed.soft_skills.created", softSkillTemplatesSeed.length);
 }
 
-async function seedQuizzes(adminId: number) {
+async function seedQuizzes(
+  adminId: number,
+  terms: Prisma.TermGetPayload<{ include: { variants: true; useCases: true; faqs: true; exercises: true } }>[],
+) {
   for (const template of quizTemplatesSeed) {
     const created = await prisma.quizTemplate.create({
       data: {
@@ -4095,7 +4099,31 @@ async function seedQuizzes(adminId: number) {
       },
     });
   }
-  incrementMetric("seed.quizzes.created", quizTemplatesSeed.length);
+  const termQuizzes = buildTermQuizSeed(
+    terms.map((term) => ({
+      id: term.id,
+      term: term.term,
+      translation: term.translation ?? "",
+      meaning: term.meaning?.trim() || term.what?.trim() || term.how?.trim() || term.term,
+      meaningEn: term.meaningEn?.trim() || term.whatEn?.trim() || term.howEn?.trim() || null,
+      category: term.category,
+    })),
+  );
+
+  if (termQuizzes.length) {
+    await prisma.quizTemplate.createMany({
+      data: termQuizzes.map((quiz) => ({
+        slug: quiz.slug,
+        title: quiz.title,
+        description: quiz.description,
+        difficulty: quiz.difficulty,
+        tags: quiz.tags,
+        items: quiz.items,
+      })),
+    });
+  }
+
+  incrementMetric("seed.quizzes.created", quizTemplatesSeed.length + termQuizzes.length);
 }
 
 async function seedBadges(contributorId: number) {

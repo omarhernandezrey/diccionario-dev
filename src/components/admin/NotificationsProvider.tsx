@@ -15,6 +15,7 @@ export type AdminNotification = {
 type NotificationsContextValue = {
   notifications: AdminNotification[];
   unreadCount: number;
+  alertCount: number;
   loading: boolean;
   requireLogin: boolean;
   markAsRead: (id: number) => void;
@@ -126,18 +127,20 @@ export function NotificationsProvider({ children }: { children: React.ReactNode 
   }, [notifications, persist]);
 
   const unreadCount = useMemo(() => notifications.filter((notif) => !notif.read).length, [notifications]);
+  const alertCount = useMemo(() => notifications.filter((notif) => notif.type === "alert").length, [notifications]);
 
   const value = useMemo(
     () => ({
       notifications,
       unreadCount,
+      alertCount,
       loading,
       requireLogin,
       markAsRead,
       markAllRead,
       refresh,
     }),
-    [notifications, unreadCount, loading, requireLogin, markAsRead, markAllRead, refresh],
+    [notifications, unreadCount, alertCount, loading, requireLogin, markAsRead, markAllRead, refresh],
   );
 
   return <NotificationsContext.Provider value={value}>{children}</NotificationsContext.Provider>;

@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useCallback, useState, useEffect, useRef, KeyboardEvent, useMemo } from "react";
+import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import {
     Lightbulb,
@@ -22,8 +23,11 @@ import {
     ArrowRight,
     Share2,
     AlertCircle,
+    Dumbbell,
     Loader2,
+    LayoutDashboard,
     Settings,
+    ShieldCheck,
     X,
     FileJson,
     ThumbsUp,
@@ -31,6 +35,8 @@ import {
     Eye,
     Menu,
     Sparkles,
+    User,
+    Video,
     Camera,
     Github,
     Twitter,
@@ -755,7 +761,7 @@ function GeminiLoader({ term }: { term: string }) {
 
 export default function DiccionarioDevApp() {
     const searchParams = useSearchParams();
-    const { session, refreshSession } = useSession();
+    const { session, loading: sessionLoading, refreshSession } = useSession();
     const [searchTerm, setSearchTerm] = useState("");
     const debouncedSearch = useDebounce(searchTerm, 300);
 
@@ -839,9 +845,38 @@ export default function DiccionarioDevApp() {
         { label: "Buscar", href: "#buscar" },
         { label: "Extensiones", href: "#extensions" },
     ];
+    const appLinks = [
+        { label: "Training", href: "/training" },
+        { label: "Interview Live", href: "/interview/live" },
+    ];
     if (session?.role === "admin") {
-        navLinks.push({ label: "Panel", href: "/admin" });
+        appLinks.push({ label: "Dashboard", href: "/admin" });
     }
+    const accountLinks = session
+        ? [
+            { label: "Perfil", href: "/admin/profile" },
+            { label: "Configuración", href: "/admin/settings" },
+        ]
+        : [];
+    const adminLinks = session?.role === "admin"
+        ? [{ label: "Términos", href: "/admin/terms" }]
+        : [];
+    const authLinks = !session && !sessionLoading
+        ? [{ label: "Autenticación", href: "/admin/access" }]
+        : [];
+    const navIconMap: Record<string, React.ElementType> = {
+        Inicio: Home,
+        Buscar: Search,
+        Extensiones: Sparkles,
+        Training: Dumbbell,
+        "Interview Live": Video,
+        Dashboard: LayoutDashboard,
+        "Términos": BookOpen,
+        Perfil: User,
+        "Configuración": Settings,
+        Autenticación: ShieldCheck,
+    };
+    const routeLinks = [...appLinks, ...adminLinks, ...accountLinks, ...authLinks];
 
 	    // Reset editores y previews cuando cambia de usuario
 		    useEffect(() => {
@@ -1737,6 +1772,18 @@ export default function DiccionarioDevApp() {
                                         {link.label}
                                     </a>
                                 ))}
+                                {appLinks.length > 0 ? (
+                                    <span className="mx-1 h-4 w-px bg-slate-200 dark:bg-slate-700" aria-hidden />
+                                ) : null}
+                                {appLinks.map((link) => (
+                                    <Link
+                                        key={link.href}
+                                        href={link.href}
+                                        className="rounded-full px-3 py-1.5 text-[11px] font-semibold uppercase tracking-wide text-slate-600 dark:text-slate-300 transition-all hover:text-slate-900 dark:hover:text-white hover:bg-slate-200 dark:hover:bg-slate-800"
+                                    >
+                                        {link.label}
+                                    </Link>
+                                ))}
                             </div>
 
                             <div className="flex items-center gap-2">
@@ -1746,7 +1793,7 @@ export default function DiccionarioDevApp() {
                                 </div>
                                 {session && (
                                     <>
-                                        <a
+                                        <Link
                                             href="/admin/profile"
                                             className="hidden md:inline-flex items-center gap-2 rounded-full border border-slate-900 dark:border-slate-800 bg-white dark:bg-slate-900/70 px-3 py-1.5 text-sm lg:text-base font-semibold text-slate-900 dark:text-slate-200 hover:border-emerald-500/40 hover:text-emerald-600 dark:hover:text-white transition"
                                             title="Ver perfil"
@@ -1769,7 +1816,15 @@ export default function DiccionarioDevApp() {
                                                 <span className="absolute bottom-0 right-0 z-20 h-2.5 w-2.5 rounded-full bg-emerald-500 ring-2 ring-slate-900" />
                                             </span>
                                             <span className="max-w-[120px] truncate">{session.displayName || session.username}</span>
-                                        </a>
+                                        </Link>
+                                        <Link
+                                            href="/admin/settings"
+                                            className="hidden md:inline-flex h-10 w-10 items-center justify-center rounded-full border border-slate-900 dark:border-slate-800 bg-white dark:bg-slate-900/70 text-slate-600 dark:text-slate-300 transition hover:border-emerald-500/40 hover:text-emerald-600 dark:hover:text-white"
+                                            title="Configuración"
+                                            aria-label="Configuración"
+                                        >
+                                            <Settings className="h-4 w-4" />
+                                        </Link>
                                     </>
                                 )}
                                 <div className="hidden md:flex">
@@ -1813,7 +1868,7 @@ export default function DiccionarioDevApp() {
 				                                            className="hidden"
 				                                            onChange={handleCoverUpload}
 				                                        />
-					                                        <a
+					                                        <Link
 					                                            href="/admin/profile"
 					                                            className="absolute left-1/2 bottom-0 z-30 -translate-x-1/2 translate-y-1/2 sm:left-6 sm:translate-x-0"
 					                                        >
@@ -1848,16 +1903,16 @@ export default function DiccionarioDevApp() {
 				                                                    onChange={handleAvatarUpload}
 				                                                />
 					                                            </div>
-					                                        </a>
+					                                        </Link>
 					                                    </div>
 					                                </div>
 								                                <div className="relative z-10 overflow-hidden rounded-b-2xl bg-neo-card/70 px-4 sm:px-6 pb-4 pt-14 sm:pt-4 backdrop-blur-md border-t border-neo-border/70 dark:bg-black/55 dark:border-white/10">
 					                                    <div className="flex flex-col items-center gap-1 text-center sm:items-start sm:gap-2 sm:text-left sm:pl-24">
-					                                        <a href="/admin/profile" className="block group">
+					                                        <Link href="/admin/profile" className="block group">
 						                                            <h3 className="text-lg sm:text-xl font-bold text-emerald-700 leading-tight drop-shadow-none transition-colors group-hover:text-emerald-600 dark:text-emerald-400 dark:drop-shadow-[0_2px_10px_rgba(0,0,0,0.65)] dark:group-hover:text-emerald-300">
 						                                                {session.displayName || session.username}
 					                                            </h3>
-				                                        </a>
+				                                        </Link>
 				                                        <p className="text-sm lg:text-base text-slate-700 line-clamp-2 dark:text-slate-200/90">
 			                                            {session.bio || "Completa tu bio para que otros sepan en qué estás trabajando."}
 					                                        </p>
@@ -2170,7 +2225,7 @@ export default function DiccionarioDevApp() {
 
 	                        <div className="flex-1 overflow-y-auto p-4 space-y-4 no-scrollbar">
 	                            {session ? (
-	                                <a
+	                                <Link
 	                                    href="/admin/profile"
                                     className="flex items-center gap-3 rounded-2xl border border-neo-border bg-neo-card/70 px-3 py-3 transition-colors hover:border-neo-primary/40 hover:bg-neo-card"
                                     onClick={() => setShowMobileMenu(false)}
@@ -2198,7 +2253,7 @@ export default function DiccionarioDevApp() {
 	                                        </span>
 	                                        <span className="text-[10px] text-neo-text-secondary break-words">@{session.username}</span>
 	                                    </div>
-	                                </a>
+	                                </Link>
 	                            ) : null}
 
                             <div className="rounded-2xl border border-neo-border bg-neo-card/70 p-3 space-y-2">
@@ -2223,42 +2278,61 @@ export default function DiccionarioDevApp() {
 
                             <div className="space-y-2">
                                 {navLinks.map((link) => {
-                                    const IconComp =
-                                        link.label === "Inicio"
-                                            ? Home
-                                            : link.label === "Buscar"
-                                                ? Search
-                                                : link.label === "Extensiones"
-                                                    ? Sparkles
-                                                    : link.label === "Panel"
-                                                        ? Settings
-                                                        : Code2;
-                                    const isPanel = link.href.startsWith("/");
+                                    const IconComp = navIconMap[link.label] ?? Code2;
                                     return (
                                         <a
                                             key={link.href}
                                             href={link.href}
                                             onClick={() => setShowMobileMenu(false)}
-                                            className={`flex items-center justify-between gap-3 rounded-2xl border px-3 py-2.5 text-sm font-semibold transition-colors ${isPanel
-                                                ? "border-neo-primary/30 bg-neo-primary/10 text-neo-primary hover:border-neo-primary/50"
-                                                : "border-neo-border bg-neo-card/70 text-neo-text-primary hover:border-neo-primary/40 hover:bg-neo-card"
-                                                }`}
+                                            className="flex items-center justify-between gap-3 rounded-2xl border border-neo-border bg-neo-card/70 px-3 py-2.5 text-sm font-semibold text-neo-text-primary transition-colors hover:border-neo-primary/40 hover:bg-neo-card"
                                         >
                                             <span className="flex items-center gap-3 min-w-0">
-                                                <span className={`flex h-9 w-9 items-center justify-center rounded-xl ${isPanel
-                                                    ? "bg-neo-primary/15 text-neo-primary"
-                                                    : "bg-neo-surface text-neo-text-secondary"
-                                                    }`}
-                                                >
+                                                <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-neo-surface text-neo-text-secondary">
                                                     <IconComp className="h-5 w-5" />
                                                 </span>
 	                                                <span className="leading-tight break-words">{link.label}</span>
 	                                            </span>
-                                            {isPanel ? <ArrowRight className="h-4 w-4 text-neo-primary" /> : null}
                                         </a>
                                     );
                                 })}
                             </div>
+                            {routeLinks.length > 0 ? (
+                                <>
+                                    <div className="flex items-center justify-between px-1 text-[11px] uppercase tracking-[0.2em] text-neo-text-secondary">
+                                        <span>Páginas</span>
+                                        <span className="flex-1 mx-3 h-px bg-neo-border/70" />
+                                    </div>
+                                    <div className="space-y-2">
+                                        {routeLinks.map((link) => {
+                                            const IconComp = navIconMap[link.label] ?? Code2;
+                                            const isEmphasis = link.href === "/admin" || link.href === "/admin/terms";
+                                            return (
+                                                <Link
+                                                    key={link.href}
+                                                    href={link.href}
+                                                    onClick={() => setShowMobileMenu(false)}
+                                                    className={`flex items-center justify-between gap-3 rounded-2xl border px-3 py-2.5 text-sm font-semibold transition-colors ${isEmphasis
+                                                        ? "border-neo-primary/30 bg-neo-primary/10 text-neo-primary hover:border-neo-primary/50"
+                                                        : "border-neo-border bg-neo-card/70 text-neo-text-primary hover:border-neo-primary/40 hover:bg-neo-card"
+                                                        }`}
+                                                >
+                                                    <span className="flex items-center gap-3 min-w-0">
+                                                        <span className={`flex h-9 w-9 items-center justify-center rounded-xl ${isEmphasis
+                                                            ? "bg-neo-primary/15 text-neo-primary"
+                                                            : "bg-neo-surface text-neo-text-secondary"
+                                                            }`}
+                                                        >
+                                                            <IconComp className="h-5 w-5" />
+                                                        </span>
+                                                        <span className="leading-tight break-words">{link.label}</span>
+                                                    </span>
+                                                    {isEmphasis ? <ArrowRight className="h-4 w-4 text-neo-primary" /> : null}
+                                                </Link>
+                                            );
+                                        })}
+                                    </div>
+                                </>
+                            ) : null}
 
                             <div className="rounded-2xl border border-neo-border bg-neo-card/70 p-3 space-y-2">
                                 <div className="flex items-center justify-between">

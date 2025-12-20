@@ -328,7 +328,7 @@ export function AdminConsole({ initialView = "overview" }: AdminConsoleProps) {
   const [analyticsPulse, setAnalyticsPulse] = useState<"idle" | "loading" | "ok" | "error">("idle");
   const [lastAnalyticsPing, setLastAnalyticsPing] = useState<string | null>(null);
   const [analyticsRefreshKey, setAnalyticsRefreshKey] = useState(0);
-  const { notifications, unreadCount, refresh: refreshNotifications, loading: notificationsLoading } = useNotifications();
+  const { notifications, alertCount, refresh: refreshNotifications, loading: notificationsLoading } = useNotifications();
 
   const empty: Term = useMemo(
     () => ({
@@ -1164,7 +1164,7 @@ export function AdminConsole({ initialView = "overview" }: AdminConsoleProps) {
           <IntegrationsStatusPanel
             termsStatus={termsStatus}
             analyticsStatus={analyticsPulse}
-            notificationsStatus={notificationsLoading ? "loading" : unreadCount ? "warning" : "ok"}
+            notificationsStatus={notificationsLoading ? "loading" : alertCount ? "warning" : "ok"}
             authStatus={session ? "ok" : authLoading ? "loading" : "error"}
             lastAnalyticsPing={lastAnalyticsPing}
             lastAutoRefresh={lastAutoRefresh}
@@ -1222,7 +1222,7 @@ export function AdminConsole({ initialView = "overview" }: AdminConsoleProps) {
             today={today}
             onLogout={logout}
             onRefresh={refreshSession}
-            alertCount={unreadCount}
+            alertCount={alertCount}
             alertsSyncing={notificationsLoading}
             onSyncAlerts={refreshNotifications}
           />
@@ -1561,8 +1561,8 @@ function TermsTable({
             )}
           </p>
         </div>
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
-        <label className="w-full text-sm text-neo-text-secondary sm:w-64">
+      <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center lg:justify-end">
+        <label className="w-full text-sm text-neo-text-secondary sm:flex-1 sm:min-w-[220px] lg:min-w-[260px] xl:min-w-[320px]">
           <span className="sr-only">Buscar término</span>
           <div className="flex items-center gap-2 rounded-2xl border border-neo-border bg-neo-card px-3 py-2">
               <span aria-hidden>🔍</span>
@@ -1575,7 +1575,7 @@ function TermsTable({
               />
             </div>
           </label>
-          <label className="text-sm text-neo-text-secondary">
+          <label className="shrink-0 text-sm text-neo-text-secondary sm:min-w-[160px]">
             Estado
             <select
               className="mt-1 rounded-2xl border border-neo-border bg-neo-card px-3 py-2 text-neo-text-primary focus:border-accent-secondary focus:outline-none"
@@ -1590,7 +1590,7 @@ function TermsTable({
               ))}
             </select>
           </label>
-          <button className="btn-primary" type="button" onClick={onCreate} disabled={!canEdit}>
+          <button className="btn-primary shrink-0" type="button" onClick={onCreate} disabled={!canEdit}>
             Crear término
           </button>
         </div>
@@ -1727,14 +1727,14 @@ function TermsTable({
                   className="h-4 w-4 rounded border-neo-border bg-transparent"
                 />
               </th>
-              <th className="hidden w-16 px-2 py-3 lg:table-cell lg:px-4">#</th>
+              <th className="hidden w-16 px-2 py-3 xl:table-cell lg:px-4">#</th>
               <th className="px-2 py-3 lg:px-4">Traducción</th>
-              <th className="hidden px-2 py-3 xl:table-cell lg:px-4">Término</th>
-              <th className="hidden w-20 px-2 py-3 lg:table-cell lg:px-4">Ejer.</th>
+              <th className="hidden px-2 py-3 2xl:table-cell lg:px-4">Término</th>
+              <th className="hidden w-20 px-2 py-3 xl:table-cell lg:px-4">Ejer.</th>
               <th className="w-20 px-2 py-3 lg:w-24 lg:px-4">Calidad</th>
               <th className="w-20 px-2 py-3 lg:w-24 lg:px-4">Estado</th>
-              <th className="hidden w-24 px-2 py-3 xl:table-cell lg:px-4">Categoría</th>
-              <th className="w-28 px-2 py-3 lg:w-32 lg:px-4">Acciones</th>
+              <th className="hidden w-24 px-2 py-3 2xl:table-cell lg:px-4">Categoría</th>
+              <th className="w-24 px-2 py-3 lg:w-24 xl:w-28 2xl:w-40 lg:px-4">Acciones</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-neo-border">
@@ -1744,16 +1744,16 @@ function TermsTable({
                   <td className="px-2 py-3 lg:px-4">
                     <div className="h-4 w-4 rounded border border-neo-border bg-neo-card" />
                   </td>
-                  <td className="hidden px-2 py-3 lg:table-cell lg:px-4">
+                  <td className="hidden px-2 py-3 xl:table-cell lg:px-4">
                     <div className="h-4 w-12 rounded bg-neo-card" />
                   </td>
                   <td className="px-2 py-3 lg:px-4">
                     <div className="h-4 w-full rounded bg-neo-card" />
                   </td>
-                  <td className="hidden px-2 py-3 xl:table-cell lg:px-4">
+                  <td className="hidden px-2 py-3 2xl:table-cell lg:px-4">
                     <div className="h-4 w-full rounded bg-neo-card" />
                   </td>
-                  <td className="hidden px-2 py-3 lg:table-cell lg:px-4">
+                  <td className="hidden px-2 py-3 xl:table-cell lg:px-4">
                     <div className="h-4 w-8 rounded bg-neo-card" />
                   </td>
                   <td className="px-2 py-3 lg:px-4">
@@ -1762,7 +1762,7 @@ function TermsTable({
                   <td className="px-2 py-3 lg:px-4">
                     <div className="h-5 w-16 rounded-full bg-neo-card" />
                   </td>
-                  <td className="hidden px-2 py-3 xl:table-cell lg:px-4">
+                  <td className="hidden px-2 py-3 2xl:table-cell lg:px-4">
                     <div className="h-5 w-16 rounded-full bg-neo-card" />
                   </td>
                   <td className="px-2 py-3 lg:px-4">
@@ -1806,17 +1806,17 @@ function TermsTable({
                       className="h-4 w-4 rounded border-neo-border bg-transparent"
                     />
                   </td>
-                  <td className="hidden px-2 py-3 text-neo-text-secondary lg:table-cell lg:px-4">{item.id}</td>
+                  <td className="hidden px-2 py-3 text-neo-text-secondary xl:table-cell lg:px-4">{item.id}</td>
                   <td className="px-2 py-3 lg:px-4">
                     <div className="min-w-0">
                       <p className="truncate font-semibold text-neo-text-primary">{item.translation}</p>
-                      <p className="truncate text-xs text-neo-text-secondary xl:hidden">{item.term}</p>
+                      <p className="truncate text-xs text-neo-text-secondary 2xl:hidden">{item.term}</p>
                     </div>
                   </td>
-                  <td className="hidden px-2 py-3 xl:table-cell lg:px-4">
+                  <td className="hidden px-2 py-3 2xl:table-cell lg:px-4">
                     <span className="truncate text-neo-text-secondary">{item.term}</span>
                   </td>
-                  <td className="hidden px-2 py-3 lg:table-cell lg:px-4">
+                  <td className="hidden px-2 py-3 xl:table-cell lg:px-4">
                     {item.exerciseCount && item.exerciseCount > 0 ? (
                       <span className="inline-flex items-center rounded-full bg-accent-secondary/10 px-2 py-1 text-xs font-medium text-accent-secondary">
                         {item.exerciseCount}
@@ -1844,18 +1844,18 @@ function TermsTable({
                       {item.status}
                     </span>
                   </td>
-                  <td className="hidden px-2 py-3 xl:table-cell lg:px-4">
+                  <td className="hidden px-2 py-3 2xl:table-cell lg:px-4">
                     <span className="truncate rounded-full bg-neo-card px-2 py-1 text-xs capitalize text-neo-text-secondary">{item.category}</span>
                   </td>
                   <td className="px-2 py-3 lg:px-4">
-                    <div className="flex gap-1">
-                      <button className="btn-ghost px-2 py-1 text-xs" type="button" onClick={() => onEdit(item.id)} disabled={!canEdit}>
-                        <span className="hidden lg:inline">Editar</span>
-                        <Icon library="lucide" name="Pencil" className="h-3.5 w-3.5 lg:hidden" />
+                    <div className="flex flex-col gap-1 xl:flex-row xl:items-center">
+                      <button className="btn-ghost btn-ghost-compact" type="button" onClick={() => onEdit(item.id)} disabled={!canEdit}>
+                        <span className="hidden 2xl:inline">Editar</span>
+                        <Icon library="lucide" name="Pencil" className="h-3.5 w-3.5 2xl:hidden" />
                       </button>
-                      <button className="btn-ghost px-2 py-1 text-xs" type="button" onClick={() => onDelete(item.id)} disabled={!canEdit}>
-                        <span className="hidden lg:inline">Eliminar</span>
-                        <Icon library="lucide" name="Trash2" className="h-3.5 w-3.5 lg:hidden" />
+                      <button className="btn-ghost btn-ghost-compact" type="button" onClick={() => onDelete(item.id)} disabled={!canEdit}>
+                        <span className="hidden 2xl:inline">Eliminar</span>
+                        <Icon library="lucide" name="Trash2" className="h-3.5 w-3.5 2xl:hidden" />
                       </button>
                     </div>
                   </td>
@@ -2463,7 +2463,11 @@ function OpsTimelinePanel({ recentTerms, notifications, lastManualRefresh, lastA
         tone: term.status === "approved" ? "success" : term.status === "rejected" ? "alert" : "info",
       });
     });
-    notifications.slice(0, 3).forEach((notif) => {
+    const sortedNotifications = [...notifications].sort((a, b) => {
+      if (a.type !== b.type) return a.type === "alert" ? -1 : 1;
+      return new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime();
+    });
+    sortedNotifications.slice(0, 3).forEach((notif) => {
       events.push({
         title: notif.title,
         detail: notif.detail,

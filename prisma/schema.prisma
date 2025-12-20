@@ -82,6 +82,24 @@ model User {
   contributorProfile ContributorProfile?
   contributions      Contribution[]
   quizAttempts       QuizAttempt[]
+  resetTokens        PasswordResetToken[]
+}
+
+model PasswordResetToken {
+  id        Int      @id @default(autoincrement())
+  userId    Int
+  tokenHash String   @unique
+  createdAt DateTime @default(now())
+  expiresAt DateTime
+  usedAt    DateTime?
+  ip        String?
+  userAgent String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([expiresAt])
+  @@index([usedAt])
 }
 
 model TermVariant {

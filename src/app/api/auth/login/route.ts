@@ -18,13 +18,14 @@ export async function POST(req: NextRequest) {
   }
 
   const { username, password } = parsed.data;
+  const identifier = username.trim();
   
   // Permitir login por username O email
   const user = await prisma.user.findFirst({
     where: {
       OR: [
-        { username: username },
-        { email: username } // El campo "username" del form puede contener un email
+        { username: { equals: identifier, mode: "insensitive" } },
+        { email: { equals: identifier, mode: "insensitive" } } // El campo "username" del form puede contener un email
       ]
     }
   });
@@ -35,7 +36,7 @@ export async function POST(req: NextRequest) {
 
   const valid = await comparePassword(password, user.password);
   if (!valid) {
-    return NextResponse.json({ ok: false, error: "Invalid credentials" }, { status: 401 });
+    return NextResponse.json({ ok: false, error: "Credenciales inválidas" }, { status: 401 });
   }
 
   const token = signJwt({ id: user.id, username: user.username, role: user.role });
