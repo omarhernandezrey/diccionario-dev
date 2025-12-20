@@ -96,7 +96,7 @@ function AdminAccessPageInner() {
     registerMismatch ||
     isRegistering;
   const resetPasswordValid = passwordRules.every((rule) => rule.test(recoveryForm.password));
-  const resetMismatch = recoveryForm.confirm && recoveryForm.password !== recoveryForm.confirm;
+  const resetMismatch = Boolean(recoveryForm.confirm && recoveryForm.password !== recoveryForm.confirm);
   const recoveryDisabled =
     isRecovering ||
     (recoveryStep === "request"

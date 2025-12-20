@@ -11,7 +11,7 @@ export type AnalyticsSummary = {
   languagesTotal: number;
 };
 
-const SEARCH_MODES = ["list", "app", "widget", "create"] as const;
+const SEARCH_MODES: string[] = ["list", "app", "widget", "create"];
 
 export async function getAnalyticsSummary(limit = 10): Promise<AnalyticsSummary> {
   const [topTermsGroup, languageUsage, contextUsage, emptyQueries, totalSearches, totalEmptyQueries] = await Promise.all([
@@ -45,29 +45,36 @@ export async function getAnalyticsSummary(limit = 10): Promise<AnalyticsSummary>
     : [];
   const lookup = new Map(terms.map((term) => [term.id, term.term]));
 
-  const sortByCountDesc = <T extends { _count?: { _all?: number } | null }>(arr: T[]) =>
-    [...arr].sort((a, b) => (b._count?._all ?? 0) - (a._count?._all ?? 0));
+  const getCount = (entry: { _count?: { _all?: number } | number | null }) => {
+    if (typeof entry._count === 'number') return entry._count;
+    if (entry._count && typeof entry._count === 'object') return entry._count._all ?? 0;
+    return 0;
+  };
 
-  const topTerms = sortByCountDesc(topTermsGroup)
+  const topTermsSorted = [...topTermsGroup].sort((a, b) => getCount(b) - getCount(a));
+  const topTerms = topTermsSorted
     .filter((entry): entry is typeof entry & { termId: number } => entry.termId !== null)
     .slice(0, limit)
     .map((entry) => ({
       termId: entry.termId,
       term: lookup.get(entry.termId) ?? "Desconocido",
-      hits: entry._count?._all ?? 0,
+      hits: getCount(entry),
     }));
 
-  const languages = sortByCountDesc(languageUsage)
+  const languagesSorted = [...languageUsage].sort((a, b) => getCount(b) - getCount(a));
+  const languages = languagesSorted
     .slice(0, limit)
-    .map((entry) => ({ language: entry.language, count: entry._count?._all ?? 0 }));
+    .map((entry) => ({ language: entry.language, count: getCount(entry) }));
 
-  const contexts = sortByCountDesc(contextUsage)
+  const contextsSorted = [...contextUsage].sort((a, b) => getCount(b) - getCount(a));
+  const contexts = contextsSorted
     .slice(0, limit)
-    .map((entry) => ({ context: entry.context, count: entry._count?._all ?? 0 }));
+    .map((entry) => ({ context: entry.context, count: getCount(entry) }));
 
-  const empty = sortByCountDesc(emptyQueries)
+  const emptySorted = [...emptyQueries].sort((a, b) => getCount(b) - getCount(a));
+  const empty = emptySorted
     .slice(0, limit)
-    .map((entry) => ({ query: entry.query, attempts: entry._count?._all ?? 0 }));
+    .map((entry) => ({ query: entry.query, attempts: getCount(entry) }));
 
   return {
     topTerms,

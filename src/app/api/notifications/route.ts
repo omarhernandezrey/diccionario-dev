@@ -4,9 +4,9 @@ import { getTokenFromHeaders, verifyJwt } from "@/lib/auth";
 
 export const dynamic = "force-dynamic";
 
-const SEARCH_MODES = ["list", "app", "widget", "create"] as const;
+const SEARCH_MODES: string[] = ["list", "app", "widget", "create"];
 const DAY_MS = 24 * 60 * 60 * 1000;
-const NOTIFICATION_IDS = {
+const NOTIFICATION_IDS: Record<string, number> = {
   pendingUserTerms: 100,
   pendingAllTerms: 110,
   userActivity: 120,
@@ -15,7 +15,7 @@ const NOTIFICATION_IDS = {
   emptySpike: 200,
   approvalsDrop: 210,
   staleReview: 220,
-} as const;
+};
 
 const toNumber = (value: string | undefined, fallback: number) => {
   const parsed = Number(value);
@@ -86,10 +86,13 @@ export async function GET(req: NextRequest) {
     ];
 
     if (emptyQueries.length) {
+      const emptyCount = typeof emptyQueries[0]._count === 'object' 
+        ? (emptyQueries[0]._count as { query?: number })?.query ?? 0 
+        : 0;
       items.push({
         id: NOTIFICATION_IDS.emptyQuery,
         title: "Búsqueda sin respuesta",
-        detail: `“${emptyQueries[0].query}” falló ${emptyQueries[0]._count?.query ?? 0} vez/veces.`,
+        detail: `"${emptyQueries[0].query}" falló ${emptyCount} vez/veces.`,
         type: "alert" as const,
         timestamp: nowIso,
         read: false,
