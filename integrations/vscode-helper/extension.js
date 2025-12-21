@@ -7,6 +7,9 @@ const http = require("http");
  */
 function activate(context) {
   const output = vscode.window.createOutputChannel("Diccionario Dev");
+  
+  // Log de activación para debugging
+  output.appendLine("✅ Diccionario Dev Helper activado");
 
   const disposable = vscode.commands.registerCommand("diccionarioDev.translateSelection", async () => {
     const editor = vscode.window.activeTextEditor;
@@ -23,6 +26,11 @@ function activate(context) {
     const config = vscode.workspace.getConfiguration("diccionarioDev");
     const baseUrl = normalizeBaseUrl(config.get("baseUrl"));
     const defaultContext = config.get("defaultContext") || "dictionary";
+    
+    output.appendLine(`🔍 Consultando: "${trimTo(query, 50)}"`);
+    output.appendLine(`📡 URL base: ${baseUrl}`);
+    output.show(true);
+    
     try {
       if (shouldTranslate(query)) {
         await handleTranslate(query, baseUrl, output);
@@ -30,9 +38,31 @@ function activate(context) {
         await handleLookup(query, baseUrl, defaultContext, output);
       }
     } catch (error) {
-      output.appendLine(`⚠️ Error solicitando datos: ${error?.message ?? error}`);
+      const errorMsg = error?.message ?? String(error);
+      output.appendLine(`⚠️ Error solicitando datos: ${errorMsg}`);
       output.show(true);
-      vscode.window.showErrorMessage("No se pudo contactar el backend de Diccionario Dev.");
+      
+      if (errorMsg.includes("ECONNREFUSED")) {
+        vscode.window.showErrorMessage(
+          "No se pudo conectar al backend. Verifica que Next.js esté corriendo en " + baseUrl,
+          "Abrir configuración"
+        ).then(selection => {
+          if (selection === "Abrir configuración") {
+            vscode.commands.executeCommand("workbench.action.openSettings", "diccionarioDev.baseUrl");
+          }
+        });
+      } else if (errorMsg.includes("ENOTFOUND") || errorMsg.includes("DNS")) {
+        vscode.window.showErrorMessage(
+          "Error de DNS. El dominio no está accesible. Usa http://localhost:3000 para desarrollo.",
+          "Abrir configuración"
+        ).then(selection => {
+          if (selection === "Abrir configuración") {
+            vscode.commands.executeCommand("workbench.action.openSettings", "diccionarioDev.baseUrl");
+          }
+        });
+      } else {
+        vscode.window.showErrorMessage("No se pudo contactar el backend de Diccionario Dev: " + errorMsg);
+      }
     }
   });
 

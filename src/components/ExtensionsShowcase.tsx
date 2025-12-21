@@ -139,7 +139,7 @@ export default function ExtensionsShowcase({ variant = "slate" }: ExtensionsShow
               <span className={`${isNeo ? "text-neo-text-secondary" : "text-slate-600 dark:text-slate-500"} text-[10px] font-medium`}>Comando: Diccionario Dev: Buscar</span>
             </div>
           </div>
-          <div className={`${isNeo ? "border-neo-border/60 bg-neo-bg text-neo-text-secondary" : "border-slate-200 dark:border-slate-800 bg-slate-100 dark:bg-gradient-to-br dark:from-slate-900 dark:via-slate-900 dark:to-slate-950 text-slate-700 dark:text-slate-400"} mt-3 rounded-lg border p-3 text-[11px] lg:text-sm font-medium`}>
+          <div className={`${isNeo ? "border-neo-border/60 bg-neo-bg text-neo-text-secondary" : "border-slate-200 dark:border-slate-800 bg-slate-100 dark:bg-slate-900 text-slate-700 dark:text-slate-400"} mt-3 rounded-lg border p-3 text-[11px] lg:text-sm font-medium`}>
             Las extensiones usan la misma API de búsqueda, soporte ES/EN y detección de código que la app principal.
           </div>
         </div>

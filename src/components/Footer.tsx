@@ -21,7 +21,7 @@ export default function Footer({ variant = "neo" }: FooterProps) {
         }`}
     >
       <div
-        className={`absolute inset-x-0 top-0 h-px ${isNeo ? "bg-linear-to-r from-transparent via-neo-primary/50 to-transparent" : "bg-gradient-to-r from-transparent via-slate-900/10 dark:via-emerald-500/40 to-transparent"
+        className={`absolute inset-x-0 top-0 h-px ${isNeo ? "bg-linear-to-r from-transparent via-neo-primary/50 to-transparent" : "bg-linear-to-r from-transparent via-slate-900/10 dark:via-emerald-500/40 to-transparent"
           }`}
       />
       <div
@@ -76,7 +76,7 @@ export default function Footer({ variant = "neo" }: FooterProps) {
 	                    className={`h-1.5 w-1.5 rounded-full ${isNeo ? "bg-neo-primary" : "bg-emerald-500 dark:bg-emerald-400"
 	                      } shrink-0`}
 	                  />
-	                  <span className="break-words">{chip}</span>
+                     <span className="wrap-break-word">{chip}</span>
 	                </span>
 	              ))}
             </div>
@@ -90,7 +90,7 @@ export default function Footer({ variant = "neo" }: FooterProps) {
 	                href="/"
 	                className={`flex w-full items-center justify-center gap-2 rounded-2xl px-6 py-3.5 text-sm lg:text-base font-semibold text-white shadow-none dark:shadow-lg transition-all hover:-translate-y-0.5 ${isNeo
 	                  ? "bg-linear-to-r from-neo-primary to-neo-accent-purple"
-	                  : "bg-gradient-to-r from-emerald-500 to-indigo-500"
+	                  : "bg-linear-to-r from-emerald-500 to-indigo-500"
 	                  } active:scale-[0.98] whitespace-nowrap sm:col-span-2`}
 	              >
 	                Abrir app

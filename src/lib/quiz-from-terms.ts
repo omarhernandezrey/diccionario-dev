@@ -1,5 +1,6 @@
 import { Difficulty } from "@prisma/client";
 import type { SeedQuiz } from "@/lib/quiz-seed";
+import type { QuizItem } from "@/types/quiz";
 
 export type TermQuizRecord = {
   id: number;
@@ -11,11 +12,11 @@ export type TermQuizRecord = {
 };
 
 export type TermQuizOptions = {
-  perQuiz?: number;
+  itemsPerQuiz?: number;
   maxOptionLength?: number;
 };
 
-export const DEFAULT_TERMS_PER_QUIZ = 12;
+export const DEFAULT_ITEMS_PER_QUIZ = 10;
 export const DEFAULT_MAX_OPTION_LENGTH = 120;
 
 const CATEGORY_LABELS: Record<string, string> = {
@@ -32,6 +33,14 @@ const CATEGORY_DIFFICULTY: Record<string, Difficulty> = {
   database: Difficulty.medium,
   devops: Difficulty.hard,
   general: Difficulty.easy,
+};
+
+const DIFFICULTY_CYCLE: Difficulty[] = [Difficulty.easy, Difficulty.medium, Difficulty.hard];
+
+const DIFFICULTY_INDICES: Record<Difficulty, number> = {
+  easy: 0,
+  medium: 1,
+  hard: 2,
 };
 
 const normalizeText = (value: string) => value.trim();
@@ -179,7 +188,7 @@ const buildMeaningItem = (
   term: TermQuizRecord,
   pools: OptionPools,
   maxOptionLength: number,
-) => {
+): QuizItem => {
   const correct = normalizeText(term.meaning);
   const correctOption = truncate(correct, maxOptionLength);
   const category = term.category || "general";
@@ -210,8 +219,23 @@ const buildMeaningItem = (
   };
 };
 
+const buildTermItems = (
+  term: TermQuizRecord,
+  pools: OptionPools,
+  maxOptionLength: number,
+): QuizItem[] => {
+  const items: QuizItem[] = [];
+  if (term.translation?.trim()) {
+    items.push(buildTranslationItem(term, pools, maxOptionLength));
+  }
+  if (term.meaning?.trim()) {
+    items.push(buildMeaningItem(term, pools, maxOptionLength));
+  }
+  return items;
+};
+
 export function buildTermQuizSeed(terms: TermQuizRecord[], options: TermQuizOptions = {}): SeedQuiz[] {
-  const perQuiz = Math.max(3, options.perQuiz ?? DEFAULT_TERMS_PER_QUIZ);
+  const perQuiz = Math.max(3, options.itemsPerQuiz ?? DEFAULT_ITEMS_PER_QUIZ);
   const maxOptionLength = Math.max(60, options.maxOptionLength ?? DEFAULT_MAX_OPTION_LENGTH);
   const pools = buildOptionPools(terms);
   const grouped: Record<string, TermQuizRecord[]> = {};
@@ -226,26 +250,25 @@ export function buildTermQuizSeed(terms: TermQuizRecord[], options: TermQuizOpti
 
   Object.keys(grouped).forEach((category) => {
     const categoryTerms = grouped[category]
-      .filter((term) => term.term?.trim() && term.meaning?.trim())
+      .filter((term) => term.term?.trim() && (term.meaning?.trim() || term.translation?.trim()))
       .sort((a, b) => a.term.localeCompare(b.term));
     if (!categoryTerms.length) return;
 
-    const items = categoryTerms.map((term) =>
-      term.translation?.trim()
-        ? buildTranslationItem(term, pools, maxOptionLength)
-        : buildMeaningItem(term, pools, maxOptionLength),
-    );
+    const items = categoryTerms.flatMap((term) => buildTermItems(term, pools, maxOptionLength));
 
     const chunks = chunk(items, perQuiz);
     const label = CATEGORY_LABELS[category] || "General";
-    const difficulty = CATEGORY_DIFFICULTY[category] || Difficulty.medium;
+    const baseDifficulty = CATEGORY_DIFFICULTY[category] || Difficulty.medium;
+    const baseIndex = DIFFICULTY_INDICES[baseDifficulty];
 
     chunks.forEach((chunkItems, index) => {
+      const cycleIndex = (baseIndex + index) % DIFFICULTY_CYCLE.length;
+      const cycleDifficulty = DIFFICULTY_CYCLE[cycleIndex];
       quizzes.push({
-        slug: `terms-${category}-${index + 1}`,
+        slug: `terms-${category}-${index + 1}-${cycleDifficulty}`,
         title: `Terminos ${label} - Quiz ${index + 1}`,
-        description: `Quiz de ${label} con ${chunkItems.length} terminos del catalogo.`,
-        difficulty,
+        description: `Quiz de ${label} con ${chunkItems.length} preguntas derivadas del catalogo.`,
+        difficulty: cycleDifficulty,
         tags: [category, "terms"],
         items: chunkItems,
       });

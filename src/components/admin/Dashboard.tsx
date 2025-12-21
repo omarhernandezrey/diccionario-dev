@@ -169,7 +169,7 @@ export default function AdminDashboard({ refreshToken = 0 }: { refreshToken?: nu
                   className="hover:bg-neo-surface transition-colors"
                 >
                   <td className="w-10 px-4 py-3 text-neo-text-secondary">{idx + 1}</td>
-                  <td className="px-4 py-3 font-medium text-neo-text-primary break-words">
+                  <td className="px-4 py-3 font-medium text-neo-text-primary wrap-break-word">
                     {term.term}
                   </td>
                   <td className="w-28 px-4 py-3 text-right">

@@ -98,6 +98,7 @@ export type TermDTO = {
   status: ReviewStatus;
   reviewedAt?: string | null;
   reviewedById?: number | null;
+  hasInterviewUseCase?: boolean;
 };
 
 export type ReviewStatus = "pending" | "in_review" | "approved" | "rejected";

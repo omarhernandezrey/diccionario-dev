@@ -228,7 +228,7 @@ function CodeBlock({ code, language = "javascript", showLineNumbers = true }: { 
 	                    {code}
 	                </Highlighter>
 	            ) : (
-	                <pre className="overflow-x-hidden p-4 font-mono text-xs lg:text-sm text-slate-200 whitespace-pre-wrap break-words sm:overflow-x-auto sm:whitespace-pre">{code}</pre>
+	                <pre className="overflow-x-hidden p-4 font-mono text-xs lg:text-sm text-slate-200 whitespace-pre-wrap wrap-break-word sm:overflow-x-auto sm:whitespace-pre">{code}</pre>
 	            )}
 	        </div>
 	    );
@@ -368,15 +368,20 @@ function useDebounce<T>(value: T, delay: number): T {
 }
 
 function useLocalStorage<T>(key: string, initialValue: T): [T, (value: T | ((val: T) => T)) => void] {
+    const initialRef = useRef(initialValue);
+    useEffect(() => {
+        initialRef.current = initialValue;
+    }, [initialValue]);
+
     const readValue = useCallback((storageKey: string) => {
-        if (typeof window === "undefined") return initialValue;
+        if (typeof window === "undefined") return initialRef.current;
         try {
             const item = window.localStorage.getItem(storageKey);
-            return item ? JSON.parse(item) : initialValue;
+            return item ? (JSON.parse(item) as T) : initialRef.current;
         } catch {
-            return initialValue;
+            return initialRef.current;
         }
-    }, [initialValue]);
+    }, []);
 
     const [storedValue, setStoredValue] = useState<T>(() => readValue(key));
 
@@ -840,6 +845,9 @@ export default function DiccionarioDevApp() {
 	    const avatarPreviewRef = useRef<HTMLDivElement | null>(null);
 	    const [isDraggingAvatar, setIsDraggingAvatar] = useState(false);
 	    const dragAvatarRef = useRef<{ x: number; y: number; offsetPxX: number; offsetPxY: number } | null>(null);
+    const isAdmin = session?.role === "admin";
+    const profileHref = isAdmin ? "/admin/profile" : "/admin/access?returnUrl=/admin/profile";
+    const settingsHref = isAdmin ? "/admin/settings" : "/admin/access?returnUrl=/admin/settings";
     const navLinks = [
         { label: "Inicio", href: "#inicio" },
         { label: "Buscar", href: "#buscar" },
@@ -854,8 +862,8 @@ export default function DiccionarioDevApp() {
     }
     const accountLinks = session
         ? [
-            { label: "Perfil", href: "/admin/profile" },
-            { label: "Configuración", href: "/admin/settings" },
+            { label: "Perfil", href: profileHref },
+            { label: "Configuración", href: settingsHref },
         ]
         : [];
     const adminLinks = session?.role === "admin"
@@ -1682,7 +1690,7 @@ export default function DiccionarioDevApp() {
                                 <h3 className="text-xs lg:text-sm font-bold uppercase text-slate-500 mb-3 flex items-center gap-2">
                                     <Code2 className="h-4 w-4 lg:h-5 lg:w-5" /> Sintaxis Rápida
                                 </h3>
-	                                <div className="bg-[#282a36] rounded-lg p-3 border border-slate-800 text-xs lg:text-sm font-mono overflow-x-hidden whitespace-pre-wrap break-words sm:overflow-x-auto sm:whitespace-pre">
+	                                <div className="bg-[#282a36] rounded-lg p-3 border border-slate-800 text-xs lg:text-sm font-mono overflow-x-hidden whitespace-pre-wrap wrap-break-word sm:overflow-x-auto sm:whitespace-pre">
 	                                    {activeVariant ? activeVariant.snippet.split('\n')[0] : 'Sintaxis no disponible'}
 	                                </div>
 	                            </div>
@@ -1794,7 +1802,7 @@ export default function DiccionarioDevApp() {
                                 {session && (
                                     <>
                                         <Link
-                                            href="/admin/profile"
+                                            href={profileHref}
                                             className="hidden md:inline-flex items-center gap-2 rounded-full border border-slate-900 dark:border-slate-800 bg-white dark:bg-slate-900/70 px-3 py-1.5 text-sm lg:text-base font-semibold text-slate-900 dark:text-slate-200 hover:border-emerald-500/40 hover:text-emerald-600 dark:hover:text-white transition"
                                             title="Ver perfil"
                                         >
@@ -1818,7 +1826,7 @@ export default function DiccionarioDevApp() {
                                             <span className="max-w-[120px] truncate">{session.displayName || session.username}</span>
                                         </Link>
                                         <Link
-                                            href="/admin/settings"
+                                            href={settingsHref}
                                             className="hidden md:inline-flex h-10 w-10 items-center justify-center rounded-full border border-slate-900 dark:border-slate-800 bg-white dark:bg-slate-900/70 text-slate-600 dark:text-slate-300 transition hover:border-emerald-500/40 hover:text-emerald-600 dark:hover:text-white"
                                             title="Configuración"
                                             aria-label="Configuración"
@@ -1869,7 +1877,7 @@ export default function DiccionarioDevApp() {
 				                                            onChange={handleCoverUpload}
 				                                        />
 					                                        <Link
-					                                            href="/admin/profile"
+					                                            href={profileHref}
 					                                            className="absolute left-1/2 bottom-0 z-30 -translate-x-1/2 translate-y-1/2 sm:left-6 sm:translate-x-0"
 					                                        >
 					                                            <div className="relative h-16 w-16 sm:h-20 sm:w-20 rounded-full border-2 border-white/70 bg-neo-surface overflow-visible shadow-xl ring-2 ring-white/20 hover:scale-105 transition shrink-0 dark:bg-slate-800">
@@ -1908,7 +1916,10 @@ export default function DiccionarioDevApp() {
 					                                </div>
 								                                <div className="relative z-10 overflow-hidden rounded-b-2xl bg-neo-card/70 px-4 sm:px-6 pb-4 pt-14 sm:pt-4 backdrop-blur-md border-t border-neo-border/70 dark:bg-black/55 dark:border-white/10">
 					                                    <div className="flex flex-col items-center gap-1 text-center sm:items-start sm:gap-2 sm:text-left sm:pl-24">
-					                                        <Link href="/admin/profile" className="block group">
+					                                        <Link
+					                                            href={profileHref}
+					                                            className="block group"
+					                                        >
 						                                            <h3 className="text-lg sm:text-xl font-bold text-emerald-700 leading-tight drop-shadow-none transition-colors group-hover:text-emerald-600 dark:text-emerald-400 dark:drop-shadow-[0_2px_10px_rgba(0,0,0,0.65)] dark:group-hover:text-emerald-300">
 						                                                {session.displayName || session.username}
 					                                            </h3>
@@ -2225,8 +2236,8 @@ export default function DiccionarioDevApp() {
 
 	                        <div className="flex-1 overflow-y-auto p-4 space-y-4 no-scrollbar">
 	                            {session ? (
-	                                <Link
-	                                    href="/admin/profile"
+		                                <Link
+		                                    href={profileHref}
                                     className="flex items-center gap-3 rounded-2xl border border-neo-border bg-neo-card/70 px-3 py-3 transition-colors hover:border-neo-primary/40 hover:bg-neo-card"
                                     onClick={() => setShowMobileMenu(false)}
                                 >
@@ -2248,10 +2259,10 @@ export default function DiccionarioDevApp() {
                                         <span className="absolute bottom-0 right-0 z-20 h-2.5 w-2.5 rounded-full bg-emerald-500 ring-2 ring-neo-card" />
                                     </span>
                                     <div className="flex flex-col leading-tight min-w-0">
-	                                        <span className="text-sm font-semibold text-neo-text-primary break-words line-clamp-2">
+	                                        <span className="text-sm font-semibold text-neo-text-primary wrap-break-word line-clamp-2">
 	                                            {session.displayName || session.username}
 	                                        </span>
-	                                        <span className="text-[10px] text-neo-text-secondary break-words">@{session.username}</span>
+	                                        <span className="text-[10px] text-neo-text-secondary wrap-break-word">@{session.username}</span>
 	                                    </div>
 	                                </Link>
 	                            ) : null}
@@ -2290,7 +2301,7 @@ export default function DiccionarioDevApp() {
                                                 <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-neo-surface text-neo-text-secondary">
                                                     <IconComp className="h-5 w-5" />
                                                 </span>
-	                                                <span className="leading-tight break-words">{link.label}</span>
+	                                                <span className="leading-tight wrap-break-word">{link.label}</span>
 	                                            </span>
                                         </a>
                                     );
@@ -2314,7 +2325,7 @@ export default function DiccionarioDevApp() {
                                                     className={`flex items-center justify-between gap-3 rounded-2xl border px-3 py-2.5 text-sm font-semibold transition-colors ${isEmphasis
                                                         ? "border-neo-primary/30 bg-neo-primary/10 text-neo-primary hover:border-neo-primary/50"
                                                         : "border-neo-border bg-neo-card/70 text-neo-text-primary hover:border-neo-primary/40 hover:bg-neo-card"
-                                                        }`}
+                                                    }`}
                                                 >
                                                     <span className="flex items-center gap-3 min-w-0">
                                                         <span className={`flex h-9 w-9 items-center justify-center rounded-xl ${isEmphasis
@@ -2324,7 +2335,7 @@ export default function DiccionarioDevApp() {
                                                         >
                                                             <IconComp className="h-5 w-5" />
                                                         </span>
-                                                        <span className="leading-tight break-words">{link.label}</span>
+                                                        <span className="leading-tight wrap-break-word">{link.label}</span>
                                                     </span>
                                                     {isEmphasis ? <ArrowRight className="h-4 w-4 text-neo-primary" /> : null}
                                                 </Link>
@@ -2718,7 +2729,7 @@ export default function DiccionarioDevApp() {
                             <div className="grid grid-cols-1 lg:grid-cols-[1fr_auto] gap-4 lg:gap-6 items-start">
                                 <div className="min-w-0">
                                     <p className="text-xs lg:text-sm uppercase text-emerald-700 dark:text-emerald-400 font-bold tracking-wider">⭐ {activeTerm.term} — Guía Técnica Definitiva</p>
-	                                    <h2 className="text-xl sm:text-2xl md:text-3xl lg:text-4xl xl:text-5xl font-bold text-slate-900 dark:text-white tracking-tight mt-1 break-words">
+	                                    <h2 className="text-xl sm:text-2xl md:text-3xl lg:text-4xl xl:text-5xl font-bold text-slate-900 dark:text-white tracking-tight mt-1 wrap-break-word">
 	                                        {activeTerm.term} {activeTerm.translation ? <span className="text-slate-500 font-medium text-sm sm:text-base lg:text-lg">({activeTerm.translation})</span> : null}
 	                                    </h2>
                                     <div className="mt-4 flex gap-2 flex-wrap text-sm lg:text-base text-slate-500 dark:text-slate-400">
@@ -2785,7 +2796,7 @@ export default function DiccionarioDevApp() {
 
                         {/* SECCIÓN 3: CÓMO FUNCIONA */}
                         <div className="space-y-4">
-                            <div className="rounded-2xl border-2 border-amber-500/50 dark:border-amber-500/20 bg-amber-50 dark:bg-slate-900/50 dark:bg-gradient-to-br dark:from-amber-500/10 dark:to-transparent p-6 space-y-4 shadow-sm">
+                            <div className="rounded-2xl border-2 border-amber-500/50 dark:border-amber-500/20 bg-amber-50 dark:bg-amber-950/30 p-6 space-y-4 shadow-sm">
                                 <div className="flex items-center gap-2 text-amber-700 dark:text-amber-400">
                                     <Lightbulb className="h-5 w-5 lg:h-6 lg:w-6" />
                                     <h3 className="font-bold uppercase tracking-wide text-sm lg:text-base">4. Cómo funciona</h3>

@@ -2,7 +2,7 @@
   "name": "diccionario-dev-helper",
   "displayName": "Diccionario Dev Helper",
   "description": "Traducir código o explicar conceptos seleccionados en VSCode usando la API de Diccionario Dev.",
-  "version": "0.1.2",
+  "version": "0.1.4",
   "publisher": "omar-hernandez-rey",
   "engines": {
     "vscode": "^1.85.0"
@@ -10,6 +10,7 @@
   "categories": [
     "Other"
   ],
+  "activationEvents": [],
   "main": "./extension.js",
   "scripts": {
     "package": "vsce package -o diccionario-dev-helper.vsix --allow-missing-repository"
@@ -20,6 +21,14 @@
         "command": "diccionarioDev.translateSelection",
         "title": "Diccionario Dev: Traducir o explicar selección",
         "category": "Diccionario Dev"
+      }
+    ],
+    "keybindings": [
+      {
+        "command": "diccionarioDev.translateSelection",
+        "key": "ctrl+shift+d",
+        "mac": "cmd+shift+d",
+        "when": "editorTextFocus"
       }
     ],
     "configuration": {

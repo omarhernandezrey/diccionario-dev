@@ -304,7 +304,7 @@ export default function SearchBox({ variant = "dark" }: SearchBoxProps) {
                 key={term}
                 type="button"
                 className={`rounded-full border px-3 py-1 transition ${tone(
-                  "border-neo-border bg-neo-surface text-neo-text-secondary hover:bg-white",
+                  "border-neo-border bg-neo-surface text-neo-text-secondary hover:bg-neo-card",
                   "border-neo-border bg-neo-surface text-neo-text-secondary hover:bg-neo-card hover:text-neo-text-primary",
                 )}`}
                 onClick={() => setSearch(term)}
@@ -741,7 +741,7 @@ function ResultPreview({ term, activeContext, variant }: { term: TermDTO; active
 
                       {useCase.steps.map((step, i) => (
                         <div key={i} className="relative flex gap-4 group">
-                          <div className="relative z-10 shrink-0 w-6 h-6 rounded-full bg-neo-surface border-2 border-neo-primary flex items-center justify-center text-[10px] font-bold text-neo-primary group-hover:scale-110 transition-transform bg-white dark:bg-black">
+                          <div className="relative z-10 shrink-0 w-6 h-6 rounded-full border-2 border-neo-primary flex items-center justify-center text-[10px] font-bold text-neo-primary group-hover:scale-110 transition-transform bg-white dark:bg-black">
                             {i + 1}
                           </div>
                           <p className="text-sm text-neo-text-secondary pt-0.5 group-hover:text-neo-text-primary transition-colors">
@@ -1400,7 +1400,7 @@ function GeminiLoader({ term, variant }: { term: string; variant: SearchBoxVaria
         {/* The Text - Modern & Clean */}
         <div className="space-y-3 w-full">
           <p className={`text-lg sm:text-xl md:text-2xl font-medium tracking-tight ${tone("text-neo-text-primary", "text-white/90")}`}>
-            Buscando <span className={`font-bold text-transparent bg-clip-text break-words ${tone(
+            Buscando <span className={`font-bold text-transparent bg-clip-text wrap-break-word ${tone(
               "bg-linear-to-r from-neo-primary to-neo-accent-purple",
               "bg-linear-to-r from-emerald-400 to-cyan-400"
             )}`}>&quot;{term}&quot;</span>

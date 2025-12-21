@@ -243,7 +243,7 @@ function AdminAccessPageInner() {
 
   return (
     <div className="min-w-0 space-y-8 text-neo-text-primary">
-      <section className="min-w-0 rounded-[32px] border border-neo-border bg-neo-card p-5 sm:p-8 shadow-glow-card">
+      <section className="min-w-0 rounded-4xl border border-neo-border bg-neo-card p-5 sm:p-8 shadow-glow-card">
         <div className="flex flex-col gap-4 sm:flex-row sm:flex-wrap sm:items-center">
           <div className="flex items-center gap-4">
             <div className="shrink-0 rounded-3xl border border-neo-border bg-neo-surface p-3 shadow-glow-card">

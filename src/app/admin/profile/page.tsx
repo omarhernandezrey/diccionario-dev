@@ -578,7 +578,7 @@ export default function AdminProfilePage() {
               <h3 className="text-lg sm:text-xl font-bold text-neo-text-primary leading-tight">
                 {displayName || session.username}
               </h3>
-              <p className="text-sm text-neo-text-secondary/90 line-clamp-2 break-words">
+              <p className="text-sm text-neo-text-secondary/90 line-clamp-2 wrap-break-word">
                 {bio || "Completa tu bio para que otros sepan en qué estás trabajando."}
               </p>
             </div>
@@ -793,7 +793,7 @@ export default function AdminProfilePage() {
           </div>
           <p className="text-sm font-medium text-neo-text-secondary">@{session?.username}</p>
           {bio && (
-            <p className="mt-1 w-full text-sm leading-relaxed text-neo-text-secondary/90 whitespace-pre-line break-words">
+            <p className="mt-1 w-full text-sm leading-relaxed text-neo-text-secondary/90 whitespace-pre-line wrap-break-word">
               {bio}
             </p>
           )}

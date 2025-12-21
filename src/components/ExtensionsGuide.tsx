@@ -4,11 +4,11 @@ import { Chrome, History, Keyboard, MousePointerClick, PanelRightOpen, Sparkles 
 import { VscVscode } from "react-icons/vsc";
 
 export default function ExtensionsGuide() {
-  const cardBase = "w-full min-w-0 overflow-hidden rounded-2xl border-2 border-slate-900 dark:border-slate-800 bg-white dark:bg-slate-900/80 p-4 sm:p-6 shadow-none dark:shadow-[0_25px_60px_rgba(0,0,0,0.35)] break-words";
+  const cardBase = "w-full min-w-0 overflow-hidden rounded-2xl border-2 border-slate-900 dark:border-slate-800 bg-white dark:bg-slate-900/80 p-4 sm:p-6 shadow-none dark:shadow-[0_25px_60px_rgba(0,0,0,0.35)] wrap-break-word";
 
   return (
     <section className="mx-auto w-full max-w-7xl px-4 lg:px-6 xl:px-8">
-      <div className="rounded-3xl border border-slate-900 dark:border-slate-800 bg-white dark:bg-gradient-to-br dark:from-slate-950 dark:via-slate-900 dark:to-slate-950 p-4 sm:p-6 md:p-10 shadow-none dark:shadow-[0_30px_80px_rgba(0,0,0,0.55)] overflow-hidden">
+      <div className="rounded-3xl border border-slate-900 dark:border-slate-800 bg-white dark:bg-slate-900 p-4 sm:p-6 md:p-10 shadow-none dark:shadow-[0_30px_80px_rgba(0,0,0,0.55)] overflow-hidden">
         <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
           <div className="space-y-2 w-full min-w-0">
             <span className="inline-flex items-center gap-2 rounded-full border border-emerald-500/30 bg-emerald-100 dark:bg-emerald-500/10 px-3 py-1 text-[11px] lg:text-xs font-bold uppercase tracking-[0.15em] text-emerald-700 dark:text-emerald-200">
@@ -42,7 +42,7 @@ export default function ExtensionsGuide() {
               <div className="grid gap-3 md:grid-cols-2">
                 <div className="flex flex-col gap-3 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/60 p-3">
                   <p className="text-[11px] lg:text-xs font-bold uppercase tracking-[0.14em] text-slate-500 dark:text-slate-400">Instalación</p>
-                  <ol className="space-y-2 text-sm lg:text-base leading-relaxed text-slate-900 dark:text-slate-200 list-decimal list-inside break-words font-medium">
+                  <ol className="space-y-2 text-sm lg:text-base leading-relaxed text-slate-900 dark:text-slate-200 list-decimal list-inside wrap-break-word font-medium">
                     <li>
                       Descarga el instalador <a href="/api/extensions/browser" className="text-emerald-700 dark:text-emerald-300 underline decoration-emerald-500/50 hover:text-emerald-900 dark:hover:text-emerald-200 font-bold">`.crx`</a>.
                     </li>
@@ -56,7 +56,7 @@ export default function ExtensionsGuide() {
 
                 <div className="flex flex-col gap-3 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/60 p-3">
                   <p className="text-[11px] lg:text-xs font-bold uppercase tracking-[0.14em] text-slate-500 dark:text-slate-400">Uso inmediato</p>
-                  <ul className="space-y-2 text-sm lg:text-base leading-relaxed text-slate-900 dark:text-slate-200 break-words font-medium">
+                  <ul className="space-y-2 text-sm lg:text-base leading-relaxed text-slate-900 dark:text-slate-200 wrap-break-word font-medium">
                     <li className="flex gap-2">
                       <MousePointerClick className="h-4 w-4 lg:h-5 lg:w-5 text-emerald-600 dark:text-emerald-300 shrink-0" />
                       Selecciona texto en cualquier pestaña y abre la ficha con definición + snippet listo para copiar.
@@ -89,7 +89,7 @@ export default function ExtensionsGuide() {
             <div className="mt-4 space-y-4 md:grid md:grid-cols-2 md:gap-4 md:space-y-0">
 	              <div className="flex flex-col gap-3 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/60 p-3">
 	                <p className="text-[11px] lg:text-xs font-bold uppercase tracking-[0.14em] text-slate-500 dark:text-slate-400">Instalación</p>
-	                <ol className="mt-2 space-y-2 text-sm lg:text-base leading-relaxed text-slate-900 dark:text-slate-200 list-decimal list-inside break-words font-medium">
+	                <ol className="mt-2 space-y-2 text-sm lg:text-base leading-relaxed text-slate-900 dark:text-slate-200 list-decimal list-inside wrap-break-word font-medium">
 	                  <li>
 	                    Descarga el paquete <a href="/api/extensions/vscode" className="text-indigo-700 dark:text-indigo-200 underline decoration-indigo-500/50 hover:text-indigo-900 dark:hover:text-indigo-100 font-bold">`.vsix`</a>.
 	                  </li>
@@ -105,16 +105,16 @@ export default function ExtensionsGuide() {
 
 	              <div className="flex flex-col gap-3 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/60 p-3">
 	                <p className="text-[11px] lg:text-xs font-bold uppercase tracking-[0.14em] text-slate-500 dark:text-slate-400">Uso inmediato</p>
-	                <ul className="mt-2 space-y-2 text-sm lg:text-base leading-relaxed text-slate-900 dark:text-slate-200 break-words font-medium">
+	                <ul className="mt-2 space-y-2 text-sm lg:text-base leading-relaxed text-slate-900 dark:text-slate-200 wrap-break-word font-medium">
 	                  <li className="flex gap-2">
 	                    <PanelRightOpen className="h-4 w-4 lg:h-5 lg:w-5 text-indigo-600 dark:text-indigo-200 shrink-0" />
 	                    Hover sobre cualquier término para ver definición y code preview; el snippet queda listo para copiar.
 	                  </li>
-	                  <li className="flex flex-wrap items-start gap-2 leading-relaxed break-words w-full">
+	                  <li className="flex flex-wrap items-start gap-2 leading-relaxed wrap-break-word w-full">
 	                    <PanelRightOpen className="h-4 w-4 lg:h-5 lg:w-5 text-indigo-600 dark:text-indigo-200 shrink-0 mt-0.5" />
-	                    <span className="text-sm lg:text-base text-slate-900 dark:text-slate-200 break-words flex-1 min-w-[200px]">
+	                    <span className="text-sm lg:text-base text-slate-900 dark:text-slate-200 wrap-break-word flex-1 min-w-[200px]">
 	                      Ejecuta el comando{" "}
-	                      <span className="inline-block max-w-full rounded bg-slate-200 dark:bg-slate-800/60 px-1 py-0.5 font-mono text-[11px] whitespace-normal break-words align-middle text-slate-900 dark:text-slate-200 border border-slate-300 dark:border-transparent">
+	                      <span className="inline-block max-w-full rounded bg-slate-200 dark:bg-slate-800/60 px-1 py-0.5 font-mono text-[11px] whitespace-normal wrap-break-word align-middle text-slate-900 dark:text-slate-200 border border-slate-300 dark:border-transparent">
 	                        Diccionario Dev: Buscar
                       </span>{" "}
                       (Ctrl/Cmd+Shift+P) y abre la ficha sin salir del editor.

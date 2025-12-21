@@ -1013,8 +1013,8 @@ export function AdminConsole({ initialView = "overview" }: AdminConsoleProps) {
         </div>
       )}
 
-      <section className="relative min-w-0 overflow-hidden rounded-[32px] border border-neo-border bg-neo-card p-5 sm:p-8 shadow-glow-card">
-        <div className="absolute inset-y-0 right-0 hidden w-1/3 bg-gradient-to-l from-neo-primary/10 to-transparent blur-3xl lg:block" />
+      <section className="relative min-w-0 overflow-hidden rounded-4xl border border-neo-border bg-neo-card p-5 sm:p-8 shadow-glow-card">
+        <div className="absolute inset-y-0 right-0 hidden w-1/3 bg-linear-to-l from-neo-primary/10 to-transparent blur-3xl lg:block" />
         <div className="flex flex-wrap items-center gap-4">
           <div className="shrink-0 rounded-3xl border border-neo-border bg-neo-surface p-3 shadow-glow-card">
             <Icon library="lucide" name="BookOpenCheck" className="h-7 w-7 text-neo-text-primary" />
@@ -1418,7 +1418,7 @@ function ViewSwitcher({ activeView, onChange, itemsCount, pendingCount, session,
             type="button"
             onClick={() => onChange(view.id)}
             className={`flex flex-col gap-3 rounded-3xl border p-5 text-left transition-all ${isActive
-              ? "border-accent-secondary/60 bg-gradient-to-br from-accent-secondary/20 via-neo-surface to-neo-surface shadow-lg shadow-accent-secondary/30"
+              ? "border-accent-secondary/60 bg-linear-to-br from-accent-secondary/20 via-neo-surface to-neo-surface shadow-lg shadow-accent-secondary/30"
               : "border-neo-border bg-neo-surface hover:border-neo-primary/30"
               }`}
           >
@@ -1562,7 +1562,7 @@ function TermsTable({
           </p>
         </div>
       <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center lg:justify-end">
-        <label className="w-full text-sm text-neo-text-secondary sm:flex-1 sm:min-w-[220px] lg:min-w-[260px] xl:min-w-[320px]">
+        <label className="w-full text-sm text-neo-text-secondary sm:flex-1 sm:min-w-56 lg:min-w-64 xl:min-w-80">
           <span className="sr-only">Buscar término</span>
           <div className="flex items-center gap-2 rounded-2xl border border-neo-border bg-neo-card px-3 py-2">
               <span aria-hidden>🔍</span>
@@ -1575,7 +1575,7 @@ function TermsTable({
               />
             </div>
           </label>
-          <label className="shrink-0 text-sm text-neo-text-secondary sm:min-w-[160px]">
+          <label className="shrink-0 text-sm text-neo-text-secondary sm:min-w-40">
             Estado
             <select
               className="mt-1 rounded-2xl border border-neo-border bg-neo-card px-3 py-2 text-neo-text-primary focus:border-accent-secondary focus:outline-none"
@@ -1782,7 +1782,7 @@ function TermsTable({
                     </div>
                     <div className="flex flex-col gap-2">
                       <strong className="text-lg font-semibold text-neo-text-primary">Error cargando términos</strong>
-                      <span className="text-sm text-neo-text-secondary break-words">{error}</span>
+                      <span className="text-sm text-neo-text-secondary break-word">{error}</span>
                     </div>
                     <button className="btn-primary inline-flex items-center gap-2" type="button" onClick={onRetry}>
                       <Icon library="lucide" name="RefreshCw" className="h-4 w-4" />
@@ -1871,7 +1871,7 @@ function TermsTable({
                     </div>
                     <div className="flex flex-col gap-2">
                       <strong className="text-lg font-semibold text-neo-text-primary">Sin resultados</strong>
-                      <span className="text-sm text-neo-text-secondary break-words">Crea un término nuevo o ajusta la búsqueda para ver registros.</span>
+                      <span className="text-sm text-neo-text-secondary">Crea un término nuevo o ajusta la búsqueda para ver registros.</span>
                     </div>
                     <button className="btn-primary inline-flex items-center gap-2" type="button" onClick={onCreate} disabled={!canEdit}>
                       <Icon library="lucide" name="Plus" className="h-4 w-4" />
@@ -1963,7 +1963,7 @@ function TermPipelinePanel({ statusSummary, categories }: TermPipelinePanelProps
                   <span>{count}</span>
                 </div>
                 <div className="mt-2 h-2 w-full rounded-full bg-neo-card">
-                  <div className={`h-full rounded-full bg-gradient-to-r ${status.accent}`} style={{ width: `${pct}%` }} />
+                  <div className={`h-full rounded-full bg-linear-to-r ${status.accent}`} style={{ width: `${pct}%` }} />
                 </div>
               </div>
             );
@@ -2710,7 +2710,7 @@ function EditorSheet({ term, onCancel, onSave }: EditorSheetProps) {
   );
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-[var(--admin-backdrop)] px-4 py-6 backdrop-blur-sm">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-(--admin-backdrop) px-4 py-6 backdrop-blur-sm">
       <section className="max-h-[90vh] w-full max-w-5xl overflow-y-auto rounded-3xl border border-neo-border bg-neo-card p-6 shadow-glow-card">
         <header className="flex flex-wrap items-center justify-between gap-4">
           <div>
@@ -2773,7 +2773,7 @@ function EditorSheet({ term, onCancel, onSave }: EditorSheetProps) {
           <label className="text-sm text-neo-text-secondary">
             Significado
             <textarea
-              className={`${baseFieldClasses} min-h-[96px] resize-none`}
+              className={`${baseFieldClasses} min-h-24 resize-none`}
               rows={2}
               required
               value={val.meaning}
@@ -2783,7 +2783,7 @@ function EditorSheet({ term, onCancel, onSave }: EditorSheetProps) {
           <label className="text-sm text-neo-text-secondary">
             Qué resuelve
             <textarea
-              className={`${baseFieldClasses} min-h-[96px] resize-none`}
+              className={`${baseFieldClasses} min-h-24 resize-none`}
               rows={2}
               required
               value={val.what}
@@ -2794,7 +2794,7 @@ function EditorSheet({ term, onCancel, onSave }: EditorSheetProps) {
         <label className="mt-4 block text-sm text-neo-text-secondary">
           Cómo se usa
           <textarea
-            className={`${baseFieldClasses} min-h-[160px] bg-neo-surface font-mono text-sm`}
+            className={`${baseFieldClasses} min-h-40 bg-neo-surface font-mono text-sm`}
             rows={5}
             required
             value={val.how}
@@ -3606,7 +3606,7 @@ type ConfirmDialogProps = {
 
 function ConfirmDialog({ title, description, preview, confirmLabel, cancelLabel = "Cancelar", loading, onConfirm, onCancel }: ConfirmDialogProps) {
   return (
-    <div className="fixed inset-0 z-40 flex items-center justify-center bg-[var(--admin-backdrop)] px-4 backdrop-blur-sm">
+    <div className="fixed inset-0 z-40 flex items-center justify-center bg-(--admin-backdrop) px-4 backdrop-blur-sm">
       <section className="w-full max-w-lg space-y-4 rounded-3xl border border-neo-border bg-neo-card p-6 shadow-glow-card" role="dialog" aria-modal="true">
         <header>
           <p className="text-xs uppercase tracking-wide text-neo-text-secondary">Confirmación requerida</p>

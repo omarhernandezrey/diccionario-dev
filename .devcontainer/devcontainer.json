@@ -15,7 +15,8 @@
       "extensions": [
         "Prisma.prisma",
         "dbaeumer.vscode-eslint",
-        "esbenp.prettier-vscode"
+        "esbenp.prettier-vscode",
+        "omar-hernandez-rey.diccionario-dev-helper"
       ]
     }
   }

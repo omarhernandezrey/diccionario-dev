@@ -189,16 +189,25 @@ export async function GET(req: NextRequest) {
   const query = normalizeQuery(parsed.data);
   try {
     incrementMetric("terms.list.requests");
-    const { items, total } = await fetchTermsWithFilters(query);
+    const { items, total, hadInterviewPriority, rowCount } = await fetchTermsWithFilters(query);
     const meta = {
       page: query.page,
       pageSize: query.pageSize,
       total,
       totalPages: Math.max(1, Math.ceil(total / query.pageSize)),
+      rowCount,
+      interviewFallback: query.context === "interview" && rowCount > 0 && !hadInterviewPriority,
+      hadInterviewPriority,
     };
     incrementMetric("terms.list.success");
     logger.info(
-      { route: "/api/terms", total: meta.total, page: meta.page, filtered: Boolean(query.q) },
+      {
+        route: "/api/terms",
+        total: meta.total,
+        page: meta.page,
+        filtered: Boolean(query.q),
+        hadInterviewPriority: meta.hadInterviewPriority,
+      },
       "terms.list.success",
     );
     const primaryTermId = items.length ? items[0]?.id ?? null : null;
@@ -388,7 +397,14 @@ function searchExpression(alias: string) {
 /**
  * Ejecuta la consulta principal sobre PostgreSQL y devuelve items + total.
  */
-async function fetchTermsWithFilters(query: TermsQueryInput) {
+type TermFetchResult = {
+  items: TermDTO[];
+  total: number;
+  hadInterviewPriority: boolean;
+  rowCount: number;
+};
+
+async function fetchTermsWithFilters(query: TermsQueryInput): Promise<TermFetchResult> {
   const { category, tag, q, status, page, pageSize, sort } = query;
   const termAlias = "t";
   const searchable = searchExpression(termAlias);
@@ -413,19 +429,25 @@ async function fetchTermsWithFilters(query: TermsQueryInput) {
     filters.push(`${termAlias}."status" = $${paramIndex++}::"ReviewStatus"`);
     params.push(status);
   }
-
   const whereClause = filters.length ? `WHERE ${filters.join(" AND ")}` : "";
   const joinClause = `FROM "Term" AS ${termAlias}`;
-  const orderByClause = resolveOrder(sort, termAlias);
+  const baseOrderBy = resolveOrder(sort, termAlias);
+  const orderByClause =
+    query.context === "interview" ? `hasInterviewUseCase DESC, ${baseOrderBy}` : baseOrderBy;
 
+  const interviewExpr = `EXISTS (SELECT 1 FROM "UseCase" uc WHERE uc."termId" = ${termAlias}."id" AND uc."context" = 'interview' AND uc."status" = 'approved')`;
   const countSql = `SELECT COUNT(*) as count ${joinClause} ${whereClause};`;
   const countResult = await prisma.$queryRawUnsafe<{ count: bigint | number }[]>(countSql, ...params);
   const countValue = countResult?.[0]?.count ?? 0;
   const total = typeof countValue === "bigint" ? Number(countValue) : Number(countValue);
 
-  const listSql = `SELECT ${termAlias}."id" ${joinClause} ${whereClause} ORDER BY ${orderByClause} LIMIT $${paramIndex} OFFSET $${paramIndex + 1};`;
+  const selection = `${termAlias}."id", ${query.context === "interview" ? `${interviewExpr} AS "hasInterviewUseCase"` : "false AS \"hasInterviewUseCase\""}`;
+  const listSql = `SELECT ${selection} ${joinClause} ${whereClause} ORDER BY ${orderByClause} LIMIT $${paramIndex} OFFSET $${paramIndex + 1};`;
   const listParams: Array<string | number> = [...params, pageSize, (page - 1) * pageSize];
-  const orderedIds = (await prisma.$queryRawUnsafe<{ id: number }[]>(listSql, ...listParams)).map(row => row.id);
+  const orderedRows = await prisma.$queryRawUnsafe<{ id: number; hasInterviewUseCase: boolean }[]>(listSql, ...listParams);
+  const orderedIds = orderedRows.map((row) => row.id);
+  const interviewFlags = new Map<number, boolean>(orderedRows.map((row) => [row.id, row.hasInterviewUseCase]));
+  const hadInterviewPriority = query.context === "interview" && orderedRows.some((row) => row.hasInterviewUseCase);
   let items: TermDTO[] = [];
   if (orderedIds.length) {
     // Definimos el tipo de retorno esperado de Prisma con las inclusiones
@@ -545,11 +567,17 @@ async function fetchTermsWithFilters(query: TermsQueryInput) {
           reviewedAt: record.reviewedAt?.toISOString?.() ?? null,
           reviewedById: record.reviewedById ?? undefined,
           _exerciseCount: record.exercises?.length ?? 0,
+          hasInterviewUseCase: interviewFlags.get(record.id) ?? false,
         };
       }) as TermDTO[];
   }
 
-  return { items, total };
+  return {
+    items,
+    total,
+    hadInterviewPriority,
+    rowCount: orderedRows.length,
+  };
 }
 
 /**
