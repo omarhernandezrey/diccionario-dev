@@ -16,6 +16,10 @@ const EXPECTED_SEED_COUNT = (() => {
   return new Set(terms).size;
 })();
 
+export function getExpectedSeedCount() {
+  return EXPECTED_SEED_COUNT;
+}
+
 let seedPromise: Promise<void> | null = null;
 
 export async function ensureDictionarySeeded(options: SeedOptions = {}) {

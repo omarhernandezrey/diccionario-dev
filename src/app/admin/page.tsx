@@ -157,6 +157,26 @@ type SummaryResponse = {
   error?: string;
 };
 
+type SeedStatus = {
+  expected: number;
+  current: number;
+  missing: number;
+};
+
+type SeedStatusResponse = {
+  ok?: boolean;
+  status?: SeedStatus;
+  error?: string;
+};
+
+type SeedRunResponse = {
+  ok?: boolean;
+  before?: number;
+  after?: number;
+  added?: number;
+  error?: string;
+};
+
 type MissingTerm = {
   query: string;
   attempts: number;
@@ -298,6 +318,10 @@ export function AdminConsole({ initialView = "overview" }: AdminConsoleProps) {
   const [summary, setSummary] = useState<AdminSummary | null>(null);
   const [summaryLoading, setSummaryLoading] = useState(true);
   const [summaryError, setSummaryError] = useState<string | null>(null);
+  const [seedStatus, setSeedStatus] = useState<SeedStatus | null>(null);
+  const [seedStatusLoading, setSeedStatusLoading] = useState(false);
+  const [seedStatusError, setSeedStatusError] = useState<string | null>(null);
+  const [seedRunning, setSeedRunning] = useState(false);
   const [missingTerms, setMissingTerms] = useState<MissingTerm[]>([]);
   const [missingLoading, setMissingLoading] = useState(false);
   const [missingError, setMissingError] = useState<string | null>(null);
@@ -377,7 +401,7 @@ export function AdminConsole({ initialView = "overview" }: AdminConsoleProps) {
   const today = new Date().toLocaleDateString("es-ES");
   const panelLoading = authLoading || itemsLoading || summaryLoading;
   const termsStatus: IntegrationStatus = itemsLoading || summaryLoading ? "loading" : totalTerms ? "ok" : "warning";
-  const panelError = authError || summaryError;
+  const panelError = authError || summaryError || seedStatusError;
 
   const adminHeroStats = useMemo(
     () => [
@@ -533,6 +557,62 @@ export function AdminConsole({ initialView = "overview" }: AdminConsoleProps) {
       controller.abort();
     };
   }, [loadSummary, refreshIndex]);
+
+  const loadSeedStatus = useCallback(
+    async (signal?: AbortSignal) => {
+      if (!canEdit) {
+        setSeedStatus(null);
+        setSeedStatusLoading(false);
+        setSeedStatusError(null);
+        return;
+      }
+      setSeedStatusLoading(true);
+      setSeedStatusError(null);
+      try {
+        const res = await fetch("/api/admin/seed/status", {
+          cache: "no-store",
+          credentials: "include",
+          signal,
+        });
+        let payload: SeedStatusResponse | null = null;
+        let textFallback = "";
+        try {
+          payload = (await res.json()) as SeedStatusResponse;
+        } catch {
+          textFallback = await res.text().catch(() => "");
+        }
+        if (!res.ok || payload?.ok === false) {
+          const message =
+            extractErrorMessage(payload) || (textFallback?.trim() || res.statusText || "Error cargando estado del seed");
+          throw new Error(message);
+        }
+        setSeedStatus(payload?.status ?? null);
+      } catch (error) {
+        if ((error as Error)?.name === "AbortError") return;
+        console.error("No se pudo cargar el estado del seed", error);
+        setSeedStatus(null);
+        setSeedStatusError((error as Error)?.message || "No se pudo cargar el estado del seed");
+      } finally {
+        if (signal?.aborted) return;
+        setSeedStatusLoading(false);
+      }
+    },
+    [canEdit],
+  );
+
+  useEffect(() => {
+    if (!canEdit) {
+      setSeedStatus(null);
+      setSeedStatusError(null);
+      setSeedStatusLoading(false);
+      return;
+    }
+    const controller = new AbortController();
+    loadSeedStatus(controller.signal);
+    return () => {
+      controller.abort();
+    };
+  }, [canEdit, loadSeedStatus, refreshIndex]);
 
   const loadMissingTerms = useCallback(async (signal?: AbortSignal) => {
     setMissingLoading(true);
@@ -704,6 +784,50 @@ export function AdminConsole({ initialView = "overview" }: AdminConsoleProps) {
   const scheduleRefresh = useCallback(() => {
     setRefreshIndex((prev) => prev + 1);
   }, []);
+
+  const handleSeedStatusRefresh = useCallback(() => {
+    if (!canEdit) return;
+    void loadSeedStatus();
+  }, [canEdit, loadSeedStatus]);
+
+  const handleSeedRun = useCallback(async () => {
+    if (!canEdit || seedRunning) return;
+    setSeedRunning(true);
+    setSeedStatusError(null);
+    setAuthError(null);
+    setMessage(null);
+    try {
+      const res = await fetch("/api/admin/seed", {
+        method: "POST",
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
+      });
+      let payload: SeedRunResponse | null = null;
+      let textFallback = "";
+      try {
+        payload = (await res.json()) as SeedRunResponse;
+      } catch {
+        textFallback = await res.text().catch(() => "");
+      }
+      if (!res.ok || payload?.ok === false) {
+        const message =
+          extractErrorMessage(payload) || (textFallback?.trim() || res.statusText || "No se pudo ejecutar el seed");
+        throw new Error(message);
+      }
+      setMessage(
+        typeof payload?.before === "number" && typeof payload?.after === "number"
+          ? `Seed ejecutado: ${payload.before} → ${payload.after}`
+          : "Seed ejecutado",
+      );
+      scheduleRefresh();
+      await loadSeedStatus();
+    } catch (error) {
+      console.error("No se pudo ejecutar el seed", error);
+      setSeedStatusError((error as Error)?.message || "No se pudo ejecutar el seed");
+    } finally {
+      setSeedRunning(false);
+    }
+  }, [canEdit, loadSeedStatus, scheduleRefresh, seedRunning]);
 
   useEffect(() => {
     if (!autoRefresh) return undefined;
@@ -1081,6 +1205,46 @@ export function AdminConsole({ initialView = "overview" }: AdminConsoleProps) {
             <Icon library="lucide" name="RefreshCw" className="h-4 w-4 mr-2" />
             Revalidar sesión
           </button>
+          {canEdit ? (
+            <div className="flex flex-wrap items-center gap-3">
+              <div className="flex items-center gap-2 rounded-2xl border border-neo-border bg-neo-surface px-3 py-2 text-xs">
+                <Icon library="lucide" name="Database" className="h-4 w-4 text-neo-primary" />
+                <span className="font-semibold">Seed</span>
+                {seedStatusLoading ? (
+                  <span className="text-neo-text-secondary">Verificando...</span>
+                ) : seedStatus ? (
+                  <>
+                    <span className="text-neo-text-secondary">{seedStatus.current}/{seedStatus.expected}</span>
+                    {seedStatus.missing > 0 ? (
+                      <span className="text-accent-amber">Faltan {seedStatus.missing}</span>
+                    ) : (
+                      <span className="text-emerald-500">Completo</span>
+                    )}
+                  </>
+                ) : (
+                  <span className="text-neo-text-secondary">Sin datos</span>
+                )}
+              </div>
+              <button
+                className="btn-ghost"
+                type="button"
+                onClick={handleSeedStatusRefresh}
+                disabled={seedStatusLoading}
+              >
+                <Icon library="lucide" name="RefreshCw" className={`h-4 w-4 mr-2 ${seedStatusLoading ? "animate-spin" : ""}`} />
+                Actualizar seed
+              </button>
+              <button
+                className="btn-primary"
+                type="button"
+                onClick={handleSeedRun}
+                disabled={seedRunning}
+              >
+                <Icon library="lucide" name={seedRunning ? "Loader2" : "Rocket"} className={`h-4 w-4 mr-2 ${seedRunning ? "animate-spin" : ""}`} />
+                Forzar seed
+              </button>
+            </div>
+          ) : null}
         </div>
         <p className="mt-4 text-xs text-neo-text-secondary">Última sincronización: {today}</p>
       </section>
@@ -1100,6 +1264,7 @@ export function AdminConsole({ initialView = "overview" }: AdminConsoleProps) {
         onClearError={() => {
           setAuthError(null);
           setSummaryError(null);
+          setSeedStatusError(null);
         }}
         onClearMessage={() => setMessage(null)}
       />
