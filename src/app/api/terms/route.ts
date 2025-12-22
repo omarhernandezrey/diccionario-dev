@@ -16,6 +16,7 @@ import { incrementMetric, logger } from "@/lib/logger";
 import { recordContributionEvent } from "@/lib/contributors";
 import type { TermDTO } from "@/types/term";
 import { serializeTerm, type PrismaTermWithRelations } from "@/lib/term-serializer";
+import { ensureDictionarySeeded } from "@/lib/bootstrap-dataset";
 
 export const dynamic = "force-dynamic";
 
@@ -25,6 +26,10 @@ const noStoreHeaders = { "Cache-Control": "no-store" } as const;
 const DEFAULT_PAGE_SIZE = 10;
 const RATE_LIMIT_PREFIX = "terms:list";
 const TRUTHY = new Set(["1", "true", "yes", "on"]);
+const FORCE_DICTIONARY_SEED = (() => {
+  const raw = process.env.FORCE_DICTIONARY_SEED;
+  return raw ? TRUTHY.has(raw.trim().toLowerCase()) : false;
+})();
 
 const envDisablesSearchLogs = (() => {
   const raw = process.env.DISABLE_SEARCH_LOGS;
@@ -38,6 +43,18 @@ if (searchLogWritesDisabled) {
     { reason: "env_flag" },
     "search.log_disabled_initialization",
   );
+}
+
+let seedChecked = false;
+
+async function ensureSeededOnce() {
+  if (seedChecked) return;
+  seedChecked = true;
+  try {
+    await ensureDictionarySeeded({ force: FORCE_DICTIONARY_SEED });
+  } catch (error) {
+    logger.error({ err: error }, "dictionary.seed_failed");
+  }
 }
 
 /**
@@ -153,6 +170,7 @@ async function recordSearchEvent(event: {
  * Lista términos con búsqueda FTS, filtros, paginación y rate limiting por IP.
  */
 export async function GET(req: NextRequest) {
+  await ensureSeededOnce();
   const url = new URL(req.url);
   const searchParams = url.searchParams;
   const context = searchParams.get("context") ?? "dictionary";

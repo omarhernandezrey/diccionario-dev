@@ -5,15 +5,31 @@ import { Category, Difficulty, Language, ReviewStatus, SkillLevel, UseCaseContex
 import { prisma } from "@/lib/prisma";
 import { logger } from "@/lib/logger";
 
+type SeedOptions = {
+  force?: boolean;
+};
+
+const EXPECTED_SEED_COUNT = (() => {
+  const terms = [...curatedTerms, ...cssCuratedTerms]
+    .map((entry) => (typeof entry.term === "string" ? entry.term.trim().toLowerCase() : ""))
+    .filter(Boolean);
+  return new Set(terms).size;
+})();
+
 let seedPromise: Promise<void> | null = null;
 
-export async function ensureDictionarySeeded() {
+export async function ensureDictionarySeeded(options: SeedOptions = {}) {
   if (seedPromise) return seedPromise;
   seedPromise = (async () => {
-    // Eliminamos el chequeo de 'existing > 0' para forzar la actualización de los términos curados
-    // con los nuevos ejemplos comentados.
-    logger.info("Verificando y actualizando términos del diccionario...");
+    const force = Boolean(options.force);
+    const existingCount = await prisma.term.count();
+    if (!force && existingCount >= EXPECTED_SEED_COUNT) {
+      logger.info({ existingCount, expected: EXPECTED_SEED_COUNT }, "dictionary.seed_skipped");
+      return;
+    }
+    logger.info({ force, existingCount, expected: EXPECTED_SEED_COUNT }, "dictionary.seed_start");
     await runDictionarySeed();
+    logger.info("dictionary.seed_complete");
   })().catch((error) => {
     logger.error({ err: error }, "dictionary.bootstrap_failed");
     throw error;

@@ -2,12 +2,30 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getTokenFromHeaders, verifyJwt } from "@/lib/auth";
 import { logger } from "@/lib/logger";
+import { ensureDictionarySeeded } from "@/lib/bootstrap-dataset";
 import type { ReviewStatus } from "@prisma/client";
 
 export const dynamic = "force-dynamic";
 
 const noStore = { "Cache-Control": "no-store" } as const;
 const STATUS_LIST: ReviewStatus[] = ["pending", "in_review", "approved", "rejected"];
+const TRUTHY = new Set(["1", "true", "yes", "on"]);
+const FORCE_DICTIONARY_SEED = (() => {
+  const raw = process.env.FORCE_DICTIONARY_SEED;
+  return raw ? TRUTHY.has(raw.trim().toLowerCase()) : false;
+})();
+
+let seedChecked = false;
+
+async function ensureSeededOnce() {
+  if (seedChecked) return;
+  seedChecked = true;
+  try {
+    await ensureDictionarySeeded({ force: FORCE_DICTIONARY_SEED });
+  } catch (error) {
+    logger.error({ err: error }, "dictionary.seed_failed");
+  }
+}
 
 type StatusCounts = Record<ReviewStatus, number>;
 
@@ -36,6 +54,7 @@ function countExamples(value: unknown): number {
 }
 
 export async function GET(req: NextRequest) {
+  await ensureSeededOnce();
   const token = getTokenFromHeaders(req.headers);
   const payload = token ? verifyJwt(token) : null;
   const includeAll = payload?.role === "admin";
