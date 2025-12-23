@@ -22,5 +22,6 @@
   "scss.validate": false,
   "less.validate": false,
   "html.validate.scripts": false,
-  "html.validate.styles": false
+  "html.validate.styles": false,
+  "continue.disableQuickFix": true
 }

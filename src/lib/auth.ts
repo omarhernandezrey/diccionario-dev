@@ -4,6 +4,7 @@ import { NextResponse } from "next/server";
 
 const COOKIE_NAME = "admin_token";
 const JWT_SECRET = process.env.JWT_SECRET || process.env.ADMIN_TOKEN || "";
+const ADMIN_TOKEN = process.env.ADMIN_TOKEN || "";
 const JWT_EXPIRES_IN = process.env.JWT_EXPIRES_IN || "1d";
 const SALT_ROUNDS = Number(process.env.BCRYPT_SALT_ROUNDS || 10);
 const IS_PROD = process.env.NODE_ENV === "production";
@@ -132,6 +133,16 @@ export function getTokenFromHeaders(headers: Headers) {
   return cookie.slice(cookie.indexOf("=") + 1);
 }
 
+function getAdminTokenFromHeaders(headers: Headers) {
+  const headerToken = headers.get("x-admin-token");
+  if (headerToken) return headerToken.trim();
+  const authHeader = headers.get("authorization");
+  if (authHeader?.startsWith("Bearer ")) {
+    return authHeader.replace("Bearer ", "").trim();
+  }
+  return "";
+}
+
 function handleAuthError(error: Response): never {
   throw error;
 }
@@ -160,6 +171,12 @@ export function requireAuth(headers: Headers): AuthTokenPayload {
  * Garantiza que la solicitud proviene de un administrador; lanza una respuesta JSON si no.
  */
 export function requireAdmin(headers: Headers): AuthTokenPayload {
+  if (ADMIN_TOKEN) {
+    const adminToken = getAdminTokenFromHeaders(headers);
+    if (adminToken && adminToken === ADMIN_TOKEN) {
+      return { id: 0, username: "admin", role: "admin", auth: "admin_token" };
+    }
+  }
   const payload = requireAuth(headers);
   if (payload.role !== "admin") {
     handleAuthError(forbidden());
