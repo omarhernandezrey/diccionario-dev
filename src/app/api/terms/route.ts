@@ -45,17 +45,6 @@ if (searchLogWritesDisabled) {
   );
 }
 
-let seedChecked = false;
-
-async function ensureSeededOnce() {
-  if (seedChecked) return;
-  seedChecked = true;
-  try {
-    await ensureDictionarySeeded({ force: FORCE_DICTIONARY_SEED });
-  } catch (error) {
-    logger.error({ err: error }, "dictionary.seed_failed");
-  }
-}
 
 /**
  * Intenta autenticar como administrador. Si falla devuelve la respuesta HTTP lista para retornar.
@@ -170,7 +159,11 @@ async function recordSearchEvent(event: {
  * Lista términos con búsqueda FTS, filtros, paginación y rate limiting por IP.
  */
 export async function GET(req: NextRequest) {
-  await ensureSeededOnce();
+  try {
+    await ensureDictionarySeeded({ force: FORCE_DICTIONARY_SEED });
+  } catch (error) {
+    logger.error({ err: error }, "dictionary.seed_failed");
+  }
   const url = new URL(req.url);
   const searchParams = url.searchParams;
   const context = searchParams.get("context") ?? "dictionary";

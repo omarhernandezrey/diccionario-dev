@@ -9,6 +9,15 @@ type SeedOptions = {
   force?: boolean;
 };
 
+type SeedBatchResult = {
+  processed: number;
+  remaining: number;
+  totalMissing: number;
+  completed: boolean;
+  batchLimitReached: boolean;
+  timeBudgetReached: boolean;
+};
+
 const EXPECTED_SEED_COUNT = (() => {
   const terms = [...curatedTerms, ...cssCuratedTerms]
     .map((entry) => (typeof entry.term === "string" ? entry.term.trim().toLowerCase() : ""))
@@ -20,31 +29,64 @@ export function getExpectedSeedCount() {
   return EXPECTED_SEED_COUNT;
 }
 
-let seedPromise: Promise<void> | null = null;
+const DEFAULT_SEED_BATCH_SIZE = Number(process.env.SEED_BATCH_SIZE || 200);
+const DEFAULT_SEED_TIME_BUDGET_MS = Number(process.env.SEED_TIME_BUDGET_MS || 7_000);
 
-export async function ensureDictionarySeeded(options: SeedOptions = {}) {
+let seedPromise: Promise<SeedBatchResult | null> | null = null;
+
+export async function ensureDictionarySeeded(options: SeedOptions = {}): Promise<SeedBatchResult | null> {
   if (seedPromise) return seedPromise;
   seedPromise = (async () => {
     const force = Boolean(options.force);
     const existingCount = await prisma.term.count();
     if (!force && existingCount >= EXPECTED_SEED_COUNT) {
       logger.info({ existingCount, expected: EXPECTED_SEED_COUNT }, "dictionary.seed_skipped");
-      return;
+      return null;
     }
     logger.info({ force, existingCount, expected: EXPECTED_SEED_COUNT }, "dictionary.seed_start");
-    await runDictionarySeed();
-    logger.info("dictionary.seed_complete");
+    const result = await runDictionarySeedBatch(DEFAULT_SEED_BATCH_SIZE, DEFAULT_SEED_TIME_BUDGET_MS);
+    logger.info(
+      {
+        processed: result.processed,
+        remaining: result.remaining,
+        totalMissing: result.totalMissing,
+        batchLimitReached: result.batchLimitReached,
+        timeBudgetReached: result.timeBudgetReached,
+      },
+      "dictionary.seed_batch_complete",
+    );
+    if (result.completed) {
+      logger.info("dictionary.seed_complete");
+    }
+    return result;
   })().catch((error) => {
     logger.error({ err: error }, "dictionary.bootstrap_failed");
     throw error;
+  }).finally(() => {
+    seedPromise = null;
   });
   return seedPromise;
 }
 
-async function runDictionarySeed() {
+async function runDictionarySeedBatch(maxItems: number, timeBudgetMs: number): Promise<SeedBatchResult> {
   const dictionary = dedupeTerms([...curatedTerms, ...cssCuratedTerms].map(createSeedTerm));
+  const existingTerms = await prisma.term.findMany({ select: { term: true } });
+  const existingSet = new Set(existingTerms.map((entry) => entry.term.trim().toLowerCase()));
+  const missingTerms = dictionary.filter((term) => !existingSet.has(term.term.trim().toLowerCase()));
+  const start = Date.now();
+  let processed = 0;
+  let batchLimitReached = false;
+  let timeBudgetReached = false;
 
-  for (const term of dictionary) {
+  for (const term of missingTerms) {
+    if (processed >= maxItems) {
+      batchLimitReached = true;
+      break;
+    }
+    if (Date.now() - start >= timeBudgetMs) {
+      timeBudgetReached = true;
+      break;
+    }
     // Preparamos los datos para create/update
     const termData = {
       term: term.term,
@@ -139,7 +181,18 @@ async function runDictionarySeed() {
       create: { termId: created.id },
       update: {},
     }).catch(() => undefined);
+    processed += 1;
   }
+
+  const remaining = Math.max(0, missingTerms.length - processed);
+  return {
+    processed,
+    remaining,
+    totalMissing: missingTerms.length,
+    completed: remaining === 0,
+    batchLimitReached,
+    timeBudgetReached,
+  };
 }
 
 const categoryContextEs: Record<Category, string> = {

@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { requireAdmin } from "@/lib/auth";
-import { ensureDictionarySeeded } from "@/lib/bootstrap-dataset";
+import { ensureDictionarySeeded, getExpectedSeedCount } from "@/lib/bootstrap-dataset";
 
 export const dynamic = "force-dynamic";
 
@@ -16,8 +16,10 @@ export async function POST(req: NextRequest) {
   }
 
   const before = await prisma.term.count();
-  await ensureDictionarySeeded({ force: true });
+  const batch = await ensureDictionarySeeded({ force: true });
   const after = await prisma.term.count();
+  const expected = getExpectedSeedCount();
+  const missing = Math.max(0, expected - after);
 
   return NextResponse.json(
     {
@@ -25,6 +27,9 @@ export async function POST(req: NextRequest) {
       before,
       after,
       added: Math.max(0, after - before),
+      expected,
+      missing,
+      batch,
     },
     { headers: noStore },
   );
