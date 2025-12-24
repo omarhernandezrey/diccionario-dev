@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { requireAdmin } from "@/lib/auth";
 import { ensureDictionarySeeded, getExpectedSeedCount } from "@/lib/bootstrap-dataset";
+import { logger } from "@/lib/logger";
 
 export const dynamic = "force-dynamic";
 
@@ -15,22 +16,34 @@ export async function POST(req: NextRequest) {
     throw error;
   }
 
-  const before = await prisma.term.count();
-  const batch = await ensureDictionarySeeded({ force: true });
-  const after = await prisma.term.count();
-  const expected = getExpectedSeedCount();
-  const missing = Math.max(0, expected - after);
+  try {
+    const before = await prisma.term.count();
+    const batch = await ensureDictionarySeeded({ force: true });
+    const after = await prisma.term.count();
+    const expected = getExpectedSeedCount();
+    const missing = Math.max(0, expected - after);
 
-  return NextResponse.json(
-    {
-      ok: true,
-      before,
-      after,
-      added: Math.max(0, after - before),
-      expected,
-      missing,
-      batch,
-    },
-    { headers: noStore },
-  );
+    return NextResponse.json(
+      {
+        ok: true,
+        before,
+        after,
+        added: Math.max(0, after - before),
+        expected,
+        missing,
+        batch,
+      },
+      { headers: noStore },
+    );
+  } catch (error) {
+    logger.error({ err: error }, "dictionary.seed_failed");
+    return NextResponse.json(
+      {
+        ok: false,
+        error: (error as Error)?.message ?? "Seed failed",
+        code: (error as { code?: string })?.code,
+      },
+      { status: 500, headers: noStore },
+    );
+  }
 }

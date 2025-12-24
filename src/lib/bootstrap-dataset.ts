@@ -1,4 +1,5 @@
 import type { SeedTerm, SeedTermInput } from "../../prisma/dictionary-types";
+import { createHash } from "crypto";
 import { curatedTerms } from "../../prisma/data/curatedTerms";
 import { cssCuratedTerms } from "../../prisma/data/cssTerms";
 import { Category, Difficulty, Language, ReviewStatus, SkillLevel, UseCaseContext } from "@prisma/client";
@@ -109,73 +110,95 @@ async function runDictionarySeedBatch(maxItems: number, timeBudgetMs: number): P
       examples: term.examples,
       status: ReviewStatus.approved,
     };
+    const createData = {
+      ...termData,
+      variants: term.variants?.length
+        ? {
+          create: term.variants.map((variant) => ({
+            language: variant.language,
+            snippet: variant.code,
+            notes: variant.notes,
+            level: variant.level ?? SkillLevel.intermediate,
+            status: ReviewStatus.approved,
+          })),
+        }
+        : undefined,
+      useCases: term.useCases?.length
+        ? {
+          create: term.useCases.map((useCase) => ({
+            context: useCase.context,
+            summary: [useCase.summaryEs, useCase.summaryEn].filter(Boolean).join(" | "),
+            steps: useCase.stepsEs.map((es, index) => ({
+              es,
+              en: useCase.stepsEn[index] ?? useCase.stepsEn[useCase.stepsEn.length - 1] ?? es,
+            })),
+            tips: [useCase.tipsEs, useCase.tipsEn].filter(Boolean).join(" | ") || undefined,
+            status: ReviewStatus.approved,
+          })),
+        }
+        : undefined,
+      faqs: term.faqs?.length
+        ? {
+          create: term.faqs.map((faq) => ({
+            questionEs: faq.questionEs,
+            questionEn: faq.questionEn,
+            answerEs: faq.answerEs,
+            answerEn: faq.answerEn,
+            snippet: faq.snippet,
+            category: faq.category,
+            howToExplain: faq.howToExplain,
+            status: ReviewStatus.approved,
+          })),
+        }
+        : undefined,
+      exercises: term.exercises?.length
+        ? {
+          create: term.exercises.map((exercise) => ({
+            titleEs: exercise.titleEs,
+            titleEn: exercise.titleEn,
+            promptEs: exercise.promptEs,
+            promptEn: exercise.promptEn,
+            difficulty: exercise.difficulty,
+            solutions: exercise.solutions,
+            status: ReviewStatus.approved,
+          })),
+        }
+        : undefined,
+    };
 
-    // Usamos upsert para crear o actualizar
-    const created = await prisma.term.upsert({
-      where: { term: term.term },
-      update: {
-        ...termData,
-        // Actualizamos relaciones si es necesario, aunque para ejemplos simples basta con actualizar el JSON de examples
-        // Nota: Para relaciones complejas (variants, useCases) en un upsert masivo, 
-        // la estrategia ideal sería borrar y recrear o hacer upserts anidados complejos.
-        // Para este caso, priorizamos actualizar los campos principales y examples que es donde está el código comentado.
-      },
-      create: {
-        ...termData,
-        variants: term.variants?.length
-          ? {
-            create: term.variants.map((variant) => ({
-              language: variant.language,
-              snippet: variant.code,
-              notes: variant.notes,
-              level: variant.level ?? SkillLevel.intermediate,
-              status: ReviewStatus.approved,
-            })),
-          }
-          : undefined,
-        useCases: term.useCases?.length
-          ? {
-            create: term.useCases.map((useCase) => ({
-              context: useCase.context,
-              summary: [useCase.summaryEs, useCase.summaryEn].filter(Boolean).join(" | "),
-              steps: useCase.stepsEs.map((es, index) => ({
-                es,
-                en: useCase.stepsEn[index] ?? useCase.stepsEn[useCase.stepsEn.length - 1] ?? es,
-              })),
-              tips: [useCase.tipsEs, useCase.tipsEn].filter(Boolean).join(" | ") || undefined,
-              status: ReviewStatus.approved,
-            })),
-          }
-          : undefined,
-        faqs: term.faqs?.length
-          ? {
-            create: term.faqs.map((faq) => ({
-              questionEs: faq.questionEs,
-              questionEn: faq.questionEn,
-              answerEs: faq.answerEs,
-              answerEn: faq.answerEn,
-              snippet: faq.snippet,
-              category: faq.category,
-              howToExplain: faq.howToExplain,
-              status: ReviewStatus.approved,
-            })),
-          }
-          : undefined,
-        exercises: term.exercises?.length
-          ? {
-            create: term.exercises.map((exercise) => ({
-              titleEs: exercise.titleEs,
-              titleEn: exercise.titleEn,
-              promptEs: exercise.promptEs,
-              promptEn: exercise.promptEn,
-              difficulty: exercise.difficulty,
-              solutions: exercise.solutions,
-              status: ReviewStatus.approved,
-            })),
-          }
-          : undefined,
-      },
-    });
+    let created;
+    try {
+      // Usamos upsert para crear o actualizar
+      created = await prisma.term.upsert({
+        where: { term: term.term },
+        update: {
+          ...termData,
+          // Actualizamos relaciones si es necesario, aunque para ejemplos simples basta con actualizar el JSON de examples
+          // Nota: Para relaciones complejas (variants, useCases) en un upsert masivo, 
+          // la estrategia ideal sería borrar y recrear o hacer upserts anidados complejos.
+          // Para este caso, priorizamos actualizar los campos principales y examples que es donde está el código comentado.
+        },
+        create: createData,
+      });
+    } catch (error) {
+      if ((error as { code?: string })?.code === "P2002") {
+        const desiredSlug = termData.slug ?? toSlug(term.term);
+        const fallbackSlug = `${desiredSlug}-${shortHash(term.term)}`;
+        logger.warn(
+          { term: term.term, slug: desiredSlug, fallbackSlug },
+          "dictionary.seed_slug_conflict",
+        );
+        created = await prisma.term.create({
+          data: {
+            ...createData,
+            slug: fallbackSlug,
+          },
+        });
+      } else {
+        logger.error({ err: error, term: term.term }, "dictionary.seed_term_failed");
+        throw error;
+      }
+    }
     await prisma.termStats.upsert({
       where: { termId: created.id },
       create: { termId: created.id },
@@ -239,12 +262,14 @@ function createSeedTerm(input: SeedTermInput): SeedTerm {
   const {
     term,
     translation,
+    slug: inputSlug,
     category,
     descriptionEs,
     descriptionEn,
     aliases = [],
     tags = [],
     example,
+    secondExample,
     exerciseExample, // Ahora es obligatorio
     whatEs,
     whatEn,
@@ -260,8 +285,9 @@ function createSeedTerm(input: SeedTermInput): SeedTerm {
   const resolvedHowEs = howEs ?? howByCategoryEs[category](term);
   const resolvedHowEn = howEn ?? howByCategoryEn[category](term);
   const variantLanguage = languageOverride ?? variantLanguageByCategory[category];
-  const hasTailwindTag = (tags || []).map((tag) => tag.toLowerCase()).includes("tailwind");
-  const examples = hasTailwindTag ? [example, exerciseExample] : [example, input.secondExample]; // Tailwind: solo 2 (ejemplo + práctica)
+  const normalizedTags = Array.from(new Set([...tags, ...(languageOverride === Language.css ? ["css"] : [])]));
+  const hasTailwindTag = normalizedTags.map((tag) => tag.toLowerCase()).includes("tailwind");
+  const examples = hasTailwindTag ? [example, exerciseExample] : [example, secondExample, exerciseExample];
 
   // Usamos exerciseExample (ahora obligatorio)
   const exerciseCode = exerciseExample.code;
@@ -269,9 +295,9 @@ function createSeedTerm(input: SeedTermInput): SeedTerm {
   return {
     term,
     translation,
-    slug: toSlug(term),
+    slug: inputSlug ?? toSlug(term),
     aliases,
-    tags,
+    tags: normalizedTags,
     category,
     titleEs: translation || term,
     titleEn: term,
@@ -284,7 +310,7 @@ function createSeedTerm(input: SeedTermInput): SeedTerm {
     examples,
     variants: buildVariants(variantLanguage, example.code, example.noteEs ?? example.noteEn),
     useCases: buildUseCases(term, category, resolvedWhatEs, resolvedWhatEn),
-    faqs: buildFaqs(term, translation, meaningEs, meaningEn, example, resolvedHowEs, resolvedHowEn),
+    faqs: buildFaqs(term, translation, meaningEs, meaningEn, example, resolvedHowEs, resolvedHowEn, category),
     exercises: buildExercises(term, variantLanguage, exerciseCode, resolvedHowEs, resolvedHowEn),
   };
 }
@@ -359,7 +385,45 @@ function buildFaqs(
   example: SeedTerm["examples"][number],
   howEs: string,
   howEn: string,
+  category: Category,
 ) {
+  const isFrontend = category === Category.frontend;
+
+  const isCss = isFrontend && (
+    (/^[a-z-]+$/.test(term) && !term.startsWith("use")) ||
+    /^(bg|text|flex|grid|w-|h-|p-|m-|border|rounded|shadow|gap|space|justify|items|content|overflow|position|top|bottom|left|right|inset|z-|opacity|transform|transition|animate|cursor|select|pointer|resize|outline|ring|divide|sr-|not-sr|focus|hover|active|disabled|group|peer|dark|sm:|md:|lg:|xl:|2xl:)/.test(term) ||
+    term.includes("clamp") || term.includes("calc") || term.includes("var") ||
+    term === "aspect-ratio" || term === "backdrop-filter" || term === "scroll-snap"
+  );
+
+  const resetQ = {
+    es: `¿Cómo reiniciar o resetear ${term}?`,
+    en: `How to reset or reinitialize ${term}?`,
+    ansEs: isCss
+      ? `Usa el valor 'initial', 'unset' o el valor por defecto de la propiedad para anular estilos heredados.`
+      : `Reinicia ${term} a su valor inicial respetando el contexto del concepto.`,
+    ansEn: isCss
+      ? `Use 'initial', 'unset' or the default property value to override inherited styles.`
+      : `Reset ${term} to its initial value respecting the concept's context.`,
+    snippet: isCss
+      ? `.element {\n  ${term}: initial;\n}`
+      : `// Reinicia ${term} a su estado inicial\n// Usa este patrón cuando necesites volver al estado base`,
+  };
+
+  const bestPracticesQ = {
+    es: `¿Cuáles son las buenas prácticas para usar ${term}?`,
+    en: `What are best practices for using ${term}?`,
+    ansEs: isCss
+      ? `Usa clases utilitarias o componentes, evita selectores anidados profundos y verifica el soporte en navegadores.`
+      : `Aplica ${term} de forma consistente, respeta su ciclo de vida y valida entradas.`,
+    ansEn: isCss
+      ? `Use utility classes or components, avoid deep nesting and check browser support.`
+      : `Apply ${term} consistently, respect its lifecycle and validate inputs.`,
+    snippet: isCss
+      ? `/* Buenas prácticas */\n.component {\n  /* Usa variables para consistencia */\n  ${term}: var(--${term});\n}`
+      : `// Buenas prácticas para ${term}\n// 1. Usa de forma consistente\n// 2. Respeta dependencias y ciclo de vida\n// 3. Valida inputs y maneja errores`,
+  };
+
   return [
     {
       questionEs: `¿Cómo explicas ${term} en una entrevista?`,
@@ -369,6 +433,24 @@ function buildFaqs(
       snippet: example.code,
       category: translation,
       howToExplain: "Usa un ejemplo, enlaza con impacto real y ofrece métricas cuando sea posible.",
+    },
+    {
+      questionEs: resetQ.es,
+      questionEn: resetQ.en,
+      answerEs: resetQ.ansEs,
+      answerEn: resetQ.ansEn,
+      snippet: resetQ.snippet,
+      category: "reset",
+      howToExplain: "Muestra cómo volver al estado inicial de forma segura.",
+    },
+    {
+      questionEs: bestPracticesQ.es,
+      questionEn: bestPracticesQ.en,
+      answerEs: bestPracticesQ.ansEs,
+      answerEn: bestPracticesQ.ansEn,
+      snippet: bestPracticesQ.snippet,
+      category: "best-practices",
+      howToExplain: "Enfatiza seguridad, rendimiento e inmutabilidad.",
     },
   ];
 }
@@ -393,11 +475,20 @@ function buildExercises(term: string, language: Language, code: string, howEs: s
   ];
 }
 
+function shortHash(value: string) {
+  return createHash("sha1").update(value).digest("hex").slice(0, 8);
+}
+
 function toSlug(value: string) {
-  return value
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, "-")
-    .replace(/^-|-$/g, "");
+  const normalized = value.trim().toLowerCase();
+  const base = normalized.replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
+  if (!base) {
+    return `term-${shortHash(normalized || value || "term")}`;
+  }
+  if (base !== normalized) {
+    return `${base}-${shortHash(normalized || value)}`;
+  }
+  return base;
 }
 
 function dedupeTerms(terms: SeedTerm[]) {
