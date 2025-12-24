@@ -1,22 +1,19 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { requireAdmin } from "@/lib/auth";
-import { ensureDictionarySeeded, getExpectedSeedCount } from "@/lib/bootstrap-dataset";
 import { logger } from "@/lib/logger";
 
 export const dynamic = "force-dynamic";
+export const runtime = "nodejs";
+export const maxDuration = 60;
 
 const noStore = { "Cache-Control": "no-store" } as const;
 
 export async function POST(req: NextRequest) {
   try {
     requireAdmin(req.headers);
-  } catch (error) {
-    if (error instanceof Response) return error;
-    throw error;
-  }
 
-  try {
+    const { ensureDictionarySeeded, getExpectedSeedCount } = await import("@/lib/bootstrap-dataset");
     const before = await prisma.term.count();
     const batch = await ensureDictionarySeeded({ force: true });
     const after = await prisma.term.count();
@@ -36,6 +33,7 @@ export async function POST(req: NextRequest) {
       { headers: noStore },
     );
   } catch (error) {
+    if (error instanceof Response) return error;
     logger.error({ err: error }, "dictionary.seed_failed");
     return NextResponse.json(
       {
