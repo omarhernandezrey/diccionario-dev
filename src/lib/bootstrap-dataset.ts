@@ -30,8 +30,17 @@ export function getExpectedSeedCount() {
   return EXPECTED_SEED_COUNT;
 }
 
-const DEFAULT_SEED_BATCH_SIZE = Number(process.env.SEED_BATCH_SIZE || 200);
-const DEFAULT_SEED_TIME_BUDGET_MS = Number(process.env.SEED_TIME_BUDGET_MS || 7_000);
+const DEFAULT_SEED_BATCH_SIZE = (() => {
+  const raw = Number(process.env.SEED_BATCH_SIZE);
+  if (Number.isFinite(raw) && raw > 0) return raw;
+  return Math.max(200, EXPECTED_SEED_COUNT);
+})();
+
+const DEFAULT_SEED_TIME_BUDGET_MS = (() => {
+  const raw = Number(process.env.SEED_TIME_BUDGET_MS);
+  if (Number.isFinite(raw) && raw > 0) return raw;
+  return process.env.NODE_ENV === "production" ? 25_000 : 7_000;
+})();
 
 let seedPromise: Promise<SeedBatchResult | null> | null = null;
 

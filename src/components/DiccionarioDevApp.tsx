@@ -854,6 +854,7 @@ export default function DiccionarioDevApp() {
         { label: "Extensiones", href: "#extensions" },
     ];
     const appLinks = [
+        { label: "Explorar", href: "/terms" },
         { label: "Training", href: "/training" },
         { label: "Interview Live", href: "/interview/live" },
     ];
@@ -879,6 +880,7 @@ export default function DiccionarioDevApp() {
         Training: Dumbbell,
         "Interview Live": Video,
         Dashboard: LayoutDashboard,
+        Explorar: BookOpen,
         "Términos": BookOpen,
         Perfil: User,
         "Configuración": Settings,
