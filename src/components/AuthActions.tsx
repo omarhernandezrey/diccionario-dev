@@ -49,6 +49,7 @@ export function AuthActions({ variant = "default", layout = "row" }: AuthActions
       {session ? (
         <div className={containerClass}>
           <button
+            type="button"
             onClick={handleLogout}
             className={logoutClass}
           >
@@ -59,6 +60,7 @@ export function AuthActions({ variant = "default", layout = "row" }: AuthActions
       ) : (
         <div className={containerClass}>
           <button
+            type="button"
             onClick={() => { setMode("login"); setOpen(true); }}
             className={loginClass}
           >
@@ -66,6 +68,7 @@ export function AuthActions({ variant = "default", layout = "row" }: AuthActions
             Iniciar sesión
           </button>
           <button
+            type="button"
             onClick={() => { setMode("register"); setOpen(true); }}
             className={registerClass}
           >

@@ -347,7 +347,7 @@ export function AuthModal({ open, onClose, defaultMode = "login" }: { open: bool
 
   const modalContent = (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm animate-fade-in"
+      className="fixed inset-0 z-999 flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm animate-fade-in"
       onClick={(e) => e.target === e.currentTarget && onClose()}
       style={{ fontFamily: "ui-sans-serif, system-ui, sans-serif" }}
     >
