@@ -17,6 +17,7 @@ import { recordContributionEvent } from "@/lib/contributors";
 import type { TermDTO } from "@/types/term";
 import { serializeTerm, type PrismaTermWithRelations } from "@/lib/term-serializer";
 import { ensureDictionarySeeded } from "@/lib/bootstrap-dataset";
+import { resolveTailwindTerms } from "@/lib/tailwind-resolver";
 
 export const dynamic = "force-dynamic";
 
@@ -201,14 +202,38 @@ export async function GET(req: NextRequest) {
   try {
     incrementMetric("terms.list.requests");
     const { items, total, hadInterviewPriority, rowCount } = await fetchTermsWithFilters(query);
+    let resolvedItems = items;
+    let resolvedTotal = total;
+    let resolvedRowCount = rowCount;
+    let resolvedInterviewPriority = hadInterviewPriority;
+    let syntheticApplied = false;
+
+    if (!items.length && query.q) {
+      const synthetic = resolveTailwindTerms({
+        query: query.q,
+        page: query.page,
+        pageSize: query.pageSize,
+        category: query.category,
+        tag: query.tag,
+        status: query.status,
+        context: query.context,
+      });
+      if (synthetic) {
+        resolvedItems = synthetic.items;
+        resolvedTotal = synthetic.total;
+        resolvedRowCount = synthetic.items.length;
+        resolvedInterviewPriority = false;
+        syntheticApplied = true;
+      }
+    }
     const meta = {
       page: query.page,
       pageSize: query.pageSize,
-      total,
-      totalPages: Math.max(1, Math.ceil(total / query.pageSize)),
-      rowCount,
-      interviewFallback: query.context === "interview" && rowCount > 0 && !hadInterviewPriority,
-      hadInterviewPriority,
+      total: resolvedTotal,
+      totalPages: Math.max(1, Math.ceil(resolvedTotal / query.pageSize)),
+      rowCount: resolvedRowCount,
+      interviewFallback: query.context === "interview" && !syntheticApplied && resolvedRowCount > 0 && !resolvedInterviewPriority,
+      hadInterviewPriority: resolvedInterviewPriority,
     };
     incrementMetric("terms.list.success");
     logger.info(
@@ -218,20 +243,21 @@ export async function GET(req: NextRequest) {
         page: meta.page,
         filtered: Boolean(query.q),
         hadInterviewPriority: meta.hadInterviewPriority,
+        syntheticApplied,
       },
       "terms.list.success",
     );
-    const primaryTermId = items.length ? items[0]?.id ?? null : null;
+    const primaryTermId = resolvedItems.length && resolvedItems[0]?.id > 0 ? resolvedItems[0]?.id ?? null : null;
     void recordSearchEvent({
       query: rawQuery,
       language,
       context,
       mode,
       termId: primaryTermId,
-      resultCount: items.length,
-      hadResults: items.length > 0,
+      resultCount: resolvedItems.length,
+      hadResults: resolvedItems.length > 0,
     });
-    return NextResponse.json({ ok: true, items, meta }, { headers: noStoreHeaders });
+    return NextResponse.json({ ok: true, items: resolvedItems, meta }, { headers: noStoreHeaders });
   } catch (error) {
     logger.error({ err: error, route: "/api/terms" }, "terms.list.error");
     incrementMetric("terms.list.error");
