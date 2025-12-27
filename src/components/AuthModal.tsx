@@ -107,6 +107,7 @@ export function AuthModal({ open, onClose, defaultMode = "login" }: { open: bool
       const endpoint = mode === "login" ? "/api/auth/login" : "/api/auth/register";
       const body: Record<string, string> = { username, password };
       if (mode === "register" && email) body.email = email;
+      if (mode === "register" && adminToken.trim()) body.role = "admin";
       const headers: Record<string, string> = { "Content-Type": "application/json" };
       if (mode === "register" && adminToken.trim()) headers["x-admin-token"] = adminToken.trim();
 
