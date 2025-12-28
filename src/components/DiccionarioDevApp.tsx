@@ -57,6 +57,8 @@ import { NotificationBell } from "./NotificationBell";
 import { ThemeLogo } from "./ThemeLogo";
 import ThemeToggle from "./ThemeToggle";
 import { trackTermUsage } from "@/lib/usage";
+import { getFavoritesStorageKey, useFavorites } from "@/hooks/useFavorites";
+import { getDocsLink } from "@/lib/docs-link";
 
 type SearchContext = "concept" | "interview" | "debug" | "translate";
 
@@ -789,6 +791,8 @@ export default function DiccionarioDevApp() {
     const [showHistory, setShowHistory] = useState(false);
     const userStorageKey = session?.username || "guest";
     const [recentSearches, setRecentSearches] = useLocalStorage<string[]>(`recent_searches:${userStorageKey}`, []);
+    const favoritesKey = getFavoritesStorageKey(session?.username);
+    const { toggleFavorite, isFavorite } = useFavorites(favoritesKey);
     const searchInputRef = useRef<HTMLInputElement>(null);
     const [isCodeMode, setIsCodeMode] = useState(false);
     const [searchContext, setSearchContext] = useState<SearchContext | null>(null);
@@ -855,6 +859,7 @@ export default function DiccionarioDevApp() {
     ];
     const appLinks = [
         { label: "Explorar", href: "/terms" },
+        { label: "Favoritos", href: "/favorites" },
         { label: "Training", href: "/training" },
         { label: "Interview Live", href: "/interview/live" },
     ];
@@ -881,6 +886,7 @@ export default function DiccionarioDevApp() {
         "Interview Live": Video,
         Dashboard: LayoutDashboard,
         Explorar: BookOpen,
+        Favoritos: Star,
         "Términos": BookOpen,
         Perfil: User,
         "Configuración": Settings,
@@ -1596,22 +1602,31 @@ export default function DiccionarioDevApp() {
     };
 
     const handleFavorite = () => {
-        if (!activeTerm?.id) return;
-        void trackTermUsage({ termId: activeTerm.id, action: "favorite", context: "app" });
-        setFavoritePulse(true);
-        window.setTimeout(() => setFavoritePulse(false), 1800);
+        if (!activeTerm) return;
+        const added = toggleFavorite(activeTerm);
+        if (added) {
+            void trackTermUsage({ termId: activeTerm.id, action: "favorite", context: "app" });
+            setFavoritePulse(true);
+            window.setTimeout(() => setFavoritePulse(false), 1800);
+        } else {
+            setFavoritePulse(false);
+        }
     };
+
+    const isFavoriteActive = activeTerm ? isFavorite(activeTerm.id) : false;
+    const docsUrl = activeTerm ? getDocsLink(activeTerm.term) : null;
 
     // --- New Feature Helpers ---
 
     const generateJSDoc = (term: TermDTO) => {
+        const slug = term.slug ? encodeURIComponent(term.slug) : encodeURIComponent(term.term);
         const jsDoc = `/**
  * ${term.term}
  * 
  * ${term.meaningEs || term.meaning}
  * 
  * @category ${term.category}
- * @see https://diccionariodev.com/term/${term.id}
+ * @see https://diccionariodev.com/term/${slug}
  */`;
         handleCopy(jsDoc, setJsDocCopied);
     };
@@ -2756,9 +2771,20 @@ export default function DiccionarioDevApp() {
                                     <button
                                         onClick={handleFavorite}
                                         className="flex items-center gap-2 rounded-lg border border-amber-500/30 bg-amber-500/10 px-4 py-2 text-sm lg:text-base font-medium text-amber-200 hover:bg-amber-500/20 transition-colors whitespace-nowrap">
-                                        <Star className={`h-4 w-4 lg:h-5 lg:w-5 ${favoritePulse ? "text-amber-300" : "text-amber-200"}`} />
-                                        {favoritePulse ? "Guardado" : "Favorito"}
+                                        <Star className={`h-4 w-4 lg:h-5 lg:w-5 ${favoritePulse || isFavoriteActive ? "text-amber-300" : "text-amber-200"}`} />
+                                        {favoritePulse || isFavoriteActive ? "Guardado" : "Favorito"}
                                     </button>
+                                    {docsUrl ? (
+                                        <a
+                                            href={docsUrl}
+                                            target="_blank"
+                                            rel="noreferrer"
+                                            className="flex items-center gap-2 rounded-lg border border-cyan-500/30 bg-cyan-500/10 px-4 py-2 text-sm lg:text-base font-medium text-cyan-200 hover:bg-cyan-500/20 transition-colors whitespace-nowrap"
+                                        >
+                                            <Globe className="h-4 w-4 lg:h-5 lg:w-5" />
+                                            Docs
+                                        </a>
+                                    ) : null}
                                     <button
                                         onClick={() => setShowCheatSheet(true)}
                                         className="flex items-center gap-2 rounded-lg border border-indigo-500/30 bg-indigo-500/10 px-4 py-2 text-sm lg:text-base font-medium text-indigo-400 hover:bg-indigo-500/20 transition-colors whitespace-nowrap">

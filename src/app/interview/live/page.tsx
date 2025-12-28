@@ -66,8 +66,6 @@ export default function InterviewLivePage() {
 
   useEffect(() => {
     if (!debounced.trim()) {
-      setStatus("idle");
-      setTerm(null);
       setInterviewFallback(false);
       return;
     }
@@ -92,6 +90,29 @@ export default function InterviewLivePage() {
         setStatus("empty");
         setTerm(null);
         setInterviewFallback(false);
+      });
+    return () => controller.abort();
+  }, [debounced]);
+
+  useEffect(() => {
+    if (debounced.trim()) return;
+    const controller = new AbortController();
+    setTerm(null);
+    setStatus("loading");
+    fetch("/api/terms?sort=recent&pageSize=1", { cache: "no-store", signal: controller.signal })
+      .then(async (res) => {
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        return res.json();
+      })
+      .then((payload) => {
+        const item = Array.isArray(payload?.items) ? (payload.items as TermDTO[])[0] : null;
+        setTerm(item ?? null);
+        setStatus(item ? "ready" : "idle");
+      })
+      .catch((err) => {
+        if (err.name === "AbortError") return;
+        setStatus("idle");
+        setTerm(null);
       });
     return () => controller.abort();
   }, [debounced]);
@@ -269,6 +290,7 @@ export default function InterviewLivePage() {
     inputRef.current?.focus();
   };
 
+  const showingSuggestion = !debounced.trim() && Boolean(term);
   const statusCopy = useMemo(() => {
     switch (status) {
       case "idle":
@@ -290,12 +312,17 @@ export default function InterviewLivePage() {
         };
       case "ready":
       default:
-        return {
-          title: "Listo para brillar",
-          body: "Sigue con un follow-up o copia la respuesta en español o inglés.",
-        };
+        return showingSuggestion
+          ? {
+            title: "Ejemplo sugerido",
+            body: "Te mostramos un término reciente para inspirarte. Escribe el tuyo cuando quieras.",
+          }
+          : {
+            title: "Listo para brillar",
+            body: "Sigue con un follow-up o copia la respuesta en español o inglés.",
+          };
     }
-  }, [status]);
+  }, [status, showingSuggestion]);
 
   const quickLinks = [
     { label: "Home", href: "/" },
@@ -434,6 +461,11 @@ export default function InterviewLivePage() {
                     <p className="text-sm text-neo-text-secondary">{term.translation}</p>
                   </div>
                   <div className="flex gap-2 text-xs">
+                    {showingSuggestion ? (
+                      <span className="rounded-full border border-neo-border bg-neo-surface px-3 py-2 font-semibold text-neo-text-secondary">
+                        Ejemplo sugerido
+                      </span>
+                    ) : null}
                     <button
                       className="rounded-2xl border border-neo-border bg-white px-4 py-2 font-semibold text-neo-text-primary transition hover:border-neo-primary hover:text-neo-primary"
                       type="button"

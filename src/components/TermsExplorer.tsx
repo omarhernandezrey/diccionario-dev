@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import Link from "next/link";
 import { useI18n } from "@/lib/i18n";
 import type { TermDTO } from "@/types/term";
 
@@ -9,6 +10,7 @@ type SortOption = "term_asc" | "term_desc" | "recent" | "oldest";
 const categories = ["all", "frontend", "backend", "database", "devops", "general"] as const;
 
 const pageSizes = [12, 24, 48];
+const RECENT_KEY = "recent_terms_explorer";
 
 type Filters = {
   q: string;
@@ -42,6 +44,32 @@ export default function TermsExplorer() {
   const [status, setStatus] = useState<"idle" | "loading" | "error">("idle");
   const [errorMsg, setErrorMsg] = useState("");
   const [data, setData] = useState<TermsResponse>({ items: [], meta: { total: 0, totalPages: 1, page: 1, pageSize: 12 } });
+  const [recentSearches, setRecentSearches] = useState<string[]>([]);
+  const debouncedQuery = useDebounce(filters.q, 400);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    try {
+      const raw = window.localStorage.getItem(RECENT_KEY);
+      if (!raw) return;
+      const parsed = JSON.parse(raw);
+      if (Array.isArray(parsed)) setRecentSearches(parsed.filter(Boolean));
+    } catch {
+      setRecentSearches([]);
+    }
+  }, []);
+
+  useEffect(() => {
+    const trimmed = debouncedQuery.trim();
+    if (trimmed.length < 2) return;
+    setRecentSearches((prev) => {
+      const next = [trimmed, ...prev.filter((term) => term !== trimmed)].slice(0, 6);
+      if (typeof window !== "undefined") {
+        window.localStorage.setItem(RECENT_KEY, JSON.stringify(next));
+      }
+      return next;
+    });
+  }, [debouncedQuery]);
 
   useEffect(() => {
     const controller = new AbortController();
@@ -138,6 +166,20 @@ export default function TermsExplorer() {
             onChange={(event) => updateFilters({ q: event.target.value })}
             placeholder={t("search.placeholder")}
           />
+          {recentSearches.length ? (
+            <div className="flex flex-wrap gap-2 text-xs text-neo-text-secondary">
+              {recentSearches.map((term) => (
+                <button
+                  key={term}
+                  type="button"
+                  className="rounded-full border border-neo-border bg-neo-surface px-3 py-1 transition hover:border-accent-secondary hover:text-neo-text-primary"
+                  onClick={() => updateFilters({ q: term })}
+                >
+                  #{term}
+                </button>
+              ))}
+            </div>
+          ) : null}
         </div>
         <div className="space-y-4">
           <label className="text-sm text-neo-text-secondary" htmlFor="explorer-tag">
@@ -250,6 +292,14 @@ export default function TermsExplorer() {
                     <p className="text-xs uppercase tracking-wide text-neo-text-secondary/70">{t("terms.how")}</p>
                     <p className="line-clamp-3 text-xs text-neo-text-primary/80">{howCopy}</p>
                   </div>
+                  <div className="mt-4">
+                    <Link
+                      href={term.slug ? `/term/${encodeURIComponent(term.slug)}` : `/term/${encodeURIComponent(term.term)}`}
+                      className="btn-ghost text-xs"
+                    >
+                      Ver detalle
+                    </Link>
+                  </div>
                 </article>
               );
             })}
@@ -304,4 +354,15 @@ function CardSkeleton() {
       ))}
     </div>
   );
+}
+
+function useDebounce<T>(value: T, delay: number) {
+  const [debounced, setDebounced] = useState(value);
+
+  useEffect(() => {
+    const timer = window.setTimeout(() => setDebounced(value), delay);
+    return () => window.clearTimeout(timer);
+  }, [value, delay]);
+
+  return debounced;
 }

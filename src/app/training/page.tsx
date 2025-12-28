@@ -23,6 +23,7 @@ export default function TrainingPage() {
   const [filterDifficulty, setFilterDifficulty] = useState<string>("all");
   const [filterTag, setFilterTag] = useState<string>("all");
   const containerRef = useRef<HTMLDivElement>(null);
+  const hasFilters = filterDifficulty !== "all" || filterTag !== "all";
 
   useEffect(() => {
     fetchQuizzes(0);
@@ -180,6 +181,12 @@ export default function TrainingPage() {
     return Array.from(tags).sort();
   }, [quizzes]);
 
+  const emptyQuizzesCopy = !quizzes.length
+    ? "Todavia no hay quizzes disponibles. Recarga en unos segundos."
+    : hasFilters
+      ? "No hay quizzes que coincidan con los filtros."
+      : "No hay quizzes disponibles en este momento.";
+
   const quickLinks = [
     { label: "Home", href: "/" },
     { label: "Training", href: "/training" },
@@ -303,7 +310,28 @@ export default function TrainingPage() {
               </>
             ) : (
               <li className="rounded-2xl border border-dashed border-neo-border p-8 text-center">
-                <p className="text-sm text-neo-text-secondary">No hay quizzes que coincidan con los filtros.</p>
+                <p className="text-sm text-neo-text-secondary">{emptyQuizzesCopy}</p>
+                <div className="mt-3 flex flex-wrap justify-center gap-2">
+                  {hasFilters ? (
+                    <button
+                      type="button"
+                      className="rounded-full border border-neo-border bg-neo-surface px-3 py-1 text-xs font-semibold text-neo-text-secondary transition hover:border-neo-primary hover:text-neo-primary"
+                      onClick={() => {
+                        setFilterDifficulty("all");
+                        setFilterTag("all");
+                      }}
+                    >
+                      Limpiar filtros
+                    </button>
+                  ) : null}
+                  <button
+                    type="button"
+                    className="rounded-full border border-neo-border bg-neo-surface px-3 py-1 text-xs font-semibold text-neo-text-secondary transition hover:border-neo-primary hover:text-neo-primary"
+                    onClick={() => fetchQuizzes(0)}
+                  >
+                    Reintentar
+                  </button>
+                </div>
               </li>
             )}
           </ul>
@@ -320,7 +348,7 @@ export default function TrainingPage() {
                   </li>
                 ))
               ) : (
-                <li>No hay intentos recientes.</li>
+                <li>No hay intentos recientes. Completa un quiz para que aparezcan aqui.</li>
               )}
             </ul>
           </section>

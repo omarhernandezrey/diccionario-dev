@@ -5,6 +5,8 @@ import { Prism as SyntaxHighlighter } from "react-syntax-highlighter";
 import { dracula } from "react-syntax-highlighter/dist/cjs/styles/prism";
 import { useI18n } from "@/lib/i18n";
 import { trackTermUsage } from "@/lib/usage";
+import { getFavoritesStorageKey, useFavorites } from "@/hooks/useFavorites";
+import { getDocsLink } from "@/lib/docs-link";
 import type { TermDTO, TermVariantDTO, TermExampleDTO, TermExerciseDTO } from "@/types/term";
 import type { StructuralTranslationResult } from "@/types/translate";
 import { TbBriefcase, TbMicrophone, TbBug, TbBulb, TbListCheck, TbTarget, TbSparkles } from "react-icons/tb";
@@ -32,6 +34,7 @@ type ActionToolbarProps = {
   onGenerateResponse: (lang: "es" | "en") => void;
   hint?: string | null;
   variant?: SearchBoxVariant;
+  docsUrl?: string | null;
 };
 
 const quickTerms = ["fetch", "useState", "REST", "JOIN", "JWT", "Docker"];
@@ -85,6 +88,7 @@ export default function SearchBox({ variant = "dark" }: SearchBoxProps) {
   const debounced = useDebounce(search, 220);
   const detectedMode = useMemo(() => detectInputMode(debounced), [debounced]);
   const effectiveMode = modeOverride ?? detectedMode;
+  const { toggleFavorite, isFavorite } = useFavorites(getFavoritesStorageKey());
 
   const hasQuery = debounced.trim().length > 1;
   const statusMessage = useMemo(() => {
@@ -483,6 +487,7 @@ function ResultPreview({ term, activeContext, variant }: { term: TermDTO; active
   const aliasList = term.aliases ?? [];
   const tags = term.tags ?? [];
   const exercises = term.exercises ?? [];
+  const docsUrl = getDocsLink(term.term);
   const filteredUseCases = useCaseContext ? useCases.filter((useCase) => useCase.context === useCaseContext) : useCases;
   const useCaseSelectorGrid =
     availableUseCaseContexts.length <= 1
@@ -549,8 +554,12 @@ function ResultPreview({ term, activeContext, variant }: { term: TermDTO; active
   };
 
   const handleFavorite = () => {
-    void trackTermUsage({ termId: term.id, action: "favorite", context: "searchbox" });
-    showActionHint('Favorito registrado');
+    const wasFavorite = isFavorite(term.id);
+    const added = toggleFavorite(term);
+    if (!wasFavorite && added) {
+      void trackTermUsage({ termId: term.id, action: "favorite", context: "searchbox" });
+    }
+    showActionHint(added ? "Guardado en favoritos" : "Quitado de favoritos");
   };
 
   return (
@@ -590,6 +599,7 @@ function ResultPreview({ term, activeContext, variant }: { term: TermDTO; active
           onFavorite={handleFavorite}
           onOpenCheatSheet={() => setCheatSheetOpen(true)}
           onGenerateResponse={handleGenerateResponse}
+          docsUrl={docsUrl}
           hint={actionHint}
           variant={variant}
         />
@@ -860,7 +870,7 @@ function SelectorPanel({
 
 
 
-function ActionToolbar({ onCopyDefinition, onCopySnippet, onFavorite, onOpenCheatSheet, onGenerateResponse, hint }: ActionToolbarProps) {
+function ActionToolbar({ onCopyDefinition, onCopySnippet, onFavorite, onOpenCheatSheet, onGenerateResponse, hint, docsUrl }: ActionToolbarProps) {
   return (
     <div className="flex flex-col gap-4 border-b border-neo-border/30 pb-6">
       <div className="flex flex-wrap gap-2 text-xs font-semibold">
@@ -882,6 +892,11 @@ function ActionToolbar({ onCopyDefinition, onCopySnippet, onFavorite, onOpenChea
         <button className="btn-ghost" type="button" onClick={() => onGenerateResponse("en")}>
           Response EN
         </button>
+        {docsUrl ? (
+          <a className="btn-ghost" href={docsUrl} target="_blank" rel="noreferrer">
+            Docs
+          </a>
+        ) : null}
       </div>
       {hint ? <p className="text-[11px] text-accent-secondary">{hint}</p> : null}
     </div>

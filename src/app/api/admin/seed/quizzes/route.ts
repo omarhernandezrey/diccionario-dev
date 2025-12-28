@@ -1,37 +1,28 @@
+import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { requireAdmin } from "@/lib/auth";
 import { logger } from "@/lib/logger";
 import { quizSeed } from "@/lib/quiz-seed";
 import { buildTermQuizSeed } from "@/lib/quiz-from-terms";
 
-let seedPromise: Promise<void> | null = null;
+export const dynamic = "force-dynamic";
+export const runtime = "nodejs";
+export const maxDuration = 60;
 
-/**
- * Asegura que los quizzes estén sembrados.
- * NOTA: Este autoseed en runtime está deshabilitado por defecto para mejorar rendimiento.
- * Se recomienda usar el script de seed dedicado: npx tsx prisma/seed-quizzes.ts
- * Para habilitar el autoseed, establece ENABLE_QUIZ_AUTOSEED=true en .env
- * Para incluir quizzes por terminos, establece QUIZ_AUTOSEED_INCLUDE_TERMS=true
- */
-export async function ensureQuizzesSeeded() {
-  // Autoseed controlado por env, pero con fallback si la tabla esta vacia
-  const autoseedEnabled = process.env.ENABLE_QUIZ_AUTOSEED === "true";
+const noStore = { "Cache-Control": "no-store" } as const;
+const TRUTHY = new Set(["1", "true", "yes", "on"]);
 
-  if (seedPromise) return seedPromise;
-  seedPromise = (async () => {
-    const existing = await prisma.quizTemplate.count();
-    const shouldSeed = autoseedEnabled || existing === 0;
-    if (!shouldSeed) {
-      logger.info("Quiz autoseed deshabilitado. Usa 'npx tsx prisma/seed-quizzes.ts' para sembrar quizzes.");
-      return;
-    }
-    if (existing === 0 && !autoseedEnabled) {
-      logger.warn("Autoseed fallback activo: tabla de quizzes vacia.");
-    } else if (existing === 0) {
-      logger.warn("Inicializando quizzes de ejemplo porque la tabla esta vacia.");
-    }
-    const includeTermQuizzes = process.env.QUIZ_AUTOSEED_INCLUDE_TERMS === "true";
+export async function POST(req: NextRequest) {
+  try {
+    requireAdmin(req.headers);
+    const includeTermsParam = req.nextUrl.searchParams.get("includeTerms");
+    const includeTerms =
+      includeTermsParam == null
+        ? process.env.QUIZ_AUTOSEED_INCLUDE_TERMS === "true"
+        : TRUTHY.has(includeTermsParam.trim().toLowerCase());
+
     let allQuizzes = quizSeed;
-    if (includeTermQuizzes) {
+    if (includeTerms) {
       const termRecords = await prisma.term.findMany({
         select: {
           id: true,
@@ -57,11 +48,14 @@ export async function ensureQuizzesSeeded() {
         })),
       );
       allQuizzes = [...quizSeed, ...termQuizzes];
-      logger.info({ count: termQuizzes.length }, "quizzes.autoseed_terms_enabled");
     }
+
     const existingSlugs = new Set(
       (await prisma.quizTemplate.findMany({ select: { slug: true } })).map((record) => record.slug),
     );
+    let created = 0;
+    let updated = 0;
+
     for (const quiz of allQuizzes) {
       if (existingSlugs.has(quiz.slug)) {
         await prisma.quizTemplate.update({
@@ -74,6 +68,7 @@ export async function ensureQuizzesSeeded() {
             items: quiz.items,
           },
         });
+        updated += 1;
       } else {
         await prisma.quizTemplate.create({
           data: {
@@ -85,12 +80,29 @@ export async function ensureQuizzesSeeded() {
             items: quiz.items,
           },
         });
+        created += 1;
       }
     }
-  })().catch((error) => {
-    logger.error({ err: error }, "quizzes.bootstrap_failed");
-    seedPromise = null;
-    throw error;
-  });
-  return seedPromise;
+
+    return NextResponse.json(
+      {
+        ok: true,
+        total: allQuizzes.length,
+        created,
+        updated,
+        includeTerms,
+      },
+      { headers: noStore },
+    );
+  } catch (error) {
+    if (error instanceof Response) return error;
+    logger.error({ err: error }, "quizzes.seed_failed");
+    return NextResponse.json(
+      {
+        ok: false,
+        error: (error as Error)?.message ?? "Seed failed",
+      },
+      { status: 500, headers: noStore },
+    );
+  }
 }
