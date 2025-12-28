@@ -11,16 +11,14 @@ export async function POST(req: NextRequest) {
             // Si no hay body o no es JSON, html queda vacío
         }
 
-        // Carga perezosa para no fallar si no existe @tailwindcss/postcss
+        // Carga dinámica con eval para evitar que Webpack intente empaquetar archivos binarios.
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         let tailwindPlugin: any = null;
         try {
-            // eslint-disable-next-line @typescript-eslint/no-require-imports, @typescript-eslint/no-var-requires
-            tailwindPlugin = require("@tailwindcss/postcss");
+            tailwindPlugin = eval('require("@tailwindcss/postcss")');
         } catch {
             try {
-                // eslint-disable-next-line @typescript-eslint/no-require-imports, @typescript-eslint/no-var-requires
-                tailwindPlugin = require("tailwindcss");
+                tailwindPlugin = eval('require("tailwindcss")');
             } catch {
                 tailwindPlugin = null;
             }
