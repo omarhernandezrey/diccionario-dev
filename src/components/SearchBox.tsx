@@ -455,6 +455,7 @@ function ResultPreview({ term, activeContext, variant }: { term: TermDTO; active
   const [actionHint, setActionHint] = useState<string | null>(null);
   const hintTimeout = useRef<number | null>(null);
   const lastTrackedRef = useRef<number | null>(null);
+  const { toggleFavorite, isFavorite } = useFavorites(getFavoritesStorageKey());
   const useCases = useMemo(() => term.useCases ?? [], [term.useCases]);
   const availableUseCaseContexts = useMemo(
     () => Array.from(new Set(useCases.map((useCase) => useCase.context))),
