@@ -327,6 +327,7 @@ select:focus-visible {
 
   /* App: legibilidad en móviles (evita overflow de texto y wraps feos). */
   @media (max-width: 768px) {
+
     .dd-app,
     .dd-app * {
       overflow-wrap: anywhere;
@@ -472,6 +473,7 @@ select:focus-visible {
   0% {
     transform: translate3d(0, 0, 0);
   }
+
   100% {
     transform: translate3d(-50%, 0, 0);
   }
@@ -492,9 +494,11 @@ select:focus-visible {
   0% {
     transform: translateY(0);
   }
+
   50% {
     transform: translateY(-4px);
   }
+
   100% {
     transform: translateY(0);
   }
@@ -505,10 +509,12 @@ select:focus-visible {
     opacity: 0.15;
     border-width: 1px;
   }
+
   50% {
     opacity: 0.4;
     border-width: 2px;
   }
+
   100% {
     opacity: 0.15;
     border-width: 1px;
@@ -528,7 +534,25 @@ select:focus-visible {
   .animate-floating {
     animation: float 6s ease-in-out infinite;
   }
+
   .animate-pulse-border {
     animation: pulseBorder 5s ease-in-out infinite;
+  }
+
+  .animate-gradient-x {
+    background-size: 200% 200%;
+    animation: gradient-x 15s ease infinite;
+  }
+}
+
+@keyframes gradient-x {
+
+  0%,
+  100% {
+    background-position: 0% 50%;
+  }
+
+  50% {
+    background-position: 100% 50%;
   }
 }

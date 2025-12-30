@@ -218,23 +218,23 @@ function CodeBlock({ code, language = "javascript", showLineNumbers = true }: { 
                     <span className="ml-2">{language}</span>
                 </div>
             </div>
-	            {Highlighter ? (
-	                <Highlighter
-	                    language={language === "ts" ? "typescript" : language}
-	                    style={style as never}
-	                    customStyle={{ margin: 0, padding: "1rem", background: "transparent" }}
-	                    showLineNumbers={showLineNumbers}
-	                    wrapLines={true}
-	                    wrapLongLines={true}
-	                >
-	                    {code}
-	                </Highlighter>
-	            ) : (
-	                <pre className="overflow-x-hidden p-4 font-mono text-xs lg:text-sm text-slate-200 whitespace-pre-wrap wrap-break-word sm:overflow-x-auto sm:whitespace-pre">{code}</pre>
-	            )}
-	        </div>
-	    );
-	}
+            {Highlighter ? (
+                <Highlighter
+                    language={language === "ts" ? "typescript" : language}
+                    style={style as never}
+                    customStyle={{ margin: 0, padding: "1rem", background: "transparent" }}
+                    showLineNumbers={showLineNumbers}
+                    wrapLines={true}
+                    wrapLongLines={true}
+                >
+                    {code}
+                </Highlighter>
+            ) : (
+                <pre className="overflow-x-hidden p-4 font-mono text-xs lg:text-sm text-slate-200 whitespace-pre-wrap wrap-break-word sm:overflow-x-auto sm:whitespace-pre">{code}</pre>
+            )}
+        </div>
+    );
+}
 
 function CssLiveBlock({ term, snippet, language }: { term: TermDTO; snippet: string; language: string }) {
     const isTailwindTerm = (term.tags || []).some(tag => tag.toLowerCase().includes("tailwind"));
@@ -694,12 +694,12 @@ function GeminiStar() {
                         <stop offset="100%" stopColor="#f472b6" />
                     </linearGradient>
                 </defs>
-	                <path
-	                    d="M12 0L14.5 9.5L24 12L14.5 14.5L12 24L9.5 14.5L0 12L9.5 9.5L12 0Z"
-	                    fill="url(#gemini-core)"
-	                    className="dark:drop-shadow-[0_0_10px_rgba(192,132,252,0.8)]"
-	                />
-	            </svg>
+                <path
+                    d="M12 0L14.5 9.5L24 12L14.5 14.5L12 24L9.5 14.5L0 12L9.5 9.5L12 0Z"
+                    fill="url(#gemini-core)"
+                    className="dark:drop-shadow-[0_0_10px_rgba(192,132,252,0.8)]"
+                />
+            </svg>
 
             {/* Outer Aura - Reverse Spin & Blur */}
             <svg viewBox="0 0 24 24" className="absolute w-[140%] h-[140%] animate-[spin_6s_linear_infinite_reverse] opacity-50 blur-sm z-0">
@@ -744,10 +744,10 @@ function GeminiLoader({ term }: { term: string }) {
 
                 {/* The Text */}
                 <div className="space-y-3 sm:space-y-4 max-w-md">
-	                    <p className="text-lg sm:text-2xl font-medium tracking-tight text-slate-900 dark:text-white">
-	                        <span className="opacity-70 dark:opacity-60 text-slate-700 dark:text-slate-300">Generando para </span>
-	                        <span className="font-bold text-transparent bg-clip-text bg-linear-to-r from-blue-600 via-purple-600 to-pink-600 dark:from-blue-400 dark:via-purple-400 dark:to-pink-400 animate-gradient-x">
-	                            &quot;{term}&quot;
+                    <p className="text-lg sm:text-2xl font-medium tracking-tight text-slate-900 dark:text-white">
+                        <span className="opacity-70 dark:opacity-60 text-slate-700 dark:text-slate-300">Generando para </span>
+                        <span className="font-bold text-transparent bg-clip-text bg-linear-to-r from-blue-600 via-purple-600 to-pink-600 dark:from-blue-400 dark:via-purple-400 dark:to-pink-400 animate-gradient-x">
+                            &quot;{term}&quot;
                         </span>
                     </p>
 
@@ -821,34 +821,34 @@ export default function DiccionarioDevApp() {
         };
     }, [showMobileMenu]);
 
-	    const coverStorageKey = `user_cover:${userStorageKey}`;
-	    const avatarStorageKey = `user_avatar_override:${userStorageKey}`;
-	    const [coverUrl, setCoverUrl] = useLocalStorage<string>(coverStorageKey, "");
-	    const [coverEditorOpen, setCoverEditorOpen] = useState(false);
-	    const [coverDraftUrl, setCoverDraftUrl] = useState<string>("");
-	    const [coverZoom, setCoverZoom] = useState(1);
-	    const [coverOffsetX, setCoverOffsetX] = useState(0); // -1..1 (proporción del máximo permitido)
-	    const [coverOffsetY, setCoverOffsetY] = useState(0); // -1..1 (proporción del máximo permitido)
-	    const [coverNaturalSize, setCoverNaturalSize] = useState<{ width: number; height: number } | null>(null);
-	    const [coverPreviewSize, setCoverPreviewSize] = useState<{ width: number; height: number } | null>(null);
-	    const [coverAspectRatio, setCoverAspectRatio] = useState<number | null>(null);
-	    const [isDraggingCover, setIsDraggingCover] = useState(false);
-	    const dragStartRef = useRef<{ x: number; y: number; offsetPxX: number; offsetPxY: number } | null>(null);
-	    const coverPreviewRef = useRef<HTMLDivElement | null>(null);
-	    const coverDisplayRef = useRef<HTMLDivElement | null>(null);
-	    const coverInputRef = useRef<HTMLInputElement>(null);
-	    const avatarInputRef = useRef<HTMLInputElement>(null);
-	    const [avatarPreview, setAvatarPreview] = useState<string | null>(null);
-	    const [avatarEditorOpen, setAvatarEditorOpen] = useState(false);
-	    const [avatarDraftUrl, setAvatarDraftUrl] = useState<string>("");
-	    const [avatarZoom, setAvatarZoom] = useState(1);
-	    const [avatarOffsetX, setAvatarOffsetX] = useState(0); // -1..1 (proporción del máximo permitido)
-	    const [avatarOffsetY, setAvatarOffsetY] = useState(0); // -1..1 (proporción del máximo permitido)
-	    const [avatarNaturalSize, setAvatarNaturalSize] = useState<{ width: number; height: number } | null>(null);
-	    const [avatarPreviewSize, setAvatarPreviewSize] = useState<{ width: number; height: number } | null>(null);
-	    const avatarPreviewRef = useRef<HTMLDivElement | null>(null);
-	    const [isDraggingAvatar, setIsDraggingAvatar] = useState(false);
-	    const dragAvatarRef = useRef<{ x: number; y: number; offsetPxX: number; offsetPxY: number } | null>(null);
+    const coverStorageKey = `user_cover:${userStorageKey}`;
+    const avatarStorageKey = `user_avatar_override:${userStorageKey}`;
+    const [coverUrl, setCoverUrl] = useLocalStorage<string>(coverStorageKey, "");
+    const [coverEditorOpen, setCoverEditorOpen] = useState(false);
+    const [coverDraftUrl, setCoverDraftUrl] = useState<string>("");
+    const [coverZoom, setCoverZoom] = useState(1);
+    const [coverOffsetX, setCoverOffsetX] = useState(0); // -1..1 (proporción del máximo permitido)
+    const [coverOffsetY, setCoverOffsetY] = useState(0); // -1..1 (proporción del máximo permitido)
+    const [coverNaturalSize, setCoverNaturalSize] = useState<{ width: number; height: number } | null>(null);
+    const [coverPreviewSize, setCoverPreviewSize] = useState<{ width: number; height: number } | null>(null);
+    const [coverAspectRatio, setCoverAspectRatio] = useState<number | null>(null);
+    const [isDraggingCover, setIsDraggingCover] = useState(false);
+    const dragStartRef = useRef<{ x: number; y: number; offsetPxX: number; offsetPxY: number } | null>(null);
+    const coverPreviewRef = useRef<HTMLDivElement | null>(null);
+    const coverDisplayRef = useRef<HTMLDivElement | null>(null);
+    const coverInputRef = useRef<HTMLInputElement>(null);
+    const avatarInputRef = useRef<HTMLInputElement>(null);
+    const [avatarPreview, setAvatarPreview] = useState<string | null>(null);
+    const [avatarEditorOpen, setAvatarEditorOpen] = useState(false);
+    const [avatarDraftUrl, setAvatarDraftUrl] = useState<string>("");
+    const [avatarZoom, setAvatarZoom] = useState(1);
+    const [avatarOffsetX, setAvatarOffsetX] = useState(0); // -1..1 (proporción del máximo permitido)
+    const [avatarOffsetY, setAvatarOffsetY] = useState(0); // -1..1 (proporción del máximo permitido)
+    const [avatarNaturalSize, setAvatarNaturalSize] = useState<{ width: number; height: number } | null>(null);
+    const [avatarPreviewSize, setAvatarPreviewSize] = useState<{ width: number; height: number } | null>(null);
+    const avatarPreviewRef = useRef<HTMLDivElement | null>(null);
+    const [isDraggingAvatar, setIsDraggingAvatar] = useState(false);
+    const dragAvatarRef = useRef<{ x: number; y: number; offsetPxX: number; offsetPxY: number } | null>(null);
     const isAdmin = session?.role === "admin";
     const profileHref = isAdmin ? "/admin/profile" : "/admin/access?returnUrl=/admin/profile";
     const settingsHref = isAdmin ? "/admin/settings" : "/admin/access?returnUrl=/admin/settings";
@@ -894,76 +894,76 @@ export default function DiccionarioDevApp() {
     };
     const routeLinks = [...appLinks, ...adminLinks, ...accountLinks, ...authLinks];
 
-	    // Reset editores y previews cuando cambia de usuario
-		    useEffect(() => {
-		        setAvatarPreview(null);
-		        setAvatarDraftUrl("");
-		        setAvatarEditorOpen(false);
-	        setAvatarZoom(1);
-	        setAvatarOffsetX(0);
-	        setAvatarOffsetY(0);
-	        setAvatarNaturalSize(null);
-	        setAvatarPreviewSize(null);
-	        setCoverDraftUrl("");
-	        setCoverEditorOpen(false);
-	        setCoverZoom(1);
-	        setCoverOffsetX(0);
-		        setCoverOffsetY(0);
-		        setCoverNaturalSize(null);
-		        setCoverPreviewSize(null);
-		        setCoverAspectRatio(null);
-		    }, [userStorageKey]);
+    // Reset editores y previews cuando cambia de usuario
+    useEffect(() => {
+        setAvatarPreview(null);
+        setAvatarDraftUrl("");
+        setAvatarEditorOpen(false);
+        setAvatarZoom(1);
+        setAvatarOffsetX(0);
+        setAvatarOffsetY(0);
+        setAvatarNaturalSize(null);
+        setAvatarPreviewSize(null);
+        setCoverDraftUrl("");
+        setCoverEditorOpen(false);
+        setCoverZoom(1);
+        setCoverOffsetX(0);
+        setCoverOffsetY(0);
+        setCoverNaturalSize(null);
+        setCoverPreviewSize(null);
+        setCoverAspectRatio(null);
+    }, [userStorageKey]);
 
-	    // Cargar avatar guardado en localStorage (para que persista aunque la sesión tarde en refrescar)
-	    useEffect(() => {
-	        if (typeof window === "undefined") return;
-	        try {
-	            const raw = window.localStorage.getItem(avatarStorageKey);
-	            if (!raw) return;
-	            const parsed = JSON.parse(raw);
-	            if (typeof parsed === "string") setAvatarPreview(parsed);
-	        } catch {
-	            // ignore
-	        }
-	    }, [avatarStorageKey]);
+    // Cargar avatar guardado en localStorage (para que persista aunque la sesión tarde en refrescar)
+    useEffect(() => {
+        if (typeof window === "undefined") return;
+        try {
+            const raw = window.localStorage.getItem(avatarStorageKey);
+            if (!raw) return;
+            const parsed = JSON.parse(raw);
+            if (typeof parsed === "string") setAvatarPreview(parsed);
+        } catch {
+            // ignore
+        }
+    }, [avatarStorageKey]);
 
-	    // Medir previews para que el guardado sea WYSIWYG (misma lógica en preview y export)
-		    useEffect(() => {
-		        if (!coverEditorOpen) return;
-		        const update = () => {
-		            const displayRect = coverDisplayRef.current?.getBoundingClientRect();
-		            if (displayRect?.width && displayRect.height) {
-		                setCoverAspectRatio(displayRect.width / displayRect.height);
-		            }
-		            const rect = coverPreviewRef.current?.getBoundingClientRect();
-		            if (!rect) return;
-		            setCoverPreviewSize({ width: rect.width, height: rect.height });
-		        };
-		        const raf = window.requestAnimationFrame(() => {
-		            update();
-		            window.requestAnimationFrame(update);
-		        });
-		        window.addEventListener("resize", update);
-		        return () => {
-		            window.cancelAnimationFrame(raf);
-		            window.removeEventListener("resize", update);
-		        };
-		    }, [coverEditorOpen]);
+    // Medir previews para que el guardado sea WYSIWYG (misma lógica en preview y export)
+    useEffect(() => {
+        if (!coverEditorOpen) return;
+        const update = () => {
+            const displayRect = coverDisplayRef.current?.getBoundingClientRect();
+            if (displayRect?.width && displayRect.height) {
+                setCoverAspectRatio(displayRect.width / displayRect.height);
+            }
+            const rect = coverPreviewRef.current?.getBoundingClientRect();
+            if (!rect) return;
+            setCoverPreviewSize({ width: rect.width, height: rect.height });
+        };
+        const raf = window.requestAnimationFrame(() => {
+            update();
+            window.requestAnimationFrame(update);
+        });
+        window.addEventListener("resize", update);
+        return () => {
+            window.cancelAnimationFrame(raf);
+            window.removeEventListener("resize", update);
+        };
+    }, [coverEditorOpen]);
 
-	    useEffect(() => {
-	        if (!avatarEditorOpen) return;
-	        const update = () => {
-	            const rect = avatarPreviewRef.current?.getBoundingClientRect();
-	            if (!rect) return;
-	            setAvatarPreviewSize({ width: rect.width, height: rect.height });
-	        };
-	        const raf = window.requestAnimationFrame(update);
-	        window.addEventListener("resize", update);
-	        return () => {
-	            window.cancelAnimationFrame(raf);
-	            window.removeEventListener("resize", update);
-	        };
-	    }, [avatarEditorOpen]);
+    useEffect(() => {
+        if (!avatarEditorOpen) return;
+        const update = () => {
+            const rect = avatarPreviewRef.current?.getBoundingClientRect();
+            if (!rect) return;
+            setAvatarPreviewSize({ width: rect.width, height: rect.height });
+        };
+        const raf = window.requestAnimationFrame(update);
+        window.addEventListener("resize", update);
+        return () => {
+            window.cancelAnimationFrame(raf);
+            window.removeEventListener("resize", update);
+        };
+    }, [avatarEditorOpen]);
 
     const handleContextSelect = (contextId: SearchContext) => {
         setSearchContext((prev) => (prev === contextId ? null : contextId));
@@ -978,216 +978,216 @@ export default function DiccionarioDevApp() {
         return "Busca un término (ej. useState) o pega código...";
     };
 
-	    const handleCoverUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-	        const file = e.target.files?.[0];
-	        if (!file) return;
-	        if (!file.type.startsWith("image/")) {
-	            alert("Selecciona una imagen válida.");
-            return;
-        }
-	        if (file.size > 5 * 1024 * 1024) {
-	            alert("La imagen es demasiado grande. Máximo 5MB.");
-	            return;
-	        }
-	        const reader = new FileReader();
-		        reader.onload = () => {
-		            const src = reader.result as string;
-		            const img = new window.Image();
-		            img.onload = () => {
-		                const displayRect = coverDisplayRef.current?.getBoundingClientRect();
-		                if (displayRect?.width && displayRect.height) {
-		                    setCoverAspectRatio(displayRect.width / displayRect.height);
-		                } else {
-		                    setCoverAspectRatio(null);
-		                }
-		                setCoverNaturalSize({ width: img.width, height: img.height });
-		                setCoverDraftUrl(src);
-		                setCoverEditorOpen(true);
-		                setCoverZoom(1);
-		                setCoverOffsetX(0);
-		                setCoverOffsetY(0);
-	            };
-            img.src = src;
-        };
-        reader.readAsDataURL(file);
-        e.target.value = "";
-    };
-
-	    const handleAvatarUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-	        const file = e.target.files?.[0];
-	        if (!file) return;
-	        if (!file.type.startsWith("image/")) {
-	            alert("Selecciona una imagen válida.");
+    const handleCoverUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        if (!file) return;
+        if (!file.type.startsWith("image/")) {
+            alert("Selecciona una imagen válida.");
             return;
         }
         if (file.size > 5 * 1024 * 1024) {
             alert("La imagen es demasiado grande. Máximo 5MB.");
             return;
         }
-	        const reader = new FileReader();
-	        reader.onload = () => {
-	            const src = reader.result as string;
-	            const img = new window.Image();
-	            img.onload = () => {
-	                setAvatarNaturalSize({ width: img.width, height: img.height });
-	                setAvatarDraftUrl(src);
-	                setAvatarEditorOpen(true);
-	                setAvatarZoom(1);
-	                setAvatarOffsetX(0);
+        const reader = new FileReader();
+        reader.onload = () => {
+            const src = reader.result as string;
+            const img = new window.Image();
+            img.onload = () => {
+                const displayRect = coverDisplayRef.current?.getBoundingClientRect();
+                if (displayRect?.width && displayRect.height) {
+                    setCoverAspectRatio(displayRect.width / displayRect.height);
+                } else {
+                    setCoverAspectRatio(null);
+                }
+                setCoverNaturalSize({ width: img.width, height: img.height });
+                setCoverDraftUrl(src);
+                setCoverEditorOpen(true);
+                setCoverZoom(1);
+                setCoverOffsetX(0);
+                setCoverOffsetY(0);
+            };
+            img.src = src;
+        };
+        reader.readAsDataURL(file);
+        e.target.value = "";
+    };
+
+    const handleAvatarUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        if (!file) return;
+        if (!file.type.startsWith("image/")) {
+            alert("Selecciona una imagen válida.");
+            return;
+        }
+        if (file.size > 5 * 1024 * 1024) {
+            alert("La imagen es demasiado grande. Máximo 5MB.");
+            return;
+        }
+        const reader = new FileReader();
+        reader.onload = () => {
+            const src = reader.result as string;
+            const img = new window.Image();
+            img.onload = () => {
+                setAvatarNaturalSize({ width: img.width, height: img.height });
+                setAvatarDraftUrl(src);
+                setAvatarEditorOpen(true);
+                setAvatarZoom(1);
+                setAvatarOffsetX(0);
                 setAvatarOffsetY(0);
             };
             img.src = src;
         };
-	        reader.readAsDataURL(file);
-	        e.target.value = "";
-	    };
+        reader.readAsDataURL(file);
+        e.target.value = "";
+    };
 
-		    const cancelCoverEdit = () => {
-		        setCoverEditorOpen(false);
-		        setCoverDraftUrl("");
-		        setCoverZoom(1);
-		        setCoverOffsetX(0);
-		        setCoverOffsetY(0);
-		        setCoverNaturalSize(null);
-		        setCoverPreviewSize(null);
-		        setCoverAspectRatio(null);
-		        endDragCover();
-		    };
+    const cancelCoverEdit = () => {
+        setCoverEditorOpen(false);
+        setCoverDraftUrl("");
+        setCoverZoom(1);
+        setCoverOffsetX(0);
+        setCoverOffsetY(0);
+        setCoverNaturalSize(null);
+        setCoverPreviewSize(null);
+        setCoverAspectRatio(null);
+        endDragCover();
+    };
 
-	    const cancelAvatarEdit = () => {
-	        setAvatarEditorOpen(false);
-	        setAvatarDraftUrl("");
-	        setAvatarZoom(1);
-	        setAvatarOffsetX(0);
-	        setAvatarOffsetY(0);
-	        setAvatarNaturalSize(null);
-	        setAvatarPreviewSize(null);
-	        endDragAvatar();
-	    };
+    const cancelAvatarEdit = () => {
+        setAvatarEditorOpen(false);
+        setAvatarDraftUrl("");
+        setAvatarZoom(1);
+        setAvatarOffsetX(0);
+        setAvatarOffsetY(0);
+        setAvatarNaturalSize(null);
+        setAvatarPreviewSize(null);
+        endDragAvatar();
+    };
 
-		    const handleResetCover = () => {
-		        setCoverUrl("");
-		        setCoverDraftUrl("");
-		        setCoverEditorOpen(false);
-		        setCoverZoom(1);
-		        setCoverOffsetX(0);
-		        setCoverOffsetY(0);
-		        setCoverNaturalSize(null);
-		        setCoverPreviewSize(null);
-		        setCoverAspectRatio(null);
-		    };
+    const handleResetCover = () => {
+        setCoverUrl("");
+        setCoverDraftUrl("");
+        setCoverEditorOpen(false);
+        setCoverZoom(1);
+        setCoverOffsetX(0);
+        setCoverOffsetY(0);
+        setCoverNaturalSize(null);
+        setCoverPreviewSize(null);
+        setCoverAspectRatio(null);
+    };
 
-	    const clamp = (value: number, min: number, max: number) => Math.min(Math.max(value, min), max);
+    const clamp = (value: number, min: number, max: number) => Math.min(Math.max(value, min), max);
 
-	    type BoxSize = { width: number; height: number };
+    type BoxSize = { width: number; height: number };
 
-	    const computeTransform = (
-	        container: BoxSize,
-	        natural: BoxSize,
-	        zoom: number,
-	        offsetX: number,
-	        offsetY: number,
-	    ) => {
-	        const baseScale = Math.max(container.width / natural.width, container.height / natural.height);
-	        const scale = baseScale * zoom;
-	        const scaledW = natural.width * scale;
-	        const scaledH = natural.height * scale;
-	        const maxX = Math.max(0, (scaledW - container.width) / 2);
-	        const maxY = Math.max(0, (scaledH - container.height) / 2);
-	        const safeOffsetX = clamp(offsetX, -1, 1);
-	        const safeOffsetY = clamp(offsetY, -1, 1);
-	        return {
-	            scale,
-	            maxX,
-	            maxY,
-	            offsetPxX: safeOffsetX * maxX,
-	            offsetPxY: safeOffsetY * maxY,
-	        };
-	    };
+    const computeTransform = (
+        container: BoxSize,
+        natural: BoxSize,
+        zoom: number,
+        offsetX: number,
+        offsetY: number,
+    ) => {
+        const baseScale = Math.max(container.width / natural.width, container.height / natural.height);
+        const scale = baseScale * zoom;
+        const scaledW = natural.width * scale;
+        const scaledH = natural.height * scale;
+        const maxX = Math.max(0, (scaledW - container.width) / 2);
+        const maxY = Math.max(0, (scaledH - container.height) / 2);
+        const safeOffsetX = clamp(offsetX, -1, 1);
+        const safeOffsetY = clamp(offsetY, -1, 1);
+        return {
+            scale,
+            maxX,
+            maxY,
+            offsetPxX: safeOffsetX * maxX,
+            offsetPxY: safeOffsetY * maxY,
+        };
+    };
 
-	    const startDragCover = (clientX: number, clientY: number) => {
-	        if (!coverPreviewRef.current || !coverNaturalSize) return;
-	        const rect = coverPreviewRef.current.getBoundingClientRect();
-	        const { offsetPxX, offsetPxY } = computeTransform(
-	            { width: rect.width, height: rect.height },
-	            coverNaturalSize,
-	            coverZoom,
-	            coverOffsetX,
-	            coverOffsetY,
-	        );
-	        dragStartRef.current = { x: clientX, y: clientY, offsetPxX, offsetPxY };
-	        setIsDraggingCover(true);
-	    };
+    const startDragCover = (clientX: number, clientY: number) => {
+        if (!coverPreviewRef.current || !coverNaturalSize) return;
+        const rect = coverPreviewRef.current.getBoundingClientRect();
+        const { offsetPxX, offsetPxY } = computeTransform(
+            { width: rect.width, height: rect.height },
+            coverNaturalSize,
+            coverZoom,
+            coverOffsetX,
+            coverOffsetY,
+        );
+        dragStartRef.current = { x: clientX, y: clientY, offsetPxX, offsetPxY };
+        setIsDraggingCover(true);
+    };
 
-	    const moveDragCover = (clientX: number, clientY: number) => {
-	        if (!isDraggingCover || !dragStartRef.current || !coverPreviewRef.current || !coverNaturalSize) return;
-	        const rect = coverPreviewRef.current.getBoundingClientRect();
-	        const dxPx = clientX - dragStartRef.current.x;
-	        const dyPx = clientY - dragStartRef.current.y;
-	        const { maxX, maxY } = computeTransform(
-	            { width: rect.width, height: rect.height },
-	            coverNaturalSize,
-	            coverZoom,
-	            0,
-	            0,
-	        );
-	        const nextOffsetPxX = clamp(dragStartRef.current.offsetPxX + dxPx, -maxX, maxX);
-	        const nextOffsetPxY = clamp(dragStartRef.current.offsetPxY + dyPx, -maxY, maxY);
-	        setCoverOffsetX(maxX ? nextOffsetPxX / maxX : 0);
-	        setCoverOffsetY(maxY ? nextOffsetPxY / maxY : 0);
-	    };
+    const moveDragCover = (clientX: number, clientY: number) => {
+        if (!isDraggingCover || !dragStartRef.current || !coverPreviewRef.current || !coverNaturalSize) return;
+        const rect = coverPreviewRef.current.getBoundingClientRect();
+        const dxPx = clientX - dragStartRef.current.x;
+        const dyPx = clientY - dragStartRef.current.y;
+        const { maxX, maxY } = computeTransform(
+            { width: rect.width, height: rect.height },
+            coverNaturalSize,
+            coverZoom,
+            0,
+            0,
+        );
+        const nextOffsetPxX = clamp(dragStartRef.current.offsetPxX + dxPx, -maxX, maxX);
+        const nextOffsetPxY = clamp(dragStartRef.current.offsetPxY + dyPx, -maxY, maxY);
+        setCoverOffsetX(maxX ? nextOffsetPxX / maxX : 0);
+        setCoverOffsetY(maxY ? nextOffsetPxY / maxY : 0);
+    };
 
     const endDragCover = () => {
         setIsDraggingCover(false);
         dragStartRef.current = null;
     };
 
-	    const startDragAvatar = (clientX: number, clientY: number) => {
-	        if (!avatarPreviewRef.current || !avatarNaturalSize) return;
-	        const rect = avatarPreviewRef.current.getBoundingClientRect();
-	        const { offsetPxX, offsetPxY } = computeTransform(
-	            { width: rect.width, height: rect.height },
-	            avatarNaturalSize,
-	            avatarZoom,
-	            avatarOffsetX,
-	            avatarOffsetY,
-	        );
-	        dragAvatarRef.current = { x: clientX, y: clientY, offsetPxX, offsetPxY };
-	        setIsDraggingAvatar(true);
-	    };
+    const startDragAvatar = (clientX: number, clientY: number) => {
+        if (!avatarPreviewRef.current || !avatarNaturalSize) return;
+        const rect = avatarPreviewRef.current.getBoundingClientRect();
+        const { offsetPxX, offsetPxY } = computeTransform(
+            { width: rect.width, height: rect.height },
+            avatarNaturalSize,
+            avatarZoom,
+            avatarOffsetX,
+            avatarOffsetY,
+        );
+        dragAvatarRef.current = { x: clientX, y: clientY, offsetPxX, offsetPxY };
+        setIsDraggingAvatar(true);
+    };
 
-	    const moveDragAvatar = (clientX: number, clientY: number) => {
-	        if (!isDraggingAvatar || !dragAvatarRef.current || !avatarPreviewRef.current || !avatarNaturalSize) return;
-	        const rect = avatarPreviewRef.current.getBoundingClientRect();
-	        const dxPx = clientX - dragAvatarRef.current.x;
-	        const dyPx = clientY - dragAvatarRef.current.y;
-	        const { maxX, maxY } = computeTransform(
-	            { width: rect.width, height: rect.height },
-	            avatarNaturalSize,
-	            avatarZoom,
-	            0,
-	            0,
-	        );
-	        const nextOffsetPxX = clamp(dragAvatarRef.current.offsetPxX + dxPx, -maxX, maxX);
-	        const nextOffsetPxY = clamp(dragAvatarRef.current.offsetPxY + dyPx, -maxY, maxY);
-	        setAvatarOffsetX(maxX ? nextOffsetPxX / maxX : 0);
-	        setAvatarOffsetY(maxY ? nextOffsetPxY / maxY : 0);
-	    };
+    const moveDragAvatar = (clientX: number, clientY: number) => {
+        if (!isDraggingAvatar || !dragAvatarRef.current || !avatarPreviewRef.current || !avatarNaturalSize) return;
+        const rect = avatarPreviewRef.current.getBoundingClientRect();
+        const dxPx = clientX - dragAvatarRef.current.x;
+        const dyPx = clientY - dragAvatarRef.current.y;
+        const { maxX, maxY } = computeTransform(
+            { width: rect.width, height: rect.height },
+            avatarNaturalSize,
+            avatarZoom,
+            0,
+            0,
+        );
+        const nextOffsetPxX = clamp(dragAvatarRef.current.offsetPxX + dxPx, -maxX, maxX);
+        const nextOffsetPxY = clamp(dragAvatarRef.current.offsetPxY + dyPx, -maxY, maxY);
+        setAvatarOffsetX(maxX ? nextOffsetPxX / maxX : 0);
+        setAvatarOffsetY(maxY ? nextOffsetPxY / maxY : 0);
+    };
 
-	    const endDragAvatar = () => {
-	        setIsDraggingAvatar(false);
-	        dragAvatarRef.current = null;
-	    };
+    const endDragAvatar = () => {
+        setIsDraggingAvatar(false);
+        dragAvatarRef.current = null;
+    };
 
-	    const coverPreviewTransform =
-	        coverPreviewSize && coverNaturalSize
-	            ? computeTransform(coverPreviewSize, coverNaturalSize, coverZoom, coverOffsetX, coverOffsetY)
-	            : null;
+    const coverPreviewTransform =
+        coverPreviewSize && coverNaturalSize
+            ? computeTransform(coverPreviewSize, coverNaturalSize, coverZoom, coverOffsetX, coverOffsetY)
+            : null;
 
-	    const avatarPreviewTransform =
-	        avatarPreviewSize && avatarNaturalSize
-	            ? computeTransform(avatarPreviewSize, avatarNaturalSize, avatarZoom, avatarOffsetX, avatarOffsetY)
-	            : null;
+    const avatarPreviewTransform =
+        avatarPreviewSize && avatarNaturalSize
+            ? computeTransform(avatarPreviewSize, avatarNaturalSize, avatarZoom, avatarOffsetX, avatarOffsetY)
+            : null;
 
     const saveAvatar = async (dataUrl: string) => {
         try {
@@ -1219,11 +1219,11 @@ export default function DiccionarioDevApp() {
         }
     };
 
-	    const applyAvatarEdits = async () => {
-	        if (!avatarDraftUrl) return;
-	        const img = new window.Image();
-	        img.src = avatarDraftUrl;
-	        await new Promise((resolve) => {
+    const applyAvatarEdits = async () => {
+        if (!avatarDraftUrl) return;
+        const img = new window.Image();
+        img.src = avatarDraftUrl;
+        await new Promise((resolve) => {
             img.onload = resolve;
         });
 
@@ -1234,82 +1234,82 @@ export default function DiccionarioDevApp() {
         const ctx = canvas.getContext("2d");
         if (!ctx) return;
         ctx.imageSmoothingEnabled = true;
-	        ctx.imageSmoothingQuality = "high";
+        ctx.imageSmoothingQuality = "high";
 
-	        const baseScale = Math.max(target / img.width, target / img.height);
-	        const scale = baseScale * avatarZoom;
-	        const scaledW = img.width * scale;
-	        const scaledH = img.height * scale;
-	        const maxX = Math.max(0, (scaledW - target) / 2);
-	        const maxY = Math.max(0, (scaledH - target) / 2);
-	        const offsetXPx = clamp(avatarOffsetX, -1, 1) * maxX;
-	        const offsetYPx = clamp(avatarOffsetY, -1, 1) * maxY;
-	        const dx = (target - scaledW) / 2 + offsetXPx;
-	        const dy = (target - scaledH) / 2 + offsetYPx;
+        const baseScale = Math.max(target / img.width, target / img.height);
+        const scale = baseScale * avatarZoom;
+        const scaledW = img.width * scale;
+        const scaledH = img.height * scale;
+        const maxX = Math.max(0, (scaledW - target) / 2);
+        const maxY = Math.max(0, (scaledH - target) / 2);
+        const offsetXPx = clamp(avatarOffsetX, -1, 1) * maxX;
+        const offsetYPx = clamp(avatarOffsetY, -1, 1) * maxY;
+        const dx = (target - scaledW) / 2 + offsetXPx;
+        const dy = (target - scaledH) / 2 + offsetYPx;
 
-	        ctx.drawImage(img, dx, dy, scaledW, scaledH);
-	
-		        const dataUrl = canvas.toDataURL("image/jpeg", 0.85);
-	        await saveAvatar(dataUrl);
-	        setAvatarEditorOpen(false);
-	        setAvatarDraftUrl("");
-	        setAvatarNaturalSize(null);
-	        setAvatarPreviewSize(null);
-	        setAvatarZoom(1);
-	        setAvatarOffsetX(0);
-	        setAvatarOffsetY(0);
-	    };
+        ctx.drawImage(img, dx, dy, scaledW, scaledH);
 
-	    const applyCoverEdits = async () => {
-	        if (!coverDraftUrl) return;
-	        const img = new window.Image();
-	        img.src = coverDraftUrl;
-	        await new Promise((resolve) => {
+        const dataUrl = canvas.toDataURL("image/jpeg", 0.85);
+        await saveAvatar(dataUrl);
+        setAvatarEditorOpen(false);
+        setAvatarDraftUrl("");
+        setAvatarNaturalSize(null);
+        setAvatarPreviewSize(null);
+        setAvatarZoom(1);
+        setAvatarOffsetX(0);
+        setAvatarOffsetY(0);
+    };
+
+    const applyCoverEdits = async () => {
+        if (!coverDraftUrl) return;
+        const img = new window.Image();
+        img.src = coverDraftUrl;
+        await new Promise((resolve) => {
             img.onload = resolve;
         });
 
-	        const targetW = 2400;
-	        const displayRect = coverDisplayRef.current?.getBoundingClientRect();
-	        const ratio = displayRect
-	            ? displayRect.width / displayRect.height
-	            : (coverPreviewSize ? coverPreviewSize.width / coverPreviewSize.height : (2400 / 720));
-	        const targetH = Math.max(1, Math.round(targetW / Math.max(0.1, ratio)));
-	        const canvas = document.createElement("canvas");
-	        canvas.width = targetW;
-	        canvas.height = targetH;
-	        const ctx = canvas.getContext("2d");
-	        if (!ctx) return;
+        const targetW = 2400;
+        const displayRect = coverDisplayRef.current?.getBoundingClientRect();
+        const ratio = displayRect
+            ? displayRect.width / displayRect.height
+            : (coverPreviewSize ? coverPreviewSize.width / coverPreviewSize.height : (2400 / 720));
+        const targetH = Math.max(1, Math.round(targetW / Math.max(0.1, ratio)));
+        const canvas = document.createElement("canvas");
+        canvas.width = targetW;
+        canvas.height = targetH;
+        const ctx = canvas.getContext("2d");
+        if (!ctx) return;
         ctx.imageSmoothingEnabled = true;
         ctx.imageSmoothingQuality = "high";
 
-	        const baseScale = Math.max(targetW / img.width, targetH / img.height);
-	        const scale = baseScale * coverZoom;
-	        const scaledW = img.width * scale;
-	        const scaledH = img.height * scale;
+        const baseScale = Math.max(targetW / img.width, targetH / img.height);
+        const scale = baseScale * coverZoom;
+        const scaledW = img.width * scale;
+        const scaledH = img.height * scale;
 
-	        const maxX = Math.max(0, (scaledW - targetW) / 2);
-	        const maxY = Math.max(0, (scaledH - targetH) / 2);
-	        const offsetXPx = clamp(coverOffsetX, -1, 1) * maxX;
-	        const offsetYPx = clamp(coverOffsetY, -1, 1) * maxY;
+        const maxX = Math.max(0, (scaledW - targetW) / 2);
+        const maxY = Math.max(0, (scaledH - targetH) / 2);
+        const offsetXPx = clamp(coverOffsetX, -1, 1) * maxX;
+        const offsetYPx = clamp(coverOffsetY, -1, 1) * maxY;
 
-	        const dx = (targetW - scaledW) / 2 + offsetXPx;
-	        const dy = (targetH - scaledH) / 2 + offsetYPx;
+        const dx = (targetW - scaledW) / 2 + offsetXPx;
+        const dy = (targetH - scaledH) / 2 + offsetYPx;
 
         ctx.fillStyle = "#0f172a";
         ctx.fillRect(0, 0, targetW, targetH);
         ctx.drawImage(img, dx, dy, scaledW, scaledH);
 
-	        const dataUrl = canvas.toDataURL("image/jpeg", 0.95);
-		        setCoverUrl(dataUrl);
-		        setCoverEditorOpen(false);
-		        setCoverDraftUrl("");
-		        setCoverNaturalSize(null);
-		        setCoverPreviewSize(null);
-		        setCoverZoom(1);
-		        setCoverOffsetX(0);
-		        setCoverOffsetY(0);
-		        setCoverAspectRatio(null);
-		    };
+        const dataUrl = canvas.toDataURL("image/jpeg", 0.95);
+        setCoverUrl(dataUrl);
+        setCoverEditorOpen(false);
+        setCoverDraftUrl("");
+        setCoverNaturalSize(null);
+        setCoverPreviewSize(null);
+        setCoverZoom(1);
+        setCoverOffsetX(0);
+        setCoverOffsetY(0);
+        setCoverAspectRatio(null);
+    };
 
     type SpeechRecognitionLike = {
         abort?: () => void;
@@ -1685,10 +1685,10 @@ export default function DiccionarioDevApp() {
     }
 
     return (
-	        <div id="inicio" className="dd-home min-h-screen bg-white dark:bg-slate-950 text-slate-900 dark:text-slate-200 font-sans selection:bg-emerald-500/30 relative overflow-x-hidden">
+        <div id="inicio" className="dd-home min-h-screen bg-white dark:bg-slate-950 text-slate-900 dark:text-slate-200 font-sans selection:bg-emerald-500/30 relative overflow-x-hidden">
 
-	            {/* --- Cheat Sheet Slide-over --- */}
-	            <div className={`fixed inset-y-0 right-0 w-full md:w-96 bg-slate-900/95 backdrop-blur-xl border-l border-slate-800 shadow-2xl transform transition-transform duration-300 ease-in-out z-100 ${showCheatSheet ? 'translate-x-0' : 'translate-x-full'}`}>
+            {/* --- Cheat Sheet Slide-over --- */}
+            <div className={`fixed inset-y-0 right-0 w-full md:w-96 bg-slate-900/95 backdrop-blur-xl border-l border-slate-800 shadow-2xl transform transition-transform duration-300 ease-in-out z-100 ${showCheatSheet ? 'translate-x-0' : 'translate-x-full'}`}>
                 <div className="h-full flex flex-col">
                     <div className="flex items-center justify-between p-6 border-b border-slate-800">
                         <h2 className="text-lg sm:text-xl font-bold text-white flex items-center gap-2">
@@ -1707,10 +1707,10 @@ export default function DiccionarioDevApp() {
                                 <h3 className="text-xs lg:text-sm font-bold uppercase text-slate-500 mb-3 flex items-center gap-2">
                                     <Code2 className="h-4 w-4 lg:h-5 lg:w-5" /> Sintaxis Rápida
                                 </h3>
-	                                <div className="bg-[#282a36] rounded-lg p-3 border border-slate-800 text-xs lg:text-sm font-mono overflow-x-hidden whitespace-pre-wrap wrap-break-word sm:overflow-x-auto sm:whitespace-pre">
-	                                    {activeVariant ? activeVariant.snippet.split('\n')[0] : 'Sintaxis no disponible'}
-	                                </div>
-	                            </div>
+                                <div className="bg-[#282a36] rounded-lg p-3 border border-slate-800 text-xs lg:text-sm font-mono overflow-x-hidden whitespace-pre-wrap wrap-break-word sm:overflow-x-auto sm:whitespace-pre">
+                                    {activeVariant ? activeVariant.snippet.split('\n')[0] : 'Sintaxis no disponible'}
+                                </div>
+                            </div>
 
                             {/* Quick Tips */}
                             <div>
@@ -1866,94 +1866,94 @@ export default function DiccionarioDevApp() {
                         </div>
 
                         {/* Perfil del usuario (solo si hay sesión) */}
-					                        {session && (
-					                            <section className="relative mt-4 sm:mt-6 rounded-2xl border border-neo-border bg-neo-card/70 shadow-inner overflow-visible dark:border-slate-800 dark:bg-slate-900/70">
-						                                <div className="relative">
-					                                    <div ref={coverDisplayRef} className="relative h-28 sm:h-36 w-full rounded-t-2xl overflow-visible">
-				                                        <div className="absolute inset-0 overflow-hidden rounded-t-2xl">
-				                                            {!coverUrl && (
-				                                                <div className="absolute inset-0 bg-linear-to-r from-emerald-600 via-cyan-600 to-blue-700" />
-				                                            )}
-				                                            {coverUrl && (
-				                                                // eslint-disable-next-line @next/next/no-img-element
-				                                                <img src={coverUrl} alt="Portada" className="absolute inset-0 block h-full w-full object-cover" />
-				                                            )}
-				                                        </div>
-					                                        <button
-					                                            onClick={() => coverInputRef.current?.click()}
-					                                            className="absolute right-3 top-3 inline-flex h-11 w-11 items-center justify-center rounded-full text-white/90 transition hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/70"
-					                                            aria-label="Cambiar portada"
-					                                        >
-					                                            <Camera className="h-5 w-5 drop-shadow-[0_2px_8px_rgba(0,0,0,0.7)]" />
-					                                        </button>
-				                                        <input
-				                                            ref={coverInputRef}
-				                                            type="file"
-				                                            accept="image/*"
-				                                            className="hidden"
-				                                            onChange={handleCoverUpload}
-				                                        />
-					                                        <Link
-					                                            href={profileHref}
-					                                            className="absolute left-1/2 bottom-0 z-30 -translate-x-1/2 translate-y-1/2 sm:left-6 sm:translate-x-0"
-					                                        >
-					                                            <div className="relative h-16 w-16 sm:h-20 sm:w-20 rounded-full border-2 border-white/70 bg-neo-surface overflow-visible shadow-xl ring-2 ring-white/20 hover:scale-105 transition shrink-0 dark:bg-slate-800">
-					                                                {avatarPreview || session.avatarUrl ? (
-					                                                    // eslint-disable-next-line @next/next/no-img-element
-					                                                    <img
-				                                                        src={avatarPreview || session.avatarUrl || ""}
-				                                                        alt={session.displayName || session.username}
-				                                                        className="h-full w-full object-cover rounded-full"
-				                                                    />
-				                                                ) : (
-				                                                    <div className="flex h-full w-full items-center justify-center bg-emerald-500/20 text-emerald-100 font-bold text-lg sm:text-xl rounded-full">
-				                                                        {(session.displayName || session.username).substring(0, 2).toUpperCase()}
-				                                                    </div>
-				                                                )}
-					                                                <button
-					                                                    onClick={(e) => {
-					                                                        e.preventDefault();
-					                                                        avatarInputRef.current?.click();
-					                                                    }}
-					                                                    className="absolute -bottom-2 -right-2 inline-flex h-9 w-9 items-center justify-center rounded-full text-white/90 transition hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/70"
-					                                                    aria-label="Cambiar foto de perfil"
-					                                                >
-					                                                    <Camera className="h-4 w-4 lg:h-5 lg:w-5 drop-shadow-[0_2px_8px_rgba(0,0,0,0.7)]" />
-					                                                </button>
-				                                                <input
-				                                                    ref={avatarInputRef}
-				                                                    type="file"
-				                                                    accept="image/*"
-				                                                    className="hidden"
-				                                                    onChange={handleAvatarUpload}
-				                                                />
-					                                            </div>
-					                                        </Link>
-					                                    </div>
-					                                </div>
-								                                <div className="relative z-10 overflow-hidden rounded-b-2xl bg-neo-card/70 px-4 sm:px-6 pb-4 pt-14 sm:pt-4 backdrop-blur-md border-t border-neo-border/70 dark:bg-black/55 dark:border-white/10">
-					                                    <div className="flex flex-col items-center gap-1 text-center sm:items-start sm:gap-2 sm:text-left sm:pl-24">
-					                                        <Link
-					                                            href={profileHref}
-					                                            className="block group"
-					                                        >
-						                                            <h3 className="text-lg sm:text-xl font-bold text-emerald-700 leading-tight drop-shadow-none transition-colors group-hover:text-emerald-600 dark:text-emerald-400 dark:drop-shadow-[0_2px_10px_rgba(0,0,0,0.65)] dark:group-hover:text-emerald-300">
-						                                                {session.displayName || session.username}
-					                                            </h3>
-				                                        </Link>
-				                                        <p className="text-sm lg:text-base text-slate-700 line-clamp-2 dark:text-slate-200/90">
-			                                            {session.bio || "Completa tu bio para que otros sepan en qué estás trabajando."}
-					                                        </p>
-					                                    </div>
-					                                </div>
-				                            </section>
-				                        )}
+                        {session && (
+                            <section className="relative mt-4 sm:mt-6 rounded-2xl border border-neo-border bg-neo-card/70 shadow-inner overflow-visible dark:border-slate-800 dark:bg-slate-900/70">
+                                <div className="relative">
+                                    <div ref={coverDisplayRef} className="relative h-28 sm:h-36 w-full rounded-t-2xl overflow-visible">
+                                        <div className="absolute inset-0 overflow-hidden rounded-t-2xl">
+                                            {!coverUrl && (
+                                                <div className="absolute inset-0 bg-linear-to-r from-emerald-600 via-cyan-600 to-blue-700" />
+                                            )}
+                                            {coverUrl && (
+                                                // eslint-disable-next-line @next/next/no-img-element
+                                                <img src={coverUrl} alt="Portada" className="absolute inset-0 block h-full w-full object-cover" />
+                                            )}
+                                        </div>
+                                        <button
+                                            onClick={() => coverInputRef.current?.click()}
+                                            className="absolute right-3 top-3 inline-flex h-11 w-11 items-center justify-center rounded-full text-white/90 transition hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/70"
+                                            aria-label="Cambiar portada"
+                                        >
+                                            <Camera className="h-5 w-5 drop-shadow-[0_2px_8px_rgba(0,0,0,0.7)]" />
+                                        </button>
+                                        <input
+                                            ref={coverInputRef}
+                                            type="file"
+                                            accept="image/*"
+                                            className="hidden"
+                                            onChange={handleCoverUpload}
+                                        />
+                                        <Link
+                                            href={profileHref}
+                                            className="absolute left-1/2 bottom-0 z-30 -translate-x-1/2 translate-y-1/2 sm:left-6 sm:translate-x-0"
+                                        >
+                                            <div className="relative h-16 w-16 sm:h-20 sm:w-20 rounded-full border-2 border-white/70 bg-neo-surface overflow-visible shadow-xl ring-2 ring-white/20 hover:scale-105 transition shrink-0 dark:bg-slate-800">
+                                                {avatarPreview || session.avatarUrl ? (
+                                                    // eslint-disable-next-line @next/next/no-img-element
+                                                    <img
+                                                        src={avatarPreview || session.avatarUrl || ""}
+                                                        alt={session.displayName || session.username}
+                                                        className="h-full w-full object-cover rounded-full"
+                                                    />
+                                                ) : (
+                                                    <div className="flex h-full w-full items-center justify-center bg-emerald-500/20 text-emerald-100 font-bold text-lg sm:text-xl rounded-full">
+                                                        {(session.displayName || session.username).substring(0, 2).toUpperCase()}
+                                                    </div>
+                                                )}
+                                                <button
+                                                    onClick={(e) => {
+                                                        e.preventDefault();
+                                                        avatarInputRef.current?.click();
+                                                    }}
+                                                    className="absolute -bottom-2 -right-2 inline-flex h-9 w-9 items-center justify-center rounded-full text-white/90 transition hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/70"
+                                                    aria-label="Cambiar foto de perfil"
+                                                >
+                                                    <Camera className="h-4 w-4 lg:h-5 lg:w-5 drop-shadow-[0_2px_8px_rgba(0,0,0,0.7)]" />
+                                                </button>
+                                                <input
+                                                    ref={avatarInputRef}
+                                                    type="file"
+                                                    accept="image/*"
+                                                    className="hidden"
+                                                    onChange={handleAvatarUpload}
+                                                />
+                                            </div>
+                                        </Link>
+                                    </div>
+                                </div>
+                                <div className="relative z-10 overflow-hidden rounded-b-2xl bg-neo-card/70 px-4 sm:px-6 pb-4 pt-14 sm:pt-4 backdrop-blur-md border-t border-neo-border/70 dark:bg-black/55 dark:border-white/10">
+                                    <div className="flex flex-col items-center gap-1 text-center sm:items-start sm:gap-2 sm:text-left sm:pl-24">
+                                        <Link
+                                            href={profileHref}
+                                            className="block group"
+                                        >
+                                            <h3 className="text-lg sm:text-xl font-bold text-emerald-700 leading-tight drop-shadow-none transition-colors group-hover:text-emerald-600 dark:text-emerald-400 dark:drop-shadow-[0_2px_10px_rgba(0,0,0,0.65)] dark:group-hover:text-emerald-300">
+                                                {session.displayName || session.username}
+                                            </h3>
+                                        </Link>
+                                        <p className="text-sm lg:text-base text-slate-700 line-clamp-2 dark:text-slate-200/90">
+                                            {session.bio || "Completa tu bio para que otros sepan en qué estás trabajando."}
+                                        </p>
+                                    </div>
+                                </div>
+                            </section>
+                        )}
 
                         {/* Mobile nav */}
-	                        <div className="flex flex-wrap items-center gap-2 md:hidden pb-1">
-	                            {navLinks.map((link) => (
-	                                <a
-	                                    key={link.href}
+                        <div className="flex flex-wrap items-center gap-2 md:hidden pb-1">
+                            {navLinks.map((link) => (
+                                <a
+                                    key={link.href}
                                     href={link.href}
                                     className="rounded-full border border-slate-800 bg-slate-900/60 px-3 py-1.5 text-[11px] font-semibold uppercase tracking-wide text-slate-300 transition-all hover:border-emerald-500/40 hover:text-white"
                                 >
@@ -1964,20 +1964,20 @@ export default function DiccionarioDevApp() {
                     </div>
 
                     {/* Context Selectors */}
-	                    <div className="mt-4 grid grid-cols-2 gap-2 pb-1 sm:flex sm:flex-wrap">
-	                        {CONTEXT_OPTIONS.map((ctx) => {
-	                            const isActive = searchContext === ctx.id;
-	                            return (
-	                                <button
-	                                    key={ctx.id}
-	                                    type="button"
-	                                    onClick={() => handleContextSelect(ctx.id)}
-	                                    aria-pressed={isActive}
-	                                    className={`group flex items-center gap-2 rounded-full border px-4 py-1.5 text-sm lg:text-base font-medium transition-all ${isActive
-	                                        ? `${ctx.activeBg} text-white dark:shadow-[0_10px_30px_rgba(16,185,129,0.12)]`
-	                                        : "border-slate-800 bg-slate-900/50 text-slate-300 hover:border-slate-700 hover:bg-slate-800 hover:text-white"
-	                                        }`}
-	                                >
+                    <div className="mt-4 grid grid-cols-2 gap-2 pb-1 sm:flex sm:flex-wrap">
+                        {CONTEXT_OPTIONS.map((ctx) => {
+                            const isActive = searchContext === ctx.id;
+                            return (
+                                <button
+                                    key={ctx.id}
+                                    type="button"
+                                    onClick={() => handleContextSelect(ctx.id)}
+                                    aria-pressed={isActive}
+                                    className={`group flex items-center gap-2 rounded-full border px-4 py-1.5 text-sm lg:text-base font-medium transition-all ${isActive
+                                        ? `${ctx.activeBg} text-white dark:shadow-[0_10px_30px_rgba(16,185,129,0.12)]`
+                                        : "border-slate-800 bg-slate-900/50 text-slate-300 hover:border-slate-700 hover:bg-slate-800 hover:text-white"
+                                        }`}
+                                >
                                     <ctx.icon className={`h-4 w-4 lg:h-5 lg:w-5 ${ctx.color} ${isActive ? "" : "opacity-90"}`} />
                                     <span>{ctx.label}</span>
                                     {isActive && (
@@ -1998,32 +1998,32 @@ export default function DiccionarioDevApp() {
                         </div>
                     )}
 
-	                    {/* Search Bar Omnibox */}
-	                    <div className="mt-6 relative group z-50">
-	                        {/* Glow Effect Background */}
-	                        <div className={`absolute -inset-0.5 hidden rounded-2xl bg-linear-to-r from-emerald-500 via-cyan-500 to-blue-600 opacity-20 blur transition duration-500 group-hover:opacity-40 dark:block ${searchTerm ? 'opacity-50' : ''}`}></div>
+                    {/* Search Bar Omnibox */}
+                    <div className="mt-6 relative group z-50">
+                        {/* Glow Effect Background */}
+                        <div className={`absolute -inset-0.5 hidden rounded-2xl bg-linear-to-r from-emerald-500 via-cyan-500 to-blue-600 opacity-20 blur transition duration-500 group-hover:opacity-40 dark:block ${searchTerm ? 'opacity-50' : ''}`}></div>
 
-	                        <div className="absolute inset-y-0 left-0 flex items-center pl-4 sm:pl-5 pointer-events-none z-10">
-	                            {isCodeMode ? (
-	                                <Code2 className="h-5 w-5 sm:h-6 sm:w-6 text-blue-400 animate-pulse" />
-	                            ) : (
-	                                <Search className={`h-5 w-5 sm:h-6 sm:w-6 transition-colors ${loading ? "text-emerald-400 animate-pulse" : "text-slate-400 group-focus-within:text-emerald-400"}`} />
-	                            )}
-	                        </div>
-		                        <input
-		                            ref={searchInputRef}
-		                            type="text"
-		                            placeholder={getPlaceholder()}
-		                            className={`relative w-full rounded-2xl border-2 py-4 sm:py-5 pl-12 sm:pl-14 pr-20 sm:pr-24 text-base sm:text-lg lg:text-xl font-medium text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-500 shadow-none dark:shadow-2xl backdrop-blur-xl transition-all focus:outline-none focus:ring-0 ${isCodeMode
-		                                ? "bg-slate-900/90 border-blue-500/50 focus:border-blue-500 dark:shadow-blue-500/20"
-		                                : isListening
-		                                    ? "bg-slate-900/90 border-red-500/50 focus:border-red-500 animate-pulse"
-	                                    : "bg-white border-2 border-slate-900 dark:border-slate-700 hover:border-black dark:hover:border-slate-600 focus:bg-white dark:focus:bg-slate-900 focus:border-emerald-600 dark:focus:border-emerald-500 dark:shadow-emerald-500/10"
-	                                }`}
-	                            value={searchTerm}
-	                            onChange={(e) => setSearchTerm(e.target.value)}
-	                            onFocus={() => {
-	                                if (!searchTerm) setShowHistory(true);
+                        <div className="absolute inset-y-0 left-0 flex items-center pl-4 sm:pl-5 pointer-events-none z-10">
+                            {isCodeMode ? (
+                                <Code2 className="h-5 w-5 sm:h-6 sm:w-6 text-blue-400 animate-pulse" />
+                            ) : (
+                                <Search className={`h-5 w-5 sm:h-6 sm:w-6 transition-colors ${loading ? "text-emerald-400 animate-pulse" : "text-slate-400 group-focus-within:text-emerald-400"}`} />
+                            )}
+                        </div>
+                        <input
+                            ref={searchInputRef}
+                            type="text"
+                            placeholder={getPlaceholder()}
+                            className={`relative w-full rounded-2xl border-2 py-4 sm:py-5 pl-12 sm:pl-14 pr-20 sm:pr-24 text-base sm:text-lg lg:text-xl font-medium text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-500 shadow-none dark:shadow-2xl backdrop-blur-xl transition-all focus:outline-none focus:ring-0 ${isCodeMode
+                                ? "bg-slate-900/90 border-blue-500/50 focus:border-blue-500 dark:shadow-blue-500/20"
+                                : isListening
+                                    ? "bg-slate-900/90 border-red-500/50 focus:border-red-500 animate-pulse"
+                                    : "bg-white border-2 border-slate-900 dark:border-slate-700 hover:border-black dark:hover:border-slate-600 focus:bg-white dark:focus:bg-slate-900 focus:border-emerald-600 dark:focus:border-emerald-500 dark:shadow-emerald-500/10"
+                                }`}
+                            value={searchTerm}
+                            onChange={(e) => setSearchTerm(e.target.value)}
+                            onFocus={() => {
+                                if (!searchTerm) setShowHistory(true);
                             }}
                             onBlur={() => setTimeout(() => setShowHistory(false), 200)}
                             onKeyDown={handleKeyDown}
@@ -2173,9 +2173,9 @@ export default function DiccionarioDevApp() {
                     </div>
 
                     {/* Quick Tags */}
-	                    <div className="mt-3 flex flex-wrap gap-2 text-xs lg:text-sm">
-	                        {["#react", "#hooks", "#typescript", "#docker", "#aws"].map((tag) => (
-	                            <span
+                    <div className="mt-3 flex flex-wrap gap-2 text-xs lg:text-sm">
+                        {["#react", "#hooks", "#typescript", "#docker", "#aws"].map((tag) => (
+                            <span
                                 key={tag}
                                 className="cursor-pointer rounded px-2 py-1 text-slate-700 dark:text-slate-500 font-medium hover:bg-slate-200 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-emerald-400 transition-colors"
                                 onClick={() => setSearchTerm(tag.replace("#", ""))}
@@ -2221,21 +2221,21 @@ export default function DiccionarioDevApp() {
                 />
 
                 {/* Drawer */}
-		                <div
-		                    className={`dd-mobile-menu absolute top-2 bottom-2 left-0 w-[82vw] max-w-80 rounded-2xl border border-neo-border bg-linear-to-b from-neo-bg via-neo-bg/95 to-neo-surface shadow-2xl overflow-hidden transform transition-transform duration-300 ease-out ${showMobileMenu ? "translate-x-0" : "-translate-x-full"}`}
-		                    role="dialog"
-		                    aria-modal="true"
-		                    aria-label="Menú"
-		                >
-	                    <div className="flex h-full flex-col">
+                <div
+                    className={`dd-mobile-menu absolute top-2 bottom-2 left-0 w-[82vw] max-w-80 rounded-2xl border border-neo-border bg-linear-to-b from-neo-bg via-neo-bg/95 to-neo-surface shadow-2xl overflow-hidden transform transition-transform duration-300 ease-out ${showMobileMenu ? "translate-x-0" : "-translate-x-full"}`}
+                    role="dialog"
+                    aria-modal="true"
+                    aria-label="Menú"
+                >
+                    <div className="flex h-full flex-col">
                         <div className="flex items-center justify-between gap-3 border-b border-neo-border/70 px-4 py-3">
                             <div className="flex items-center gap-3 min-w-0">
                                 <ThemeLogo width={34} height={34} className="shrink-0 rounded-xl" />
                                 <div className="flex flex-col min-w-0 justify-center leading-tight">
-	                                    <p className="mb-0.5 text-[9px] font-bold uppercase tracking-[0.2em] text-neo-text-secondary leading-none">Diccionario</p>
-	                                    <h1 className="text-base font-bold tracking-tight text-neo-text-primary leading-none">
-	                                        Dev
-	                                    </h1>
+                                    <p className="mb-0.5 text-[9px] font-bold uppercase tracking-[0.2em] text-neo-text-secondary leading-none">Diccionario</p>
+                                    <h1 className="text-base font-bold tracking-tight text-neo-text-primary leading-none">
+                                        Dev
+                                    </h1>
                                 </div>
                             </div>
                             <div className="flex items-center gap-2">
@@ -2251,10 +2251,10 @@ export default function DiccionarioDevApp() {
                             </div>
                         </div>
 
-	                        <div className="flex-1 overflow-y-auto p-4 space-y-4 no-scrollbar">
-	                            {session ? (
-		                                <Link
-		                                    href={profileHref}
+                        <div className="flex-1 overflow-y-auto p-4 space-y-4 no-scrollbar">
+                            {session ? (
+                                <Link
+                                    href={profileHref}
                                     className="flex items-center gap-3 rounded-2xl border border-neo-border bg-neo-card/70 px-3 py-3 transition-colors hover:border-neo-primary/40 hover:bg-neo-card"
                                     onClick={() => setShowMobileMenu(false)}
                                 >
@@ -2276,13 +2276,13 @@ export default function DiccionarioDevApp() {
                                         <span className="absolute bottom-0 right-0 z-20 h-2.5 w-2.5 rounded-full bg-emerald-500 ring-2 ring-neo-card" />
                                     </span>
                                     <div className="flex flex-col leading-tight min-w-0">
-	                                        <span className="text-sm font-semibold text-neo-text-primary wrap-break-word line-clamp-2">
-	                                            {session.displayName || session.username}
-	                                        </span>
-	                                        <span className="text-[10px] text-neo-text-secondary wrap-break-word">@{session.username}</span>
-	                                    </div>
-	                                </Link>
-	                            ) : null}
+                                        <span className="text-sm font-semibold text-neo-text-primary wrap-break-word line-clamp-2">
+                                            {session.displayName || session.username}
+                                        </span>
+                                        <span className="text-[10px] text-neo-text-secondary wrap-break-word">@{session.username}</span>
+                                    </div>
+                                </Link>
+                            ) : null}
 
                             <div className="rounded-2xl border border-neo-border bg-neo-card/70 p-3 space-y-2">
                                 <div className="flex items-center justify-between">
@@ -2318,8 +2318,8 @@ export default function DiccionarioDevApp() {
                                                 <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-neo-surface text-neo-text-secondary">
                                                     <IconComp className="h-5 w-5" />
                                                 </span>
-	                                                <span className="leading-tight wrap-break-word">{link.label}</span>
-	                                            </span>
+                                                <span className="leading-tight wrap-break-word">{link.label}</span>
+                                            </span>
                                         </a>
                                     );
                                 })}
@@ -2342,7 +2342,7 @@ export default function DiccionarioDevApp() {
                                                     className={`flex items-center justify-between gap-3 rounded-2xl border px-3 py-2.5 text-sm font-semibold transition-colors ${isEmphasis
                                                         ? "border-neo-primary/30 bg-neo-primary/10 text-neo-primary hover:border-neo-primary/50"
                                                         : "border-neo-border bg-neo-card/70 text-neo-text-primary hover:border-neo-primary/40 hover:bg-neo-card"
-                                                    }`}
+                                                        }`}
                                                 >
                                                     <span className="flex items-center gap-3 min-w-0">
                                                         <span className={`flex h-9 w-9 items-center justify-center rounded-xl ${isEmphasis
@@ -2390,347 +2390,376 @@ export default function DiccionarioDevApp() {
                                             </button>
                                         );
                                     })}
-	                                </div>
-	                            </div>
-	                        </div>
-
-	                        <div className="border-t border-neo-border/70 px-4 py-3">
-	                            <div className="flex items-center justify-between gap-3">
-	                                <span className="text-[11px] font-semibold uppercase tracking-[0.18em] text-neo-text-secondary">Redes</span>
-	                                <div className="flex items-center gap-2">
-	                                    <a
-	                                        href="https://github.com"
-	                                        aria-label="GitHub"
-	                                        className="flex h-10 w-10 items-center justify-center rounded-full border border-neo-border bg-neo-card/60 text-neo-text-secondary transition hover:-translate-y-0.5 hover:border-neo-primary/60 hover:text-neo-primary"
-	                                    >
-	                                        <Github className="h-5 w-5" />
-	                                    </a>
-	                                    <a
-	                                        href="https://twitter.com"
-	                                        aria-label="Twitter"
-	                                        className="flex h-10 w-10 items-center justify-center rounded-full border border-neo-border bg-neo-card/60 text-neo-text-secondary transition hover:-translate-y-0.5 hover:border-neo-primary/60 hover:text-neo-primary"
-	                                    >
-	                                        <Twitter className="h-5 w-5" />
-	                                    </a>
-	                                    <a
-	                                        href="https://linkedin.com"
-	                                        aria-label="LinkedIn"
-	                                        className="flex h-10 w-10 items-center justify-center rounded-full border border-neo-border bg-neo-card/60 text-neo-text-secondary transition hover:-translate-y-0.5 hover:border-neo-primary/60 hover:text-neo-primary"
-	                                    >
-	                                        <Linkedin className="h-5 w-5" />
-	                                    </a>
-	                                </div>
-	                            </div>
-	                        </div>
-	                    </div>
-	                </div>
-	            </div>
-
-		            {/* Editor de portada */}
-		            {coverEditorOpen && (
-		                <div className="fixed inset-0 z-130 flex items-center justify-center px-4">
-		                    <div className="absolute inset-0 bg-black/80 backdrop-blur-sm" onClick={cancelCoverEdit} />
-			                    <div className="relative flex max-h-[90vh] w-full max-w-7xl flex-col overflow-hidden rounded-2xl border border-neo-border bg-neo-card shadow-2xl 2xl:max-w-[1600px]">
-		                        <div className="flex items-center justify-between border-b border-neo-border px-4 py-3">
-		                            <div className="flex items-center gap-2">
-		                                <Sparkles className="h-5 w-5 text-neo-primary" />
-		                                <p className="text-sm lg:text-base font-semibold text-neo-text-primary">Ajustar portada</p>
-		                            </div>
-		                            <button
-		                                onClick={cancelCoverEdit}
-		                                className="h-9 w-9 rounded-xl border border-neo-border bg-neo-surface text-neo-text-secondary"
-		                                aria-label="Cerrar editor"
-		                            >
-		                                <X className="h-5 w-5" />
-	                            </button>
-	                        </div>
-
-		                        <div className="flex-1 overflow-y-auto">
-		                            <div className="grid gap-4 p-4">
-			                            <div className="rounded-2xl border border-neo-border bg-neo-surface p-3">
-			                                <div
-			                                    ref={coverPreviewRef}
-			                                    className={`relative w-full touch-none overflow-hidden rounded-lg border border-white/70 bg-slate-900 ring-2 ring-white/20 ${isDraggingCover ? "cursor-grabbing" : "cursor-grab"}`}
-			                                    style={coverAspectRatio ? { aspectRatio: String(coverAspectRatio) } : undefined}
-			                                    onMouseDown={(e) => startDragCover(e.clientX, e.clientY)}
-			                                    onMouseMove={(e) => moveDragCover(e.clientX, e.clientY)}
-			                                    onMouseUp={endDragCover}
-			                                    onMouseLeave={endDragCover}
-			                                    onTouchStart={(e) => {
-		                                        const touch = e.touches[0];
-		                                        if (touch) startDragCover(touch.clientX, touch.clientY);
-		                                    }}
-		                                    onTouchMove={(e) => {
-		                                        e.preventDefault();
-		                                        const touch = e.touches[0];
-		                                        if (touch) moveDragCover(touch.clientX, touch.clientY);
-		                                    }}
-		                                    onTouchEnd={endDragCover}
-		                                >
-		                                    {coverDraftUrl && coverPreviewTransform ? (
-		                                        // eslint-disable-next-line @next/next/no-img-element
-		                                        <img
-		                                            src={coverDraftUrl}
-		                                            alt="Portada"
-		                                            draggable={false}
-		                                            className="absolute left-1/2 top-1/2 max-w-none select-none"
-		                                            style={{
-		                                                transform: `translate(-50%, -50%) translate(${coverPreviewTransform.offsetPxX}px, ${coverPreviewTransform.offsetPxY}px) scale(${coverPreviewTransform.scale})`,
-		                                                willChange: "transform",
-		                                            }}
-		                                        />
-		                                    ) : coverDraftUrl ? (
-		                                        // eslint-disable-next-line @next/next/no-img-element
-		                                        <img src={coverDraftUrl} alt="Portada" className="absolute inset-0 h-full w-full object-cover" />
-		                                    ) : null}
-		                                    <div className="pointer-events-none absolute inset-0 rounded-lg ring-1 ring-white/20" />
-		                                </div>
-	                                <p className="mt-2 text-xs lg:text-sm text-neo-text-secondary">Arrastra para reubicar y ajusta el zoom (mismo flujo que Avatar).</p>
-	                            </div>
-
-		                            <div className="rounded-2xl border border-neo-border bg-neo-surface p-3 space-y-3">
-                                <div>
-                                    <label className="text-xs lg:text-sm font-semibold text-neo-text-primary">Zoom</label>
-                                    <input
-                                        type="range"
-                                        min={1}
-                                        max={3}
-                                        step={0.05}
-                                        value={coverZoom}
-                                        onChange={(e) => setCoverZoom(parseFloat(e.target.value))}
-                                        className="w-full accent-neo-primary"
-                                    />
                                 </div>
-                                <div className="flex flex-wrap gap-2">
-                                    <button
-                                        onClick={() => {
-                                            setCoverZoom(1);
-                                            setCoverOffsetX(0);
-                                            setCoverOffsetY(0);
-                                        }}
-                                        className="rounded-lg border border-neo-border bg-neo-bg px-3 py-2 text-xs lg:text-sm lg:px-4 lg:py-2.5 font-semibold text-neo-text-secondary hover:border-neo-primary/40 hover:text-neo-text-primary transition"
-                                    >
-                                        Reajustar
-                                    </button>
-	                                    <button
-	                                        onClick={cancelCoverEdit}
-	                                        className="rounded-lg border border-neo-border bg-neo-card px-3 py-2 text-xs lg:text-sm lg:px-4 lg:py-2.5 font-semibold text-neo-text-secondary hover:border-neo-text-secondary hover:text-neo-text-primary transition"
-	                                    >
-	                                        Cancelar
-	                                    </button>
-                                    <button
-                                        onClick={applyCoverEdits}
-                                        className="flex-1 rounded-lg bg-neo-primary px-3 py-2 text-xs lg:text-sm lg:px-4 lg:py-2.5 font-semibold text-white shadow-lg shadow-neo-primary/25 transition hover:brightness-110"
-                                    >
-                                        Guardar portada
-                                    </button>
-                                    <button
-                                        onClick={handleResetCover}
-                                        className="rounded-lg border border-neo-border bg-neo-bg px-3 py-2 text-xs lg:text-sm lg:px-4 lg:py-2.5 font-semibold text-neo-text-secondary hover:border-neo-primary/40 hover:text-neo-text-primary transition"
-                                    >
-                                        Restablecer
-                                    </button>
-                                </div>
-	                            </div>
-	                            </div>
-	                        </div>
-	                    </div>
-	                </div>
-	            )}
-		            {/* Editor de avatar */}
-		            {avatarEditorOpen && (
-		                <div className="fixed inset-0 z-140 flex items-center justify-center px-4">
-		                    <div className="absolute inset-0 bg-black/80 backdrop-blur-sm" onClick={cancelAvatarEdit} />
-			                    <div className="relative flex max-h-[90vh] w-full max-w-7xl flex-col overflow-hidden rounded-2xl border border-neo-border bg-neo-card shadow-2xl 2xl:max-w-[1600px]">
-		                        <div className="flex items-center justify-between border-b border-neo-border px-4 py-3">
-		                            <div className="flex items-center gap-2">
-		                                <Sparkles className="h-5 w-5 text-neo-primary" />
-		                                <p className="text-sm lg:text-base font-semibold text-neo-text-primary">Ajustar foto</p>
-		                            </div>
-		                            <button
-		                                onClick={cancelAvatarEdit}
-		                                className="h-9 w-9 rounded-xl border border-neo-border bg-neo-surface text-neo-text-secondary"
-		                                aria-label="Cerrar editor"
-		                            >
-		                                <X className="h-5 w-5" />
-	                            </button>
-		                        </div>
-
-			                        <div className="flex-1 overflow-y-auto">
-			                            <div className="grid gap-4 p-4">
-			                            <div className="rounded-2xl border border-neo-border bg-neo-surface p-3">
-		                                <div
-		                                    ref={avatarPreviewRef}
-		                                    className={`relative mx-auto h-56 w-56 touch-none overflow-hidden rounded-full border border-white/70 bg-slate-900 ring-2 ring-white/20 sm:h-64 sm:w-64 ${isDraggingAvatar ? "cursor-grabbing" : "cursor-grab"}`}
-		                                    onMouseDown={(e) => startDragAvatar(e.clientX, e.clientY)}
-		                                    onMouseMove={(e) => moveDragAvatar(e.clientX, e.clientY)}
-		                                    onMouseUp={endDragAvatar}
-		                                    onMouseLeave={endDragAvatar}
-		                                    onTouchStart={(e) => {
-		                                        const touch = e.touches[0];
-		                                        if (touch) startDragAvatar(touch.clientX, touch.clientY);
-		                                    }}
-		                                    onTouchMove={(e) => {
-		                                        e.preventDefault();
-		                                        const touch = e.touches[0];
-		                                        if (touch) moveDragAvatar(touch.clientX, touch.clientY);
-		                                    }}
-		                                    onTouchEnd={endDragAvatar}
-		                                >
-		                                    {avatarDraftUrl && avatarPreviewTransform ? (
-		                                        // eslint-disable-next-line @next/next/no-img-element
-		                                        <img
-		                                            src={avatarDraftUrl}
-		                                            alt="Avatar"
-		                                            draggable={false}
-		                                            className="absolute left-1/2 top-1/2 max-w-none select-none"
-		                                            style={{
-		                                                transform: `translate(-50%, -50%) translate(${avatarPreviewTransform.offsetPxX}px, ${avatarPreviewTransform.offsetPxY}px) scale(${avatarPreviewTransform.scale})`,
-		                                                willChange: "transform",
-		                                            }}
-		                                        />
-		                                    ) : avatarDraftUrl ? (
-		                                        // eslint-disable-next-line @next/next/no-img-element
-		                                        <img src={avatarDraftUrl} alt="Avatar" className="absolute inset-0 h-full w-full object-cover" />
-		                                    ) : null}
-		                                    <div className="pointer-events-none absolute inset-0 rounded-full ring-1 ring-white/20" />
-		                                </div>
-                                <p className="mt-2 text-xs lg:text-sm text-neo-text-secondary">Arrastra para reubicar y ajusta el zoom (igual que en Admin).</p>
                             </div>
+                        </div>
 
-		                            <div className="rounded-2xl border border-neo-border bg-neo-surface p-3 space-y-3">
-                                <div>
-                                    <label className="text-xs lg:text-sm font-semibold text-neo-text-primary">Zoom</label>
-                                    <input
-                                        type="range"
-                                        min={1}
-                                        max={3}
-                                        step={0.05}
-                                        value={avatarZoom}
-                                        onChange={(e) => setAvatarZoom(parseFloat(e.target.value))}
-                                        className="w-full accent-neo-primary"
-                                    />
+                        <div className="border-t border-neo-border/70 px-4 py-3">
+                            <div className="flex items-center justify-between gap-3">
+                                <span className="text-[11px] font-semibold uppercase tracking-[0.18em] text-neo-text-secondary">Redes</span>
+                                <div className="flex items-center gap-2">
+                                    <a
+                                        href="https://github.com"
+                                        aria-label="GitHub"
+                                        className="flex h-10 w-10 items-center justify-center rounded-full border border-neo-border bg-neo-card/60 text-neo-text-secondary transition hover:-translate-y-0.5 hover:border-neo-primary/60 hover:text-neo-primary"
+                                    >
+                                        <Github className="h-5 w-5" />
+                                    </a>
+                                    <a
+                                        href="https://twitter.com"
+                                        aria-label="Twitter"
+                                        className="flex h-10 w-10 items-center justify-center rounded-full border border-neo-border bg-neo-card/60 text-neo-text-secondary transition hover:-translate-y-0.5 hover:border-neo-primary/60 hover:text-neo-primary"
+                                    >
+                                        <Twitter className="h-5 w-5" />
+                                    </a>
+                                    <a
+                                        href="https://linkedin.com"
+                                        aria-label="LinkedIn"
+                                        className="flex h-10 w-10 items-center justify-center rounded-full border border-neo-border bg-neo-card/60 text-neo-text-secondary transition hover:-translate-y-0.5 hover:border-neo-primary/60 hover:text-neo-primary"
+                                    >
+                                        <Linkedin className="h-5 w-5" />
+                                    </a>
                                 </div>
-                                <div className="flex flex-wrap gap-2">
-                                    <button
-                                        onClick={() => {
-                                            setAvatarZoom(1);
-                                            setAvatarOffsetX(0);
-                                            setAvatarOffsetY(0);
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            {/* Editor de portada */}
+            {coverEditorOpen && (
+                <div className="fixed inset-0 z-130 flex items-center justify-center px-4">
+                    <div className="absolute inset-0 bg-black/80 backdrop-blur-sm" onClick={cancelCoverEdit} />
+                    <div className="relative flex max-h-[90vh] w-full max-w-7xl flex-col overflow-hidden rounded-2xl border border-neo-border bg-neo-card shadow-2xl 2xl:max-w-[1600px]">
+                        <div className="flex items-center justify-between border-b border-neo-border px-4 py-3">
+                            <div className="flex items-center gap-2">
+                                <Sparkles className="h-5 w-5 text-neo-primary" />
+                                <p className="text-sm lg:text-base font-semibold text-neo-text-primary">Ajustar portada</p>
+                            </div>
+                            <button
+                                onClick={cancelCoverEdit}
+                                className="h-9 w-9 rounded-xl border border-neo-border bg-neo-surface text-neo-text-secondary"
+                                aria-label="Cerrar editor"
+                            >
+                                <X className="h-5 w-5" />
+                            </button>
+                        </div>
+
+                        <div className="flex-1 overflow-y-auto">
+                            <div className="grid gap-4 p-4">
+                                <div className="rounded-2xl border border-neo-border bg-neo-surface p-3">
+                                    <div
+                                        ref={coverPreviewRef}
+                                        className={`relative w-full touch-none overflow-hidden rounded-lg border border-white/70 bg-slate-900 ring-2 ring-white/20 ${isDraggingCover ? "cursor-grabbing" : "cursor-grab"}`}
+                                        style={coverAspectRatio ? { aspectRatio: String(coverAspectRatio) } : undefined}
+                                        onMouseDown={(e) => startDragCover(e.clientX, e.clientY)}
+                                        onMouseMove={(e) => moveDragCover(e.clientX, e.clientY)}
+                                        onMouseUp={endDragCover}
+                                        onMouseLeave={endDragCover}
+                                        onTouchStart={(e) => {
+                                            const touch = e.touches[0];
+                                            if (touch) startDragCover(touch.clientX, touch.clientY);
                                         }}
-                                        className="rounded-lg border border-neo-border bg-neo-bg px-3 py-2 text-xs lg:text-sm lg:px-4 lg:py-2.5 font-semibold text-neo-text-secondary hover:border-neo-primary/40 hover:text-neo-text-primary transition-colors"
+                                        onTouchMove={(e) => {
+                                            e.preventDefault();
+                                            const touch = e.touches[0];
+                                            if (touch) moveDragCover(touch.clientX, touch.clientY);
+                                        }}
+                                        onTouchEnd={endDragCover}
                                     >
-                                        Reajustar
-                                    </button>
-	                                    <button
-	                                        onClick={cancelAvatarEdit}
-	                                        className="rounded-lg border border-neo-border bg-neo-card px-3 py-2 text-xs lg:text-sm lg:px-4 lg:py-2.5 font-semibold text-neo-text-secondary hover:border-neo-text-secondary hover:text-neo-text-primary transition-colors"
-	                                    >
-	                                        Cancelar
-	                                    </button>
-                                    <button
-                                        onClick={applyAvatarEdits}
-                                        className="flex-1 rounded-lg bg-neo-primary px-3 py-2 text-xs lg:text-sm lg:px-4 lg:py-2.5 font-semibold text-white shadow-lg shadow-neo-primary/25 transition-colors hover:brightness-110"
-                                    >
-                                        Guardar foto
-                                    </button>
+                                        {coverDraftUrl && coverPreviewTransform ? (
+                                            // eslint-disable-next-line @next/next/no-img-element
+                                            <img
+                                                src={coverDraftUrl}
+                                                alt="Portada"
+                                                draggable={false}
+                                                className="absolute left-1/2 top-1/2 max-w-none select-none"
+                                                style={{
+                                                    transform: `translate(-50%, -50%) translate(${coverPreviewTransform.offsetPxX}px, ${coverPreviewTransform.offsetPxY}px) scale(${coverPreviewTransform.scale})`,
+                                                    willChange: "transform",
+                                                }}
+                                            />
+                                        ) : coverDraftUrl ? (
+                                            // eslint-disable-next-line @next/next/no-img-element
+                                            <img src={coverDraftUrl} alt="Portada" className="absolute inset-0 h-full w-full object-cover" />
+                                        ) : null}
+                                        <div className="pointer-events-none absolute inset-0 rounded-lg ring-1 ring-white/20" />
+                                    </div>
+                                    <p className="mt-2 text-xs lg:text-sm text-neo-text-secondary">Arrastra para reubicar y ajusta el zoom (mismo flujo que Avatar).</p>
                                 </div>
-	                            </div>
-	                            </div>
-	                        </div>
-	                    </div>
-	                </div>
-	            )}
+
+                                <div className="rounded-2xl border border-neo-border bg-neo-surface p-3 space-y-3">
+                                    <div>
+                                        <label className="text-xs lg:text-sm font-semibold text-neo-text-primary">Zoom</label>
+                                        <input
+                                            type="range"
+                                            min={1}
+                                            max={3}
+                                            step={0.05}
+                                            value={coverZoom}
+                                            onChange={(e) => setCoverZoom(parseFloat(e.target.value))}
+                                            className="w-full accent-neo-primary"
+                                        />
+                                    </div>
+                                    <div className="flex flex-wrap gap-2">
+                                        <button
+                                            onClick={() => {
+                                                setCoverZoom(1);
+                                                setCoverOffsetX(0);
+                                                setCoverOffsetY(0);
+                                            }}
+                                            className="rounded-lg border border-neo-border bg-neo-bg px-3 py-2 text-xs lg:text-sm lg:px-4 lg:py-2.5 font-semibold text-neo-text-secondary hover:border-neo-primary/40 hover:text-neo-text-primary transition"
+                                        >
+                                            Reajustar
+                                        </button>
+                                        <button
+                                            onClick={cancelCoverEdit}
+                                            className="rounded-lg border border-neo-border bg-neo-card px-3 py-2 text-xs lg:text-sm lg:px-4 lg:py-2.5 font-semibold text-neo-text-secondary hover:border-neo-text-secondary hover:text-neo-text-primary transition"
+                                        >
+                                            Cancelar
+                                        </button>
+                                        <button
+                                            onClick={applyCoverEdits}
+                                            className="flex-1 rounded-lg bg-neo-primary px-3 py-2 text-xs lg:text-sm lg:px-4 lg:py-2.5 font-semibold text-white shadow-lg shadow-neo-primary/25 transition hover:brightness-110"
+                                        >
+                                            Guardar portada
+                                        </button>
+                                        <button
+                                            onClick={handleResetCover}
+                                            className="rounded-lg border border-neo-border bg-neo-bg px-3 py-2 text-xs lg:text-sm lg:px-4 lg:py-2.5 font-semibold text-neo-text-secondary hover:border-neo-primary/40 hover:text-neo-text-primary transition"
+                                        >
+                                            Restablecer
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            )}
+            {/* Editor de avatar */}
+            {avatarEditorOpen && (
+                <div className="fixed inset-0 z-140 flex items-center justify-center px-4">
+                    <div className="absolute inset-0 bg-black/80 backdrop-blur-sm" onClick={cancelAvatarEdit} />
+                    <div className="relative flex max-h-[90vh] w-full max-w-7xl flex-col overflow-hidden rounded-2xl border border-neo-border bg-neo-card shadow-2xl 2xl:max-w-[1600px]">
+                        <div className="flex items-center justify-between border-b border-neo-border px-4 py-3">
+                            <div className="flex items-center gap-2">
+                                <Sparkles className="h-5 w-5 text-neo-primary" />
+                                <p className="text-sm lg:text-base font-semibold text-neo-text-primary">Ajustar foto</p>
+                            </div>
+                            <button
+                                onClick={cancelAvatarEdit}
+                                className="h-9 w-9 rounded-xl border border-neo-border bg-neo-surface text-neo-text-secondary"
+                                aria-label="Cerrar editor"
+                            >
+                                <X className="h-5 w-5" />
+                            </button>
+                        </div>
+
+                        <div className="flex-1 overflow-y-auto">
+                            <div className="grid gap-4 p-4">
+                                <div className="rounded-2xl border border-neo-border bg-neo-surface p-3">
+                                    <div
+                                        ref={avatarPreviewRef}
+                                        className={`relative mx-auto h-56 w-56 touch-none overflow-hidden rounded-full border border-white/70 bg-slate-900 ring-2 ring-white/20 sm:h-64 sm:w-64 ${isDraggingAvatar ? "cursor-grabbing" : "cursor-grab"}`}
+                                        onMouseDown={(e) => startDragAvatar(e.clientX, e.clientY)}
+                                        onMouseMove={(e) => moveDragAvatar(e.clientX, e.clientY)}
+                                        onMouseUp={endDragAvatar}
+                                        onMouseLeave={endDragAvatar}
+                                        onTouchStart={(e) => {
+                                            const touch = e.touches[0];
+                                            if (touch) startDragAvatar(touch.clientX, touch.clientY);
+                                        }}
+                                        onTouchMove={(e) => {
+                                            e.preventDefault();
+                                            const touch = e.touches[0];
+                                            if (touch) moveDragAvatar(touch.clientX, touch.clientY);
+                                        }}
+                                        onTouchEnd={endDragAvatar}
+                                    >
+                                        {avatarDraftUrl && avatarPreviewTransform ? (
+                                            // eslint-disable-next-line @next/next/no-img-element
+                                            <img
+                                                src={avatarDraftUrl}
+                                                alt="Avatar"
+                                                draggable={false}
+                                                className="absolute left-1/2 top-1/2 max-w-none select-none"
+                                                style={{
+                                                    transform: `translate(-50%, -50%) translate(${avatarPreviewTransform.offsetPxX}px, ${avatarPreviewTransform.offsetPxY}px) scale(${avatarPreviewTransform.scale})`,
+                                                    willChange: "transform",
+                                                }}
+                                            />
+                                        ) : avatarDraftUrl ? (
+                                            // eslint-disable-next-line @next/next/no-img-element
+                                            <img src={avatarDraftUrl} alt="Avatar" className="absolute inset-0 h-full w-full object-cover" />
+                                        ) : null}
+                                        <div className="pointer-events-none absolute inset-0 rounded-full ring-1 ring-white/20" />
+                                    </div>
+                                    <p className="mt-2 text-xs lg:text-sm text-neo-text-secondary">Arrastra para reubicar y ajusta el zoom (igual que en Admin).</p>
+                                </div>
+
+                                <div className="rounded-2xl border border-neo-border bg-neo-surface p-3 space-y-3">
+                                    <div>
+                                        <label className="text-xs lg:text-sm font-semibold text-neo-text-primary">Zoom</label>
+                                        <input
+                                            type="range"
+                                            min={1}
+                                            max={3}
+                                            step={0.05}
+                                            value={avatarZoom}
+                                            onChange={(e) => setAvatarZoom(parseFloat(e.target.value))}
+                                            className="w-full accent-neo-primary"
+                                        />
+                                    </div>
+                                    <div className="flex flex-wrap gap-2">
+                                        <button
+                                            onClick={() => {
+                                                setAvatarZoom(1);
+                                                setAvatarOffsetX(0);
+                                                setAvatarOffsetY(0);
+                                            }}
+                                            className="rounded-lg border border-neo-border bg-neo-bg px-3 py-2 text-xs lg:text-sm lg:px-4 lg:py-2.5 font-semibold text-neo-text-secondary hover:border-neo-primary/40 hover:text-neo-text-primary transition-colors"
+                                        >
+                                            Reajustar
+                                        </button>
+                                        <button
+                                            onClick={cancelAvatarEdit}
+                                            className="rounded-lg border border-neo-border bg-neo-card px-3 py-2 text-xs lg:text-sm lg:px-4 lg:py-2.5 font-semibold text-neo-text-secondary hover:border-neo-text-secondary hover:text-neo-text-primary transition-colors"
+                                        >
+                                            Cancelar
+                                        </button>
+                                        <button
+                                            onClick={applyAvatarEdits}
+                                            className="flex-1 rounded-lg bg-neo-primary px-3 py-2 text-xs lg:text-sm lg:px-4 lg:py-2.5 font-semibold text-white shadow-lg shadow-neo-primary/25 transition-colors hover:brightness-110"
+                                        >
+                                            Guardar foto
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            )}
             {showSearchExplainer && (
                 <>
-	                    {/* --- Search Explainer --- */}
-	                    <section className="mx-auto w-full max-w-7xl 2xl:max-w-[1600px] px-4 lg:px-6 xl:px-8 2xl:px-12 mt-4">
-	                        <div className="relative overflow-hidden rounded-2xl border-2 border-slate-900 dark:border-slate-800 bg-white dark:bg-slate-900/70 shadow-none dark:shadow-[0_25px_80px_rgba(0,0,0,0.55)] backdrop-blur-xl">
-	                            <div className="absolute -left-24 -top-24 hidden h-56 w-56 bg-emerald-500/20 blur-3xl dark:block" />
-	                            <div className="absolute -right-12 -bottom-20 hidden h-64 w-64 bg-blue-500/20 blur-3xl dark:block" />
-	                            <div className="relative p-6 sm:p-8 space-y-6">
-	                                <div className="grid grid-cols-1 lg:grid-cols-[1fr_auto] gap-4 lg:gap-6 items-start lg:items-center">
-	                                    <div className="space-y-4 w-full min-w-0">
-	                                        <span className="inline-flex items-center gap-2 rounded-full border border-slate-900 dark:border-emerald-500/40 bg-white dark:bg-emerald-500/10 px-3 py-1 text-[11px] lg:text-xs font-bold uppercase tracking-wide text-slate-900 dark:text-emerald-200">
-	                                            <Search className="h-4 w-4 lg:h-5 lg:w-5" />
-	                                            Buscador inteligente
-	                                        </span>
-	                                        <h2 className="text-xl sm:text-3xl lg:text-4xl font-bold text-neo-text-primary dark:text-white leading-tight">
-	                                            Entiende lo que escribes y te devuelve la pieza exacta
-	                                        </h2>
-                                        <p className="text-sm sm:text-base lg:text-lg text-slate-600 dark:text-slate-300 leading-relaxed font-medium">
-                                            Detecta si estás buscando un concepto, una traducción o si pegaste código, para abrir la ficha técnica con ejemplos, previews y buenas prácticas listas para copiar.
-                                        </p>
+                    {/* --- Search Explainer --- */}
+                    <section className="mt-4 sm:mt-8 animate-in fade-in slide-in-from-bottom-6 duration-1000 w-full">
+                        <div className="relative overflow-hidden rounded-[2rem] sm:rounded-[2.5rem] border-2 border-slate-900 dark:border-slate-800 bg-white/40 dark:bg-slate-900/40 backdrop-blur-3xl shadow-[0_32px_120px_-20px_rgba(0,0,0,0.1)] dark:shadow-[0_32px_120px_-20px_rgba(0,0,0,0.8)]">
+                            {/* Decorative background elements */}
+                            <div className="absolute -left-32 -top-32 h-[450px] w-[450px] bg-emerald-500/10 blur-[120px] dark:bg-emerald-500/20 pointer-events-none" />
+                            <div className="absolute -right-32 -bottom-32 h-[450px] w-[450px] bg-indigo-600/10 blur-[120px] dark:bg-indigo-600/20 pointer-events-none" />
+                            <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 h-[600px] w-[600px] bg-cyan-500/5 blur-[140px] dark:bg-cyan-500/10 pointer-events-none" />
+
+                            <div className="relative p-6 sm:p-12 lg:p-16 space-y-12">
+                                <div className="grid grid-cols-1 xl:grid-cols-[1fr_0.8fr] gap-8 lg:gap-12 items-center">
+                                    <div className="space-y-8 w-full">
+                                        <div className="inline-flex items-center gap-3 rounded-full border border-slate-900/10 dark:border-emerald-500/30 bg-white/80 dark:bg-emerald-500/10 px-4 py-1.5 shadow-sm backdrop-blur-xl">
+                                            <div className="relative flex h-2.5 w-2.5">
+                                                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                                                <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-emerald-500"></span>
+                                            </div>
+                                            <span className="text-xs lg:text-sm font-black uppercase tracking-[0.15em] text-slate-800 dark:text-emerald-300">
+                                                Buscador inteligente v2
+                                            </span>
+                                        </div>
+
+                                        <div className="space-y-6">
+                                            <h2 className="text-3xl sm:text-5xl lg:text-6xl font-black text-slate-900 dark:text-white leading-[1.1] tracking-tight">
+                                                Entiende lo que buscas, <br />
+                                                <span className="text-transparent bg-clip-text bg-linear-to-r from-emerald-600 via-cyan-600 to-indigo-600 dark:from-emerald-400 dark:via-cyan-400 dark:to-indigo-400">
+                                                    no solo lo que escribes
+                                                </span>
+                                            </h2>
+                                            <p className="text-lg sm:text-xl lg:text-2xl text-slate-600 dark:text-slate-300 leading-relaxed font-medium max-w-[1000px]">
+                                                Analizamos tu intención en tiempo real: ¿Es un concepto? ¿Una traducción? ¿Un bug? Abre la ficha técnica perfecta con código listo para producción.
+                                            </p>
+                                        </div>
                                     </div>
-		                                    <div className="flex items-center gap-3 sm:gap-4 rounded-2xl border border-slate-900 dark:border-slate-700/60 bg-white dark:bg-slate-800/70 px-4 py-3 sm:px-5 sm:py-4 text-left dark:shadow-inner w-full">
-		                                        <div className="flex h-10 w-10 sm:h-12 sm:w-12 items-center justify-center rounded-xl bg-blue-600 text-white dark:bg-emerald-500/15 dark:text-emerald-300 shrink-0">
-		                                            <ArrowRight className="h-4 w-4 sm:h-5 sm:w-5" />
-		                                        </div>
-		                                        <div className="space-y-1 min-w-0 flex-1">
-		                                            <p className="text-sm lg:text-base font-semibold text-neo-text-primary dark:text-white">Tip rápido</p>
-                                            <p className="text-xs sm:text-sm lg:text-base text-neo-text-secondary dark:text-slate-400">Pega un snippet y el buscador detecta el concepto y abre la ficha adecuada.</p>
+
+                                    {/* Quick Tip Card Premium */}
+                                    <div className="relative group">
+                                        <div className="absolute -inset-0.5 bg-linear-to-r from-emerald-500 to-indigo-600 rounded-3xl blur opacity-20 group-hover:opacity-40 transition duration-1000 group-hover:duration-200 animate-gradient-x"></div>
+                                        <div className="relative flex flex-col gap-6 rounded-3xl border-2 border-slate-900/10 dark:border-slate-800 bg-white dark:bg-slate-950/80 p-8 shadow-2xl backdrop-blur-2xl">
+                                            <div className="flex items-center gap-4">
+                                                <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-indigo-600 text-white shadow-lg shadow-indigo-600/30 dark:bg-emerald-500/20 dark:text-emerald-400 dark:shadow-none">
+                                                    <Sparkles className="h-7 w-7" />
+                                                </div>
+                                                <div>
+                                                    <p className="text-lg lg:text-xl font-black text-slate-900 dark:text-white">Tip profesional</p>
+                                                    <p className="text-xs lg:text-sm font-bold uppercase tracking-widest text-indigo-600 dark:text-emerald-500/80">Ahorra tiempo</p>
+                                                </div>
+                                            </div>
+                                            <div className="space-y-4">
+                                                <p className="text-base lg:text-lg text-slate-600 dark:text-slate-400 leading-relaxed font-medium">
+                                                    No pierdas tiempo navegando. <strong>Pega un fragmento de código</strong> y el motor detectará el hook, la clase CSS o el método para abrir la documentación exacta.
+                                                </p>
+                                                <div className="inline-flex items-center gap-2 group/btn px-4 py-2 rounded-xl bg-slate-900 dark:bg-white text-white dark:text-slate-950 text-sm font-bold transition-all hover:scale-105 active:scale-95 cursor-default">
+                                                    <Command className="h-4 w-4" />
+                                                    <span>Prueba con CMD+K + Pegar</span>
+                                                </div>
+                                            </div>
                                         </div>
                                     </div>
                                 </div>
 
-	                                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-4 gap-3 sm:gap-4 2xl:gap-6">
-	                                    <div className="rounded-xl border-2 border-slate-900 dark:border-slate-800 bg-white dark:bg-slate-900/80 p-4">
-	                                        <div className="flex items-start gap-3">
-		                                            <div className="flex h-9 w-9 sm:h-10 sm:w-10 items-center justify-center rounded-lg bg-emerald-100 dark:bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 shrink-0 border border-emerald-200 dark:border-transparent">
-		                                                <BookOpen className="h-4 w-4 sm:h-5 sm:w-5 lg:h-6 lg:w-6" />
-		                                            </div>
-                                            <div className="space-y-1 min-w-0">
-                                                <p className="text-sm sm:text-base lg:text-lg font-bold text-slate-900 dark:text-white">Define y traduce</p>
-                                                <p className="text-xs sm:text-sm lg:text-base text-slate-700 dark:text-slate-400 font-medium">Términos técnicos en español e inglés con contexto, alias y significados claros.</p>
-                                                <div className="mt-2 flex flex-wrap gap-2 text-[11px] lg:text-xs text-emerald-800 dark:text-emerald-200">
-                                                    <span className="inline-flex items-center gap-1 rounded-full bg-emerald-50 dark:bg-emerald-500/10 px-2 py-1 border border-emerald-200 dark:border-emerald-500/30 font-semibold">
-                                                        <Check className="h-3 w-3 lg:h-4 lg:w-4" /> ES / EN
-                                                    </span>
-                                                    <span className="inline-flex items-center gap-1 rounded-full bg-emerald-50 dark:bg-emerald-500/10 px-2 py-1 border border-emerald-200 dark:border-emerald-500/30 font-semibold">
-                                                        <Check className="h-3 w-3 lg:h-4 lg:w-4" /> Alias y tags
-                                                    </span>
-                                                    <span className="inline-flex items-center gap-1 rounded-full bg-emerald-50 dark:bg-emerald-500/10 px-2 py-1 border border-emerald-200 dark:border-emerald-500/30 font-semibold">
-                                                        <Check className="h-3 w-3 lg:h-4 lg:w-4" /> Historial rápido
-                                                    </span>
+                                {/* Feature Pills */}
+                                <div className="grid grid-cols-1 md:grid-cols-3 gap-6 pt-4">
+                                    {[
+                                        {
+                                            icon: BookOpen,
+                                            title: "Define y Traduce",
+                                            desc: "Contexto técnico puro en ambos idiomas con alias inteligentes.",
+                                            color: "emerald",
+                                            tags: ["ES / EN", "Alias"]
+                                        },
+                                        {
+                                            icon: Code2,
+                                            title: "Neural Code Detection",
+                                            desc: "Detección automática de hooks y utilidades CSS en tus snippets.",
+                                            color: "indigo",
+                                            tags: ["AI Parser", "Live Previews"]
+                                        },
+                                        {
+                                            icon: Brain,
+                                            title: "Contextual Ready",
+                                            desc: "Buenas prácticas, reglas de oro y ejemplos directos a tu editor.",
+                                            color: "cyan",
+                                            tags: ["Clean Code", "Tips"]
+                                        }
+                                    ].map((feature, i) => {
+                                        const colorClasses: Record<string, string> = {
+                                            emerald: "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 ring-emerald-500/20",
+                                            indigo: "bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 ring-indigo-500/20",
+                                            cyan: "bg-cyan-500/10 text-cyan-600 dark:text-cyan-400 ring-cyan-500/20"
+                                        };
+                                        const colorClass = colorClasses[feature.color] || colorClasses.emerald;
+
+                                        return (
+                                            <div key={i} className="group/feature relative rounded-3xl border border-slate-900/5 dark:border-white/5 bg-slate-50/50 dark:bg-white/5 p-8 transition-all hover:bg-white dark:hover:bg-white/10 hover:shadow-2xl hover:-translate-y-1">
+                                                <div className="space-y-6">
+                                                    <div className={`inline-flex h-12 w-12 items-center justify-center rounded-2xl ring-1 ${colorClass}`}>
+                                                        <feature.icon className="h-6 w-6" />
+                                                    </div>
+                                                    <div className="space-y-3">
+                                                        <h3 className="text-xl font-black text-slate-900 dark:text-white leading-tight">
+                                                            {feature.title}
+                                                        </h3>
+                                                        <p className="text-sm lg:text-base text-slate-600 dark:text-slate-400 font-medium leading-relaxed">
+                                                            {feature.desc}
+                                                        </p>
+                                                    </div>
+                                                    <div className="flex flex-wrap gap-2 pt-2">
+                                                        {feature.tags.map((tag, j) => (
+                                                            <span key={j} className="px-3 py-1 rounded-full bg-slate-900/5 dark:bg-white/5 border border-slate-900/10 dark:border-white/10 text-[10px] font-black uppercase tracking-widest text-slate-500 dark:text-slate-400">
+                                                                {tag}
+                                                            </span>
+                                                        ))}
+                                                    </div>
                                                 </div>
                                             </div>
-                                        </div>
-                                    </div>
-
-	                                    <div className="rounded-xl border-2 border-slate-900 dark:border-slate-800 bg-white dark:bg-slate-900/80 p-4">
-	                                        <div className="flex items-start gap-3">
-		                                            <div className="flex h-9 w-9 sm:h-10 sm:w-10 items-center justify-center rounded-lg bg-blue-100 dark:bg-blue-500/15 text-blue-700 dark:text-blue-300 shrink-0 border border-blue-200 dark:border-transparent">
-		                                                <Code2 className="h-4 w-4 sm:h-5 sm:w-5 lg:h-6 lg:w-6" />
-	                                            </div>
-                                            <div className="space-y-1 min-w-0">
-                                                <p className="text-sm sm:text-base lg:text-lg font-bold text-slate-900 dark:text-white">Entiende tu código</p>
-                                                <p className="text-xs sm:text-sm lg:text-base text-slate-700 dark:text-slate-400 font-medium">Detecta hooks, utilidades CSS o APIs pegando un fragmento y muestra el snippet correcto.</p>
-                                                <div className="mt-2 flex flex-wrap gap-2 text-[11px] lg:text-xs text-blue-800 dark:text-blue-100">
-                                                    <span className="inline-flex items-center gap-1 rounded-full bg-blue-50 dark:bg-blue-500/10 px-2 py-1 border border-blue-200 dark:border-blue-500/30 font-semibold">
-                                                        <Check className="h-3 w-3 lg:h-4 lg:w-4" /> Modo código auto
-                                                    </span>
-                                                    <span className="inline-flex items-center gap-1 rounded-full bg-blue-50 dark:bg-blue-500/10 px-2 py-1 border border-blue-200 dark:border-blue-500/30 font-semibold">
-                                                        <Check className="h-3 w-3 lg:h-4 lg:w-4" /> Previews HTML/CSS
-                                                    </span>
-                                                    <span className="inline-flex items-center gap-1 rounded-full bg-blue-50 dark:bg-blue-500/10 px-2 py-1 border border-blue-200 dark:border-blue-500/30 font-semibold">
-                                                        <Check className="h-3 w-3 lg:h-4 lg:w-4" /> Atajos CMD+K
-                                                    </span>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </div>
-
-	                                    <div className="rounded-xl border-2 border-slate-900 dark:border-slate-800 bg-white dark:bg-slate-900/80 p-4 sm:col-span-2 lg:col-span-1">
-	                                        <div className="flex items-start gap-3">
-		                                            <div className="flex h-9 w-9 sm:h-10 sm:w-10 items-center justify-center rounded-lg bg-purple-100 dark:bg-purple-500/15 text-purple-700 dark:text-purple-200 shrink-0 border border-purple-200 dark:border-transparent">
-		                                                <Mic className="h-4 w-4 sm:h-5 sm:w-5 lg:h-6 lg:w-6" />
-		                                            </div>
-                                            <div className="space-y-1 min-w-0">
-                                                <p className="text-sm sm:text-base lg:text-lg font-bold text-slate-900 dark:text-white">Habla o escribe</p>
-                                                <p className="text-xs sm:text-sm lg:text-base text-slate-700 dark:text-slate-400 font-medium">Usa voz, atajos CMD+K o historial para saltar rápido a lo que necesitas.</p>
-                                            </div>
-                                        </div>
-                                    </div>
+                                        );
+                                    })}
                                 </div>
                             </div>
                         </div>
@@ -2746,9 +2775,9 @@ export default function DiccionarioDevApp() {
                             <div className="grid grid-cols-1 lg:grid-cols-[1fr_auto] gap-4 lg:gap-6 items-start">
                                 <div className="min-w-0">
                                     <p className="text-xs lg:text-sm uppercase text-emerald-700 dark:text-emerald-400 font-bold tracking-wider">⭐ {activeTerm.term} — Guía Técnica Definitiva</p>
-	                                    <h2 className="text-xl sm:text-2xl md:text-3xl lg:text-4xl xl:text-5xl font-bold text-slate-900 dark:text-white tracking-tight mt-1 wrap-break-word">
-	                                        {activeTerm.term} {activeTerm.translation ? <span className="text-slate-500 font-medium text-sm sm:text-base lg:text-lg">({activeTerm.translation})</span> : null}
-	                                    </h2>
+                                    <h2 className="text-xl sm:text-2xl md:text-3xl lg:text-4xl xl:text-5xl font-bold text-slate-900 dark:text-white tracking-tight mt-1 wrap-break-word">
+                                        {activeTerm.term} {activeTerm.translation ? <span className="text-slate-500 font-medium text-sm sm:text-base lg:text-lg">({activeTerm.translation})</span> : null}
+                                    </h2>
                                     <div className="mt-4 flex gap-2 flex-wrap text-sm lg:text-base text-slate-500 dark:text-slate-400">
                                         <span className="rounded-full border border-emerald-200 dark:border-emerald-500/30 bg-emerald-100 dark:bg-emerald-500/10 px-3 py-1 text-xs font-bold uppercase tracking-wider text-emerald-800 dark:text-emerald-300">
                                             {activeTerm.category}
